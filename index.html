@@ -6,7 +6,7 @@
 <title>ScorePop — Canlı Skorlar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
 <style>
 /* ── TOKENS ───────────────────────────────────────────────────── */
 :root{
@@ -415,15 +415,81 @@ body::before{
 .pred-winner-name{font-size:14px;font-weight:600}
 
 /* ── RESPONSIVE ──────────────────────────────────────────────── */
-@media(max-width:700px){
-  .match-row{grid-template-columns:60px 1fr auto 1fr 60px;padding:10px 10px}
-  .team-name{max-width:80px;font-size:12px}
+@media(max-width:600px){
+  /* Header */
+  #header{padding:0 10px}
+  .header-inner{gap:8px;height:52px}
+  .logo{font-size:20px;letter-spacing:1px}
+  .nav-tab{padding:5px 8px;font-size:11px}
+  .live-badge{padding:3px 8px;font-size:11px;gap:4px}
+  .live-dot{width:6px;height:6px}
+
+  /* App padding */
+  #app{padding:10px}
+
+  /* Date bar */
+  .date-pill{min-width:58px;padding:6px 10px;font-size:12px}
+
+  /* Filter chips */
+  .filter-bar{gap:6px;margin-bottom:14px}
+  .filter-chip{font-size:11px;padding:4px 10px}
+
+  /* League group */
+  .league-group{margin-bottom:8px;border-radius:10px}
+  .league-header{padding:9px 12px}
+  .league-header-name{font-size:12px}
+
+  /* Match row — ana düzeltme */
+  .match-row{
+    grid-template-columns:44px 1fr auto 1fr 24px;
+    gap:4px;
+    padding:10px 10px 10px 14px;
+  }
+  .match-time .elapsed{font-size:12px}
+  .team-logo{width:20px;height:20px}
+  .team-logo-placeholder{width:20px;height:20px}
+  .team-name{
+    font-size:11px;
+    max-width:none;
+    width:100%;
+  }
+  .team-cell{gap:5px}
+  .score-box{min-width:56px;border-radius:6px}
   .score-num{font-size:15px;padding:5px 8px}
-  .hero-score-num{font-size:38px;padding:10px 14px}
-  .hero-team-logo{width:48px;height:48px}
+  .score-sep{height:24px}
+  .match-status-icon{font-size:10px}
+
+  /* Detail hero */
+  .match-hero{padding:16px}
+  .hero-teams{gap:8px}
+  .hero-team-logo{width:44px;height:44px}
+  .hero-team-name{font-size:13px}
+  .hero-score-num{font-size:36px;padding:8px 12px}
+  .hero-score-sep{height:50px}
+
+  /* Tabs */
+  .detail-tab{font-size:11px;padding:10px 6px}
+
+  /* Visual */
+  .visual-iframe{height:240px}
+
+  /* Lineups */
   .lineups-grid{grid-template-columns:1fr}
-  .pred-grid{grid-template-columns:repeat(3,1fr);gap:8px}
-  .visual-iframe{height:280px}
+
+  /* Predictions */
+  .pred-grid{gap:6px}
+  .pred-pct{font-size:26px}
+  .pred-label{font-size:10px}
+
+  /* H2H */
+  .h2h-row{grid-template-columns:64px 1fr auto 1fr 0;gap:4px;font-size:12px}
+
+  /* Events */
+  .event-item{grid-template-columns:44px 1fr 44px;gap:6px;padding:9px 10px}
+  .event-player{font-size:12px}
+
+  /* Refresh bar */
+  .refresh-bar{bottom:10px;right:10px;padding:6px 10px;font-size:11px}
 }
 
 
@@ -560,7 +626,7 @@ async function loadMatches() {
     if (currentPage === 'live') await loadLive();
     else if (currentPage === 'today') await loadDaily();
     else await loadUpcoming();
-  } catch(e) { console.error(e); }
+  } catch(e) { console.error("catch:", e?.message || JSON.stringify(e)); }
   setRefreshing(false);
 }
 
@@ -569,8 +635,9 @@ async function loadLive() {
     .from('live_matches')
     .select('*')
     .in('status_short',['1H','2H','HT','ET','BT','P','LIVE'])
+    .limit(50)
     .order('league_name');
-  if (error) throw error;
+  if (error) { console.error("Supabase error:", JSON.stringify(error)); throw new Error(error.message || JSON.stringify(error)); }
   document.getElementById('live-count').textContent = `${(data||[]).length} Canlı`;
   renderMatchList(data||[], true);
 }
@@ -581,7 +648,7 @@ async function loadDaily() {
     .select('*')
     .eq('match_date', selectedDate)
     .order('league_name');
-  if (error) throw error;
+  if (error) { console.error("Supabase error:", JSON.stringify(error)); throw new Error(error.message || JSON.stringify(error)); }
   renderMatchList(data||[], false);
 }
 
@@ -591,7 +658,7 @@ async function loadUpcoming() {
     .select('*')
     .eq('date', selectedDate)
     .order('league_id');
-  if (error) throw error;
+  if (error) { console.error("Supabase error:", JSON.stringify(error)); throw new Error(error.message || JSON.stringify(error)); }
   // future_matches has jsonb data column
   const expanded = [];
   (data||[]).forEach(row => {
