@@ -1,48 +1,1074 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ScorePop</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f8f9fa;
-            color: #333;
-            text-align: center;
-        }
-        .container {
-            padding: 40px;
-            background-color: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 10px;
-        }
-        p {
-            color: #7f8c8d;
-            font-size: 1.2em;
-        }
-        .counter {
-            margin-top: 25px;
-        }
-    </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ScorePop — Canlı Skorlar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ── TOKENS ───────────────────────────────────────────────────── */
+:root{
+  --bg:       #070b14;
+  --surface:  #0e1422;
+  --card:     #131929;
+  --card2:    #1a2235;
+  --border:   #1e2d45;
+  --border2:  #243350;
+  --gold:     #f0b429;
+  --gold2:    #e09c10;
+  --live:     #ff3d5a;
+  --green:    #00e096;
+  --blue:     #3d9df0;
+  --text:     #e2eaf5;
+  --muted:    #6b7e99;
+  --muted2:   #4a5a70;
+  --radius:   10px;
+  --radius2:  16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;border:none;background:none;font-family:inherit}
+img{display:block}
+
+/* ── SCROLLBAR ───────────────────────────────────────────────── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ── NOISE OVERLAY ───────────────────────────────────────────── */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;opacity:.4;
+}
+
+/* ── HEADER ──────────────────────────────────────────────────── */
+#header{
+  position:sticky;top:0;z-index:100;
+  background:rgba(7,11,20,.92);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:0 20px;
+}
+.header-inner{
+  max-width:1200px;margin:0 auto;
+  display:flex;align-items:center;gap:24px;height:56px;
+}
+.logo{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:26px;letter-spacing:2px;color:var(--gold);
+  flex-shrink:0;
+}
+.logo span{color:var(--text);opacity:.4}
+.nav-tabs{display:flex;gap:4px;flex:1}
+.nav-tab{
+  padding:6px 14px;border-radius:6px;
+  font-size:13px;font-weight:500;color:var(--muted);
+  transition:all .2s;cursor:pointer;
+}
+.nav-tab:hover{color:var(--text);background:var(--card2)}
+.nav-tab.active{color:var(--gold);background:rgba(240,180,41,.1)}
+.live-badge{
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:600;color:var(--live);
+  background:rgba(255,61,90,.1);
+  border:1px solid rgba(255,61,90,.2);
+  border-radius:20px;padding:4px 12px;margin-left:auto;
+}
+.live-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--live);
+  animation:pulse-dot 1.4s ease-in-out infinite;
+}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+
+/* ── LAYOUT ──────────────────────────────────────────────────── */
+#app{max-width:1200px;margin:0 auto;padding:20px;position:relative;z-index:1}
+
+/* ── DATE BAR ────────────────────────────────────────────────── */
+.date-bar{
+  display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:20px;
+  scrollbar-width:none;
+}
+.date-bar::-webkit-scrollbar{display:none}
+.date-pill{
+  flex-shrink:0;padding:8px 16px;border-radius:8px;
+  border:1px solid var(--border);background:var(--card);
+  font-size:13px;color:var(--muted);cursor:pointer;
+  transition:all .2s;text-align:center;min-width:72px;
+}
+.date-pill:hover{border-color:var(--border2);color:var(--text)}
+.date-pill.active{border-color:var(--gold);background:rgba(240,180,41,.08);color:var(--gold)}
+.date-pill .day{font-weight:600;display:block}
+.date-pill .dow{font-size:11px;opacity:.6;display:block}
+
+/* ── LEAGUE FILTER ───────────────────────────────────────────── */
+.filter-bar{
+  display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center;
+}
+.filter-chip{
+  padding:5px 14px;border-radius:20px;
+  border:1px solid var(--border);background:var(--card);
+  font-size:12px;color:var(--muted);cursor:pointer;
+  transition:all .2s;display:flex;align-items:center;gap:6px;
+}
+.filter-chip:hover{border-color:var(--border2);color:var(--text)}
+.filter-chip.active{border-color:var(--gold);background:rgba(240,180,41,.1);color:var(--gold)}
+.filter-chip img{width:14px;height:14px;border-radius:2px;object-fit:contain}
+.section-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:13px;letter-spacing:2px;color:var(--muted2);
+  padding:0 0 8px;
+}
+
+/* ── LEAGUE GROUP ────────────────────────────────────────────── */
+.league-group{margin-bottom:12px;border-radius:var(--radius2);overflow:hidden;border:1px solid var(--border)}
+.league-header{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;background:var(--card);
+  border-bottom:1px solid var(--border);cursor:pointer;
+}
+.league-header img{width:20px;height:20px;object-fit:contain}
+.league-header-name{font-weight:600;font-size:13px;flex:1}
+.league-match-count{
+  font-size:11px;color:var(--muted);
+  background:var(--card2);border-radius:10px;padding:2px 8px;
+}
+.league-chevron{color:var(--muted2);transition:transform .2s;font-size:12px}
+.league-group.collapsed .league-chevron{transform:rotate(-90deg)}
+.league-group.collapsed .matches-list{display:none}
+
+/* ── MATCH ROW ───────────────────────────────────────────────── */
+.match-row{
+  display:grid;
+  grid-template-columns:70px 1fr auto 1fr 70px;
+  align-items:center;gap:8px;
+  padding:12px 14px;background:var(--card);
+  border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background .15s;
+  position:relative;
+}
+.match-row:last-child{border-bottom:none}
+.match-row:hover{background:var(--card2)}
+.match-row.live-row::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--live);border-radius:0 2px 2px 0;
+}
+.match-time{
+  text-align:center;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;font-weight:600;
+}
+.match-time.live{color:var(--live)}
+.match-time.finished{color:var(--muted)}
+.match-time.scheduled{color:var(--muted)}
+.match-time .elapsed{font-size:14px;display:block}
+.match-time .minute{font-size:11px;opacity:.7;display:block}
+.team-cell{display:flex;align-items:center;gap:8px}
+.team-cell.away{flex-direction:row-reverse}
+.team-logo{width:24px;height:24px;object-fit:contain;flex-shrink:0}
+.team-logo-placeholder{width:24px;height:24px;border-radius:50%;background:var(--border);flex-shrink:0}
+.team-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px}
+.team-cell.away .team-name{text-align:right}
+.score-box{
+  display:flex;align-items:center;gap:0;
+  background:var(--surface);border-radius:8px;
+  border:1px solid var(--border);overflow:hidden;
+  min-width:68px;
+}
+.score-num{
+  flex:1;text-align:center;
+  font-family:'JetBrains Mono',monospace;
+  font-size:18px;font-weight:600;padding:6px 12px;
+  line-height:1;
+}
+.score-sep{
+  width:1px;background:var(--border);height:28px;flex-shrink:0;
+}
+.score-box.live-score{border-color:rgba(255,61,90,.3)}
+.score-box.live-score .score-num{color:var(--live)}
+.match-status-icon{text-align:center;font-size:11px;color:var(--muted)}
+
+/* ── STATS BAR ───────────────────────────────────────────────── */
+.stats-mini{
+  grid-column:1/-1;display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;
+}
+.event-chip{
+  font-size:10px;padding:2px 7px;border-radius:4px;
+  background:var(--surface);border:1px solid var(--border);color:var(--muted);
+  display:flex;align-items:center;gap:3px;
+}
+
+/* ── EMPTY / LOADING ─────────────────────────────────────────── */
+.loading-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px;gap:16px}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:48px;color:var(--muted)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+
+/* ── MATCH DETAIL PAGE ───────────────────────────────────────── */
+#detail-page{display:none}
+.detail-back{
+  display:inline-flex;align-items:center;gap:8px;
+  color:var(--muted);font-size:13px;margin-bottom:16px;
+  padding:8px 14px;border-radius:8px;
+  border:1px solid var(--border);background:var(--card);
+  cursor:pointer;transition:all .2s;
+}
+.detail-back:hover{color:var(--text);border-color:var(--border2)}
+
+.match-hero{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius2);padding:24px;margin-bottom:16px;
+  position:relative;overflow:hidden;
+}
+.match-hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at top, rgba(240,180,41,.04) 0%, transparent 70%);
+}
+.hero-league{
+  display:flex;align-items:center;gap:8px;margin-bottom:20px;
+}
+.hero-league img{width:20px;height:20px;object-fit:contain}
+.hero-league-name{font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.5px;text-transform:uppercase}
+.hero-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px}
+.hero-team{display:flex;flex-direction:column;align-items:center;gap:10px}
+.hero-team-logo{width:64px;height:64px;object-fit:contain}
+.hero-team-name{font-size:15px;font-weight:600;text-align:center}
+.hero-score{
+  display:flex;align-items:center;gap:0;
+  background:var(--surface);border-radius:12px;
+  border:1px solid var(--border2);overflow:hidden;
+}
+.hero-score-num{
+  font-family:'Bebas Neue',sans-serif;font-size:52px;
+  padding:12px 20px;line-height:1;color:var(--text);
+}
+.hero-score-sep{width:1px;background:var(--border2);height:60px}
+.hero-score.live-score .hero-score-num{color:var(--live)}
+.hero-status{
+  text-align:center;margin-top:16px;
+  font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;
+}
+.hero-status.live{color:var(--live)}
+.hero-status.finished{color:var(--muted)}
+
+/* ── VISUAL IFRAME ───────────────────────────────────────────── */
+.visual-wrap{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius2);overflow:hidden;margin-bottom:16px;
+}
+.visual-wrap-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;border-bottom:1px solid var(--border);
+}
+.visual-wrap-header h3{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.visual-iframe{width:100%;height:440px;border:none;display:block;background:#000}
+.visual-no-url{
+  height:160px;display:flex;align-items:center;justify-content:center;
+  color:var(--muted);flex-direction:column;gap:8px;
+}
+.visual-no-url span{font-size:32px}
+
+/* ── DETAIL TABS ─────────────────────────────────────────────── */
+.detail-tabs{
+  display:flex;gap:0;background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius2);overflow:hidden;margin-bottom:16px;
+}
+.detail-tab{
+  flex:1;padding:12px;font-size:13px;font-weight:500;
+  color:var(--muted);cursor:pointer;text-align:center;
+  transition:all .2s;border-bottom:2px solid transparent;
+}
+.detail-tab:hover{color:var(--text);background:var(--card2)}
+.detail-tab.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(240,180,41,.05)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── EVENTS TIMELINE ─────────────────────────────────────────── */
+.events-list{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius2);overflow:hidden;
+}
+.event-item{
+  display:grid;grid-template-columns:50px 1fr 50px;
+  gap:8px;align-items:center;padding:10px 14px;
+  border-bottom:1px solid var(--border);transition:background .15s;
+}
+.event-item:last-child{border-bottom:none}
+.event-item:hover{background:var(--card2)}
+.event-time{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;font-weight:600;color:var(--gold);text-align:center;
+}
+.event-body{display:flex;align-items:center;gap:8px}
+.event-icon{
+  width:28px;height:28px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;flex-shrink:0;
+}
+.event-icon.goal{background:rgba(0,224,150,.15);border:1px solid rgba(0,224,150,.25)}
+.event-icon.card-yellow{background:rgba(255,210,50,.15);border:1px solid rgba(255,210,50,.3)}
+.event-icon.card-red{background:rgba(255,61,90,.15);border:1px solid rgba(255,61,90,.3)}
+.event-icon.sub{background:rgba(61,157,240,.15);border:1px solid rgba(61,157,240,.3)}
+.event-icon.var{background:rgba(180,100,240,.15);border:1px solid rgba(180,100,240,.3)}
+.event-player{font-size:13px;font-weight:500}
+.event-detail{font-size:11px;color:var(--muted)}
+.event-team-side{
+  font-size:10px;color:var(--muted2);text-align:right;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.event-team-side.home{text-align:left}
+.no-events{
+  padding:32px;text-align:center;color:var(--muted);font-size:13px;
+}
+
+/* ── STATS ───────────────────────────────────────────────────── */
+.stats-panel{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius2);overflow:hidden;
+}
+.stat-row{
+  padding:10px 16px;border-bottom:1px solid var(--border);
+  display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;
+}
+.stat-row:last-child{border-bottom:none}
+.stat-val{
+  font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;
+}
+.stat-val.home{text-align:left}
+.stat-val.away{text-align:right}
+.stat-name{font-size:11px;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.5px}
+.stat-bar-wrap{height:3px;background:var(--surface);border-radius:2px;overflow:hidden;margin-top:4px}
+.stat-bar{height:100%;border-radius:2px;background:var(--gold);transition:width .6s}
+
+/* ── LINEUPS ─────────────────────────────────────────────────── */
+.lineups-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.lineup-team-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.lineup-team-header{
+  padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--border);
+  font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;
+}
+.lineup-team-header img{width:20px;height:20px;object-fit:contain}
+.lineup-player{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;border-bottom:1px solid var(--border);
+}
+.lineup-player:last-child{border-bottom:none}
+.player-num{
+  font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;
+  color:var(--muted);width:20px;text-align:center;flex-shrink:0;
+}
+.player-name{font-size:13px}
+.player-pos{
+  margin-left:auto;font-size:10px;color:var(--muted2);
+  background:var(--surface);border-radius:4px;padding:2px 6px;
+}
+.lineup-sub-header{
+  padding:6px 12px;background:rgba(61,157,240,.08);
+  font-size:10px;color:var(--blue);text-transform:uppercase;letter-spacing:1px;
+  font-weight:600;border-bottom:1px solid var(--border);
+}
+
+/* ── H2H ─────────────────────────────────────────────────────── */
+.h2h-list{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius2);overflow:hidden;
+}
+.h2h-row{
+  display:grid;grid-template-columns:80px 1fr auto 1fr 80px;
+  gap:8px;align-items:center;padding:10px 14px;
+  border-bottom:1px solid var(--border);font-size:13px;
+}
+.h2h-row:last-child{border-bottom:none}
+.h2h-date{font-size:11px;color:var(--muted)}
+.h2h-team{font-weight:500}
+.h2h-team.right{text-align:right}
+.h2h-score{
+  font-family:'JetBrains Mono',monospace;font-weight:600;
+  background:var(--surface);border-radius:6px;padding:3px 10px;font-size:13px;
+}
+
+/* ── PREDICTIONS ─────────────────────────────────────────────── */
+.pred-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.pred-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px;text-align:center;
+}
+.pred-pct{
+  font-family:'Bebas Neue',sans-serif;font-size:32px;
+  line-height:1;margin-bottom:4px;
+}
+.pred-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.pred-home .pred-pct{color:var(--gold)}
+.pred-draw .pred-pct{color:var(--muted)}
+.pred-away .pred-pct{color:var(--blue)}
+.pred-winner{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px;
+  display:flex;align-items:center;gap:12px;
+}
+.pred-winner-label{font-size:12px;color:var(--muted);margin-bottom:2px}
+.pred-winner-name{font-size:14px;font-weight:600}
+
+/* ── RESPONSIVE ──────────────────────────────────────────────── */
+@media(max-width:700px){
+  .match-row{grid-template-columns:60px 1fr auto 1fr 60px;padding:10px 10px}
+  .team-name{max-width:80px;font-size:12px}
+  .score-num{font-size:15px;padding:5px 8px}
+  .hero-score-num{font-size:38px;padding:10px 14px}
+  .hero-team-logo{width:48px;height:48px}
+  .lineups-grid{grid-template-columns:1fr}
+  .pred-grid{grid-template-columns:repeat(3,1fr);gap:8px}
+  .visual-iframe{height:280px}
+}
+
+/* ── CONFIG MODAL ────────────────────────────────────────────── */
+#config-modal{
+  position:fixed;inset:0;z-index:999;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(7,11,20,.95);backdrop-filter:blur(10px);
+}
+.config-box{
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:var(--radius2);padding:32px;
+  max-width:480px;width:calc(100% - 40px);
+}
+.config-logo{
+  font-family:'Bebas Neue',sans-serif;font-size:36px;
+  color:var(--gold);letter-spacing:3px;margin-bottom:4px;
+}
+.config-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+.config-field{margin-bottom:16px}
+.config-label{font-size:12px;color:var(--muted);margin-bottom:6px;display:block;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.config-input{
+  width:100%;padding:10px 14px;
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:8px;color:var(--text);font-family:'JetBrains Mono',monospace;
+  font-size:12px;outline:none;transition:border .2s;
+}
+.config-input:focus{border-color:var(--gold)}
+.config-btn{
+  width:100%;padding:12px;background:var(--gold);
+  border-radius:8px;color:#000;font-weight:700;
+  font-size:14px;margin-top:8px;transition:background .2s;
+}
+.config-btn:hover{background:var(--gold2)}
+
+/* ── REFRESH BAR ─────────────────────────────────────────────── */
+.refresh-bar{
+  position:fixed;bottom:16px;right:16px;z-index:50;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:20px;padding:8px 14px;
+  display:flex;align-items:center;gap:8px;
+  font-size:12px;color:var(--muted);
+}
+.refresh-dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+.refresh-dot.spinning{animation:spin .8s linear infinite;border:2px solid var(--border);border-top-color:var(--gold);background:transparent}
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>⚽ Merhaba!</h1>
-        <h2>ScorePop Çok Yakında Burada...</h2>
-        <p>Canlı skorlar ve maç detayları için hazırlıklarımız devam ediyor.</p>
-        <div class="counter">
-            <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https://scorepop.com.tr&count_bg=%23764BA2&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=ziyaretci&edge_flat=false" alt="Ziyaretci"/>
-        </div>
+
+<!-- CONFIG MODAL -->
+<div id="config-modal">
+  <div class="config-box">
+    <div class="config-logo">SCOREPOP</div>
+    <div class="config-sub">Supabase bağlantı bilgilerini girin</div>
+    <div class="config-field">
+      <label class="config-label">Supabase URL</label>
+      <input class="config-input" id="cfg-url" placeholder="https://xxxx.supabase.co" type="url"/>
     </div>
+    <div class="config-field">
+      <label class="config-label">Anon / Service Key</label>
+      <input class="config-input" id="cfg-key" placeholder="eyJ..." type="password"/>
+    </div>
+    <button class="config-btn" onclick="initSupabase()">Bağlan →</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div id="header">
+  <div class="header-inner">
+    <div class="logo">SCORE<span>POP</span></div>
+    <div class="nav-tabs">
+      <div class="nav-tab active" onclick="showPage('live')">⚡ Canlı</div>
+      <div class="nav-tab" onclick="showPage('today')">📅 Bugün</div>
+      <div class="nav-tab" onclick="showPage('upcoming')">🔜 Yaklaşan</div>
+    </div>
+    <div class="live-badge"><div class="live-dot"></div><span id="live-count">0 Canlı</span></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+
+  <!-- HOME PAGE -->
+  <div id="home-page">
+    <div class="date-bar" id="date-bar"></div>
+    <div class="filter-bar" id="filter-bar"></div>
+    <div id="matches-container">
+      <div class="loading-wrap"><div class="spinner"></div><div style="color:var(--muted)">Yükleniyor...</div></div>
+    </div>
+  </div>
+
+  <!-- DETAIL PAGE -->
+  <div id="detail-page">
+    <div class="detail-back" onclick="goBack()">← Geri</div>
+    <div id="detail-content">
+      <div class="loading-wrap"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- REFRESH BAR -->
+<div class="refresh-bar">
+  <div class="refresh-dot" id="refresh-dot"></div>
+  <span id="refresh-label">Hazır</span>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────
+let supabase = null;
+let currentPage = 'live';
+let selectedDate = null;
+let selectedLeague = 'all';
+let refreshTimer = null;
+let refreshCountdown = 30;
+let currentDetailId = null;
+
+const savedUrl = localStorage.getItem('sp_url');
+const savedKey = localStorage.getItem('sp_key');
+if (savedUrl && savedKey) {
+  document.getElementById('cfg-url').value = savedUrl;
+  document.getElementById('cfg-key').value = savedKey;
+}
+
+function initSupabase() {
+  const url = document.getElementById('cfg-url').value.trim();
+  const key = document.getElementById('cfg-key').value.trim();
+  if (!url || !key) { alert('URL ve Key gerekli'); return; }
+  localStorage.setItem('sp_url', url);
+  localStorage.setItem('sp_key', key);
+  supabase = window.supabase.createClient(url, key);
+  document.getElementById('config-modal').style.display = 'none';
+  boot();
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────────────
+function boot() {
+  buildDateBar();
+  selectedDate = todayStr();
+  showPage('live');
+  startRefresh();
+}
+
+// ── DATE HELPERS ──────────────────────────────────────────────────────────
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function buildDateBar() {
+  const bar = document.getElementById('date-bar');
+  bar.innerHTML = '';
+  const days = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+  for (let i = -3; i <= 4; i++) {
+    const d = new Date(); d.setDate(d.getDate() + i);
+    const str = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const pill = document.createElement('div');
+    pill.className = 'date-pill' + (i === 0 ? ' active' : '');
+    const day = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
+    const dow = i === 0 ? 'Bugün' : i === 1 ? 'Yarın' : i === -1 ? 'Dün' : days[d.getDay()];
+    pill.innerHTML = `<span class="day">${day}</span><span class="dow">${dow}</span>`;
+    pill.onclick = () => { selectedDate = str; document.querySelectorAll('.date-pill').forEach(p=>p.classList.remove('active')); pill.classList.add('active'); loadMatches(); };
+    bar.appendChild(pill);
+  }
+}
+
+// ── NAVIGATION ───────────────────────────────────────────────────────────
+function showPage(page) {
+  currentPage = page;
+  document.getElementById('home-page').style.display = 'block';
+  document.getElementById('detail-page').style.display = 'none';
+  document.querySelectorAll('.nav-tab').forEach((t,i) => {
+    t.classList.toggle('active', ['live','today','upcoming'][i] === page);
+  });
+  document.getElementById('date-bar').style.display = page === 'upcoming' ? 'flex' : (page === 'today' ? 'flex' : 'none');
+  selectedLeague = 'all';
+  loadMatches();
+}
+
+function goBack() {
+  document.getElementById('home-page').style.display = 'block';
+  document.getElementById('detail-page').style.display = 'none';
+  currentDetailId = null;
+}
+
+function openDetail(fixtureId, isLive) {
+  currentDetailId = fixtureId;
+  document.getElementById('home-page').style.display = 'none';
+  document.getElementById('detail-page').style.display = 'block';
+  loadDetail(fixtureId, isLive);
+}
+
+// ── LOAD MATCHES ──────────────────────────────────────────────────────────
+async function loadMatches() {
+  setRefreshing(true);
+  try {
+    if (currentPage === 'live') await loadLive();
+    else if (currentPage === 'today') await loadDaily();
+    else await loadUpcoming();
+  } catch(e) { console.error(e); }
+  setRefreshing(false);
+}
+
+async function loadLive() {
+  const {data,error} = await supabase
+    .from('live_matches')
+    .select('*')
+    .inFilter('status_short',['1H','2H','HT','ET','BT','P','LIVE'])
+    .order('league_name');
+  if (error) throw error;
+  document.getElementById('live-count').textContent = `${(data||[]).length} Canlı`;
+  renderMatchList(data||[], true);
+}
+
+async function loadDaily() {
+  const {data,error} = await supabase
+    .from('daily_matches')
+    .select('*')
+    .eq('match_date', selectedDate)
+    .order('league_name');
+  if (error) throw error;
+  renderMatchList(data||[], false);
+}
+
+async function loadUpcoming() {
+  const {data,error} = await supabase
+    .from('future_matches')
+    .select('*')
+    .eq('date', selectedDate)
+    .order('league_id');
+  if (error) throw error;
+  // future_matches has jsonb data column
+  const expanded = [];
+  (data||[]).forEach(row => {
+    if (row.data) {
+      if (Array.isArray(row.data)) row.data.forEach(m => expanded.push(normalizeFixture(m)));
+      else expanded.push(normalizeFixture(row.data));
+    } else expanded.push(row);
+  });
+  renderMatchList(expanded, false);
+}
+
+function normalizeFixture(m) {
+  return {
+    fixture_id: m.fixture?.id || m.fixture_id,
+    league_name: m.league?.name || m.league_name || '',
+    league_logo: m.league?.logo || m.league_logo || '',
+    home_team: m.teams?.home?.name || m.home_team || '',
+    away_team: m.teams?.away?.name || m.away_team || '',
+    home_logo: m.teams?.home?.logo || m.home_logo || '',
+    away_logo: m.teams?.away?.logo || m.away_logo || '',
+    home_score: m.goals?.home ?? m.home_score ?? null,
+    away_score: m.goals?.away ?? m.away_score ?? null,
+    status_short: m.fixture?.status?.short || m.status_short || 'NS',
+    elapsed_time: m.fixture?.status?.elapsed || m.elapsed_time || null,
+  };
+}
+
+// ── RENDER MATCHES ────────────────────────────────────────────────────────
+function buildFilterBar(leagues) {
+  const bar = document.getElementById('filter-bar');
+  bar.innerHTML = '';
+  const all = document.createElement('div');
+  all.className = 'filter-chip' + (selectedLeague === 'all' ? ' active' : '');
+  all.textContent = 'Tümü';
+  all.onclick = () => { selectedLeague = 'all'; buildFilterBar(leagues); filterGroups(); };
+  bar.appendChild(all);
+  leagues.forEach(lg => {
+    const chip = document.createElement('div');
+    chip.className = 'filter-chip' + (selectedLeague === lg.name ? ' active' : '');
+    chip.innerHTML = lg.logo ? `<img src="${lg.logo}" onerror="this.style.display='none'"/>${lg.name}` : lg.name;
+    chip.onclick = () => { selectedLeague = lg.name; buildFilterBar(leagues); filterGroups(); };
+    bar.appendChild(chip);
+  });
+}
+
+function filterGroups() {
+  document.querySelectorAll('.league-group').forEach(g => {
+    g.style.display = selectedLeague === 'all' || g.dataset.league === selectedLeague ? '' : 'none';
+  });
+}
+
+function renderMatchList(matches, isLive) {
+  const container = document.getElementById('matches-container');
+  if (!matches.length) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">📭</div>Maç bulunamadı</div>`;
+    return;
+  }
+  // Group by league
+  const groups = {};
+  matches.forEach(m => {
+    const key = m.league_name || 'Diğer';
+    if (!groups[key]) groups[key] = { name: key, logo: m.league_logo || '', matches: [] };
+    groups[key].matches.push(m);
+  });
+  const leagues = Object.values(groups);
+  buildFilterBar(leagues);
+  container.innerHTML = '';
+  leagues.forEach(lg => {
+    const grp = document.createElement('div');
+    grp.className = 'league-group';
+    grp.dataset.league = lg.name;
+    grp.innerHTML = `
+      <div class="league-header" onclick="toggleGroup(this)">
+        ${lg.logo ? `<img src="${lg.logo}" onerror="this.src=''" alt="">` : '<div style="width:20px;height:20px;background:var(--border);border-radius:4px"></div>'}
+        <span class="league-header-name">${lg.name}</span>
+        <span class="league-match-count">${lg.matches.length}</span>
+        <span class="league-chevron">▾</span>
+      </div>
+      <div class="matches-list">${lg.matches.map(m => renderMatchRow(m, isLive)).join('')}</div>
+    `;
+    container.appendChild(grp);
+  });
+  filterGroups();
+}
+
+function toggleGroup(header) {
+  header.closest('.league-group').classList.toggle('collapsed');
+}
+
+function statusInfo(m) {
+  const s = m.status_short;
+  const live = ['1H','2H','HT','ET','BT','P','LIVE'].includes(s);
+  const finished = ['FT','AET','PEN'].includes(s);
+  if (live) {
+    let label = m.elapsed_time ? `${m.elapsed_time}'` : s;
+    if (s === 'HT') label = 'HT';
+    return { live: true, label, cls: 'live' };
+  }
+  if (finished) return { live: false, label: 'MS', cls: 'finished' };
+  return { live: false, label: formatKickoff(m), cls: 'scheduled' };
+}
+
+function formatKickoff(m) {
+  const d = m.kickoff_time || m.updated_at;
+  if (!d) return '--:--';
+  try { const dt = new Date(d); return `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`; }
+  catch { return '--:--'; }
+}
+
+function renderMatchRow(m, isLive) {
+  const st = statusInfo(m);
+  const hs = m.home_score !== null && m.home_score !== undefined ? m.home_score : '-';
+  const as = m.away_score !== null && m.away_score !== undefined ? m.away_score : '-';
+  const scoreClass = st.live ? 'score-box live-score' : 'score-box';
+  const homeLogo = m.home_logo ? `<img class="team-logo" src="${m.home_logo}" onerror="this.style.display='none'" alt="">` : '<div class="team-logo-placeholder"></div>';
+  const awayLogo = m.away_logo ? `<img class="team-logo" src="${m.away_logo}" onerror="this.style.display='none'" alt="">` : '<div class="team-logo-placeholder"></div>';
+  return `
+    <div class="match-row ${st.live ? 'live-row' : ''}" onclick="openDetail(${m.fixture_id}, ${st.live})">
+      <div class="match-time ${st.cls}">
+        <span class="elapsed">${st.label}</span>
+        ${st.live && m.elapsed_time ? `<span class="minute" style="color:var(--live)">●</span>` : ''}
+      </div>
+      <div class="team-cell">
+        ${homeLogo}
+        <span class="team-name">${m.home_team||''}</span>
+      </div>
+      <div class="${scoreClass}">
+        <span class="score-num">${hs}</span>
+        <div class="score-sep"></div>
+        <span class="score-num">${as}</span>
+      </div>
+      <div class="team-cell away">
+        ${awayLogo}
+        <span class="team-name">${m.away_team||''}</span>
+      </div>
+      <div class="match-status-icon">${m.visual_url ? '📺' : ''}</div>
+    </div>`;
+}
+
+// ── LOAD DETAIL ───────────────────────────────────────────────────────────
+async function loadDetail(fixtureId, isLive) {
+  document.getElementById('detail-content').innerHTML = `<div class="loading-wrap"><div class="spinner"></div></div>`;
+  try {
+    const table = isLive ? 'live_matches' : 'daily_matches';
+    const [{data: match}, {data: events}, {data: stats}, {data: lineups}, {data: h2h}, {data: pred}] = await Promise.all([
+      supabase.from(table).select('*').eq('fixture_id', fixtureId).single(),
+      supabase.from('match_events').select('*').eq('fixture_id', fixtureId).order('elapsed_time'),
+      supabase.from('match_statistics').select('*').eq('fixture_id', fixtureId).single(),
+      supabase.from('match_lineups').select('*').eq('fixture_id', fixtureId).single(),
+      supabase.from('match_h2h').select('*').like('h2h_key', `%${match?.home_team_id}%`).maybeSingle(),
+      supabase.from('match_predictions').select('*').eq('fixture_id', fixtureId).single(),
+    ]);
+
+    if (!match) { document.getElementById('detail-content').innerHTML = '<div class="empty">Maç bulunamadı</div>'; return; }
+    renderDetail(match, events||[], stats, lineups, h2h, pred);
+  } catch(e) {
+    console.error(e);
+    document.getElementById('detail-content').innerHTML = `<div class="empty">Veri yüklenirken hata: ${e.message}</div>`;
+  }
+}
+
+function renderDetail(m, events, stats, lineups, h2h, pred) {
+  const st = statusInfo(m);
+  const hs = m.home_score ?? '-';
+  const as = m.away_score ?? '-';
+  const scoreClass = st.live ? 'hero-score live-score' : 'hero-score';
+  const homeLogo = m.home_logo ? `<img class="hero-team-logo" src="${m.home_logo}" onerror="this.style.display='none'">` : '';
+  const awayLogo = m.away_logo ? `<img class="hero-team-logo" src="${m.away_logo}" onerror="this.style.display='none'">` : '';
+
+  let html = `
+    <div class="match-hero">
+      <div class="hero-league">
+        ${m.league_logo ? `<img src="${m.league_logo}" onerror="this.style.display='none'" width="20" height="20">` : ''}
+        <span class="hero-league-name">${m.league_name||''}</span>
+      </div>
+      <div class="hero-teams">
+        <div class="hero-team">${homeLogo}<div class="hero-team-name">${m.home_team||''}</div></div>
+        <div>
+          <div class="${scoreClass}">
+            <span class="hero-score-num">${hs}</span>
+            <div class="hero-score-sep"></div>
+            <span class="hero-score-num">${as}</span>
+          </div>
+          <div class="hero-status ${st.cls}">${st.live ? `⚡ ${st.label}` : st.label}</div>
+        </div>
+        <div class="hero-team">${awayLogo}<div class="hero-team-name">${m.away_team||''}</div></div>
+      </div>
+    </div>`;
+
+  // VISUAL URL
+  html += `<div class="visual-wrap">
+    <div class="visual-wrap-header">
+      <h3>📺 Canlı Görsel</h3>
+      ${m.visual_url ? `<span style="font-size:11px;color:var(--muted)">performgroup.com</span>` : ''}
+    </div>
+    ${m.visual_url
+      ? `<iframe class="visual-iframe" src="${m.visual_url}" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups"></iframe>`
+      : `<div class="visual-no-url"><span>📡</span><div style="color:var(--muted);font-size:13px">Görsel stream mevcut değil</div></div>`
+    }
+  </div>`;
+
+  // TABS
+  html += `<div class="detail-tabs">
+    <div class="detail-tab active" onclick="switchTab('events')">⚡ Olaylar</div>
+    <div class="detail-tab" onclick="switchTab('stats')">📊 İstatistik</div>
+    <div class="detail-tab" onclick="switchTab('lineups')">📋 Kadro</div>
+    <div class="detail-tab" onclick="switchTab('h2h')">⚔️ H2H</div>
+    <div class="detail-tab" onclick="switchTab('pred')">🔮 Tahmin</div>
+  </div>`;
+
+  // EVENTS TAB
+  html += `<div class="tab-panel active" id="tab-events">`;
+  if (!events.length) {
+    html += `<div class="events-list"><div class="no-events">Henüz olay yok</div></div>`;
+  } else {
+    html += `<div class="events-list">`;
+    events.forEach(ev => {
+      const isHome = ev.team_id == m.home_team_id;
+      const icon = getEventIcon(ev.event_type, ev.event_detail);
+      const iconCls = getEventIconCls(ev.event_type, ev.event_detail);
+      const timeStr = ev.elapsed_time ? `${ev.elapsed_time}${ev.extra_time ? '+'+ev.extra_time : ''}'` : '';
+      html += `<div class="event-item">
+        <div class="event-time">${timeStr}</div>
+        <div class="event-body" style="${isHome ? '' : 'flex-direction:row-reverse'}">
+          <div class="event-icon ${iconCls}">${icon}</div>
+          <div>
+            <div class="event-player">${ev.player_name||''}</div>
+            ${ev.assist_name ? `<div class="event-detail">Asist: ${ev.assist_name}</div>` : ''}
+            <div class="event-detail">${ev.event_detail||''}</div>
+          </div>
+        </div>
+        <div class="event-team-side ${isHome ? 'home' : ''}">${ev.team_name||''}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  // STATS TAB
+  html += `<div class="tab-panel" id="tab-stats">`;
+  const statsData = stats?.data;
+  if (statsData && Array.isArray(statsData) && statsData.length >= 2) {
+    const homeStats = statsData[0]?.statistics || [];
+    const awayStats = statsData[1]?.statistics || [];
+    html += `<div class="stats-panel">`;
+    homeStats.forEach((hs, i) => {
+      const as = awayStats[i];
+      const hv = hs.value ?? '0'; const av = as?.value ?? '0';
+      const hvn = parseFloat(String(hv)) || 0;
+      const avn = parseFloat(String(av)) || 0;
+      const tot = hvn + avn;
+      const pct = tot > 0 ? (hvn/tot*100).toFixed(0) : 50;
+      html += `<div class="stat-row">
+        <div>
+          <div class="stat-val home">${hv}</div>
+          <div class="stat-bar-wrap"><div class="stat-bar" style="width:${pct}%"></div></div>
+        </div>
+        <div class="stat-name">${hs.type}</div>
+        <div>
+          <div class="stat-val away">${av}</div>
+          <div class="stat-bar-wrap" style="transform:scaleX(-1)"><div class="stat-bar" style="width:${100-parseInt(pct)}%;background:var(--blue)"></div></div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  } else {
+    html += `<div class="empty">İstatistik mevcut değil</div>`;
+  }
+  html += `</div>`;
+
+  // LINEUPS TAB
+  html += `<div class="tab-panel" id="tab-lineups">`;
+  const lineupData = lineups?.data;
+  if (lineupData && Array.isArray(lineupData) && lineupData.length >= 2) {
+    html += `<div class="lineups-grid">`;
+    lineupData.slice(0,2).forEach(team => {
+      const logo = team.team?.logo;
+      const name = team.team?.name || '';
+      const starters = team.startXI || [];
+      const subs = team.substitutes || [];
+      html += `<div class="lineup-team-card">
+        <div class="lineup-team-header">
+          ${logo ? `<img src="${logo}" onerror="this.style.display='none'">` : ''}
+          ${name}
+        </div>`;
+      starters.forEach(p => {
+        const pl = p.player;
+        html += `<div class="lineup-player"><span class="player-num">${pl?.number||''}</span><span class="player-name">${pl?.name||''}</span><span class="player-pos">${pl?.pos||''}</span></div>`;
+      });
+      if (subs.length) {
+        html += `<div class="lineup-sub-header">Yedekler</div>`;
+        subs.forEach(p => {
+          const pl = p.player;
+          html += `<div class="lineup-player" style="opacity:.7"><span class="player-num">${pl?.number||''}</span><span class="player-name">${pl?.name||''}</span><span class="player-pos">${pl?.pos||''}</span></div>`;
+        });
+      }
+      html += `</div>`;
+    });
+    html += `</div>`;
+  } else {
+    html += `<div class="empty">Kadro bilgisi mevcut değil</div>`;
+  }
+  html += `</div>`;
+
+  // H2H TAB
+  html += `<div class="tab-panel" id="tab-h2h">`;
+  const h2hMatches = h2h?.data?.response || h2h?.data || [];
+  if (h2hMatches.length) {
+    html += `<div class="h2h-list">`;
+    h2hMatches.slice(-10).reverse().forEach(hm => {
+      const f = hm.fixture || hm; const t = hm.teams||{}; const g = hm.goals||{};
+      const date = f.date ? new Date(f.date).toLocaleDateString('tr-TR') : '';
+      html += `<div class="h2h-row">
+        <div class="h2h-date">${date}</div>
+        <div class="h2h-team">${t.home?.name||''}</div>
+        <div class="h2h-score">${g.home??'-'} - ${g.away??'-'}</div>
+        <div class="h2h-team right">${t.away?.name||''}</div>
+        <div></div>
+      </div>`;
+    });
+    html += `</div>`;
+  } else {
+    html += `<div class="empty">H2H verisi mevcut değil</div>`;
+  }
+  html += `</div>`;
+
+  // PREDICTIONS TAB
+  html += `<div class="tab-panel" id="tab-pred">`;
+  const predData = pred?.data?.response?.[0] || pred?.data?.[0] || pred?.data;
+  if (predData) {
+    const pct = predData.predictions?.percent || {};
+    const winner = predData.predictions?.winner;
+    html += `<div class="pred-grid">
+      <div class="pred-card pred-home"><div class="pred-pct">${pct.home||'-%'}</div><div class="pred-label">Ev Sahibi</div></div>
+      <div class="pred-card pred-draw"><div class="pred-pct">${pct.draw||'-%'}</div><div class="pred-label">Beraberlik</div></div>
+      <div class="pred-card pred-away"><div class="pred-pct">${pct.away||'-%'}</div><div class="pred-label">Deplasman</div></div>
+    </div>`;
+    if (winner) {
+      html += `<div class="pred-winner">
+        ${winner.logo ? `<img src="${winner.logo}" width="32" height="32" onerror="this.style.display='none'">` : '⚽'}
+        <div><div class="pred-winner-label">Tahmin: Kazanan</div><div class="pred-winner-name">${winner.name||'Belirsiz'}</div></div>
+      </div>`;
+    }
+  } else {
+    html += `<div class="empty">Tahmin verisi mevcut değil</div>`;
+  }
+  html += `</div>`;
+
+  document.getElementById('detail-content').innerHTML = html;
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.detail-tab').forEach((t,i) => {
+    t.classList.toggle('active', ['events','stats','lineups','h2h','pred'][i] === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById('tab-' + name);
+  if (panel) panel.classList.add('active');
+}
+
+// ── EVENT ICONS ───────────────────────────────────────────────────────────
+function getEventIcon(type, detail) {
+  const t = (type||'').toLowerCase(); const d = (detail||'').toLowerCase();
+  if (t === 'goal') { if (d.includes('own')) return '⚽'; if (d.includes('penalty')) return '🎯'; return '⚽'; }
+  if (t === 'card') { if (d.includes('red') || d.includes('kırmızı')) return '🟥'; return '🟨'; }
+  if (t === 'subst') return '🔄';
+  if (t === 'var') return '📺';
+  return '•';
+}
+function getEventIconCls(type, detail) {
+  const t = (type||'').toLowerCase(); const d = (detail||'').toLowerCase();
+  if (t === 'goal') return 'goal';
+  if (t === 'card') return d.includes('red') || d.includes('kırmızı') ? 'card-red' : 'card-yellow';
+  if (t === 'subst') return 'sub';
+  if (t === 'var') return 'var';
+  return '';
+}
+
+// ── AUTO REFRESH ──────────────────────────────────────────────────────────
+function startRefresh() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshCountdown = 30;
+  updateRefreshLabel();
+  refreshTimer = setInterval(async () => {
+    refreshCountdown--;
+    updateRefreshLabel();
+    if (refreshCountdown <= 0) {
+      refreshCountdown = 30;
+      if (!currentDetailId) {
+        await loadMatches();
+      } else {
+        const isLive = currentPage === 'live';
+        await loadDetail(currentDetailId, isLive);
+      }
+    }
+  }, 1000);
+}
+
+function setRefreshing(on) {
+  const dot = document.getElementById('refresh-dot');
+  dot.className = 'refresh-dot' + (on ? ' spinning' : '');
+}
+
+function updateRefreshLabel() {
+  document.getElementById('refresh-label').textContent = `${refreshCountdown}s`;
+}
+
+// Auto-start if creds already saved
+window.addEventListener('load', () => {
+  if (savedUrl && savedKey) {
+    document.getElementById('config-modal').style.display = 'none';
+    supabase = window.supabase.createClient(savedUrl, savedKey);
+    boot();
+  }
+});
+</script>
 </body>
 </html>
