@@ -1,0 +1,26 @@
+name: Deploy ScorePop
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Inject credentials into config.js
+        run: |
+          sed -i "s|BURAYA_URL|${{ secrets.SUPABASE_URL }}|g" config.js
+          sed -i "s|BURAYA_KEY|${{ secrets.SUPABASE_KEY }}|g" config.js
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          publish_branch: gh-pages
+          exclude_assets: '.github,*.yml,*.md'
