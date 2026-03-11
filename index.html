@@ -318,6 +318,33 @@ body::before{
 }
 .visual-no-url span{font-size:32px}
 
+  .visual-wrap {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto; /* PC'de ortalar */
+}
+
+.visual-iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9; /* Sabit oran, yükseklik otomatik */
+  height: auto;
+  border: none;
+  border-radius: 8px;
+  display: block;
+}
+
+/* Mobil */
+@media (max-width: 768px) {
+  .visual-wrap {
+    max-width: 100%;
+    margin: 0; /* Mobilde tam genişlik */
+  }
+
+  .visual-iframe {
+    border-radius: 0; /* Mobilde kenar yok, tam ekran hissi */
+  }
+}
+
 /* ── DETAIL TABS ─────────────────────────────────────────────── */
 .detail-tabs{
   display:flex;gap:0;background:var(--card);border:1px solid var(--border);
@@ -889,7 +916,7 @@ function renderDetail(m, events, stats, lineups, h2h, pred) {
   html += `<div class="visual-wrap">
     <div class="visual-wrap-header">
       <h3>📺 Canlı Görsel</h3>
-      ${m.visual_url ? `<span style="font-size:11px;color:var(--muted)">performgroup.com</span>` : ''}
+      ${m.visual_url ? `<span style="font-size:11px;color:var(--muted)">Canlı Maç Anlatımı</span>` : ''}
     </div>
     ${m.visual_url
       ? `<iframe class="visual-iframe" src="${m.visual_url}" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups"></iframe>`
@@ -903,7 +930,7 @@ function renderDetail(m, events, stats, lineups, h2h, pred) {
     <div class="detail-tab" onclick="switchTab('stats')">📊 İstatistik</div>
     <div class="detail-tab" onclick="switchTab('lineups')">📋 Kadro</div>
     <div class="detail-tab" onclick="switchTab('h2h')">⚔️ H2H</div>
-    <div class="detail-tab" onclick="switchTab('pred')">🔮 Tahmin</div>
+    <div class="detail-tab" onclick="switchTab('pred')">🔮 Forum</div>
   </div>`;
 
   // EVENTS TAB
