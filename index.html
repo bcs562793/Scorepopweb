@@ -803,16 +803,19 @@ async function loadDetail(fixtureId, isLive) {
   document.getElementById('detail-content').innerHTML = `<div class="loading-wrap"><div class="spinner"></div></div>`;
   try {
     const table = isLive ? 'live_matches' : 'daily_matches';
-    const [{data: matchData}, {data: events}, {data: stats}, {data: lineups}, {data: h2h}, {data: pred}] = await Promise.all([
-      sbClient.from(table).select('*').eq('fixture_id', fixtureId).single(),
+    // Önce maç verisini çek
+    const {data: matchData} = await sbClient.from(table).select('*').eq('fixture_id', fixtureId).single();
+    if (!matchData) { document.getElementById('detail-content').innerHTML = '<div class="empty">Maç bulunamadı</div>'; return; }
+
+    // Sonra geri kalanları paralel çek
+    const [{data: events}, {data: stats}, {data: lineups}, {data: h2h}, {data: pred}] = await Promise.all([
       sbClient.from('match_events').select('*').eq('fixture_id', fixtureId).order('elapsed_time'),
       sbClient.from('match_statistics').select('*').eq('fixture_id', fixtureId).single(),
       sbClient.from('match_lineups').select('*').eq('fixture_id', fixtureId).single(),
-      sbClient.from('match_h2h').select('*').like('h2h_key', `%${matchData?.home_team_id}%`).maybeSingle(),
+      sbClient.from('match_h2h').select('*').like('h2h_key', `%${matchData.home_team_id}%`).maybeSingle(),
       sbClient.from('match_predictions').select('*').eq('fixture_id', fixtureId).single(),
     ]);
 
-    if (!matchData) { document.getElementById('detail-content').innerHTML = '<div class="empty">Maç bulunamadı</div>'; return; }
     renderDetail(matchData, events||[], stats, lineups, h2h, pred);
   } catch(e) {
     console.error(e);
