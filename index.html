@@ -426,37 +426,7 @@ body::before{
   .visual-iframe{height:280px}
 }
 
-/* ── CONFIG MODAL ────────────────────────────────────────────── */
-#config-modal{
-  position:fixed;inset:0;z-index:999;
-  display:flex;align-items:center;justify-content:center;
-  background:rgba(7,11,20,.95);backdrop-filter:blur(10px);
-}
-.config-box{
-  background:var(--card);border:1px solid var(--border2);
-  border-radius:var(--radius2);padding:32px;
-  max-width:480px;width:calc(100% - 40px);
-}
-.config-logo{
-  font-family:'Bebas Neue',sans-serif;font-size:36px;
-  color:var(--gold);letter-spacing:3px;margin-bottom:4px;
-}
-.config-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
-.config-field{margin-bottom:16px}
-.config-label{font-size:12px;color:var(--muted);margin-bottom:6px;display:block;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
-.config-input{
-  width:100%;padding:10px 14px;
-  background:var(--surface);border:1px solid var(--border2);
-  border-radius:8px;color:var(--text);font-family:'JetBrains Mono',monospace;
-  font-size:12px;outline:none;transition:border .2s;
-}
-.config-input:focus{border-color:var(--gold)}
-.config-btn{
-  width:100%;padding:12px;background:var(--gold);
-  border-radius:8px;color:#000;font-weight:700;
-  font-size:14px;margin-top:8px;transition:background .2s;
-}
-.config-btn:hover{background:var(--gold2)}
+
 
 /* ── REFRESH BAR ─────────────────────────────────────────────── */
 .refresh-bar{
@@ -472,22 +442,7 @@ body::before{
 </head>
 <body>
 
-<!-- CONFIG MODAL -->
-<div id="config-modal">
-  <div class="config-box">
-    <div class="config-logo">SCOREPOP</div>
-    <div class="config-sub">Supabase bağlantı bilgilerini girin</div>
-    <div class="config-field">
-      <label class="config-label">Supabase URL</label>
-      <input class="config-input" id="cfg-url" placeholder="https://xxxx.supabase.co" type="url"/>
-    </div>
-    <div class="config-field">
-      <label class="config-label">Anon / Service Key</label>
-      <input class="config-input" id="cfg-key" placeholder="eyJ..." type="password"/>
-    </div>
-    <button class="config-btn" onclick="initSupabase()">Bağlan →</button>
-  </div>
-</div>
+
 
 <!-- HEADER -->
 <div id="header">
@@ -532,6 +487,9 @@ body::before{
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'BURAYA_URL';
+const SUPABASE_KEY = 'BURAYA_KEY';
+
 let supabase = null;
 let currentPage = 'live';
 let selectedDate = null;
@@ -539,24 +497,6 @@ let selectedLeague = 'all';
 let refreshTimer = null;
 let refreshCountdown = 30;
 let currentDetailId = null;
-
-const savedUrl = localStorage.getItem('sp_url');
-const savedKey = localStorage.getItem('sp_key');
-if (savedUrl && savedKey) {
-  document.getElementById('cfg-url').value = savedUrl;
-  document.getElementById('cfg-key').value = savedKey;
-}
-
-function initSupabase() {
-  const url = document.getElementById('cfg-url').value.trim();
-  const key = document.getElementById('cfg-key').value.trim();
-  if (!url || !key) { alert('URL ve Key gerekli'); return; }
-  localStorage.setItem('sp_url', url);
-  localStorage.setItem('sp_key', key);
-  supabase = window.supabase.createClient(url, key);
-  document.getElementById('config-modal').style.display = 'none';
-  boot();
-}
 
 // ── BOOT ──────────────────────────────────────────────────────────────────
 function boot() {
@@ -1061,13 +1001,9 @@ function updateRefreshLabel() {
   document.getElementById('refresh-label').textContent = `${refreshCountdown}s`;
 }
 
-// Auto-start if creds already saved
 window.addEventListener('load', () => {
-  if (savedUrl && savedKey) {
-    document.getElementById('config-modal').style.display = 'none';
-    supabase = window.supabase.createClient(savedUrl, savedKey);
-    boot();
-  }
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  boot();
 });
 </script>
 </body>
