@@ -1,28 +1,3 @@
-<?php
-// Arka planda çalışacak PHP sayaç mantığı (Sayfa yüklenmeden önce çalışır)
-$ip_dosyasi = 'ziyaretci_ipleri.txt';
-$sayac_dosyasi = 'sayac.txt';
-
-// Ziyaretçinin IP adresini alıyoruz
-$ziyaretci_ip = $_SERVER['REMOTE_ADDR'];
-
-// Daha önce kaydedilmiş IP'leri okuyoruz
-$kayitli_ipler = file_exists($ip_dosyasi) ? file($ip_dosyasi, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : [];
-
-// Eğer bu IP listemizde yoksa (yeni, benzersiz bir ziyaretçi ise)
-if (!in_array($ziyaretci_ip, $kayitli_ipler)) {
-    // Yeni IP'yi listeye ekliyoruz
-    file_put_contents($ip_dosyasi, $ziyaretci_ip . PHP_EOL, FILE_APPEND);
-    
-    // Sayacı okuyup 1 artırıyoruz
-    $sayac = file_exists($sayac_dosyasi) ? (int)file_get_contents($sayac_dosyasi) : 0;
-    $sayac++;
-    file_put_contents($sayac_dosyasi, $sayac);
-} else {
-    // Ziyaretçi daha önce gelmişse sadece mevcut sayacı okuyoruz, artırma yapmıyoruz
-    $sayac = file_exists($sayac_dosyasi) ? (int)file_get_contents($sayac_dosyasi) : 0;
-}
-?>
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -55,4 +30,19 @@ if (!in_array($ziyaretci_ip, $kayitli_ipler)) {
             color: #7f8c8d;
             font-size: 1.2em;
         }
-        /* Sayacın şık görünmesi için eklenen basit stil */
+        .counter {
+            margin-top: 25px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚽ Merhaba!</h1>
+        <h2>ScorePop Çok Yakında Burada...</h2>
+        <p>Canlı skorlar ve maç detayları için hazırlıklarımız devam ediyor.</p>
+        <div class="counter">
+            <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https://scorepop.com.tr&count_bg=%23764BA2&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=ziyaretci&edge_flat=false" alt="Ziyaretci"/>
+        </div>
+    </div>
+</body>
+</html>
