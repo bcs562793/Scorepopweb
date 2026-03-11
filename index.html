@@ -488,20 +488,10 @@ body::before{
   .event-item{grid-template-columns:44px 1fr 44px;gap:6px;padding:9px 10px}
   .event-player{font-size:12px}
 
-  /* Refresh bar */
-  .refresh-bar{bottom:10px;right:10px;padding:6px 10px;font-size:11px}
 }
 
 
 
-/* ── REFRESH BAR ─────────────────────────────────────────────── */
-.refresh-bar{
-  position:fixed;bottom:16px;right:16px;z-index:50;
-  background:var(--card);border:1px solid var(--border);
-  border-radius:20px;padding:8px 14px;
-  display:flex;align-items:center;gap:8px;
-  font-size:12px;color:var(--muted);
-}
 .refresh-dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
 .refresh-dot.spinning{animation:spin .8s linear infinite;border:2px solid var(--border);border-top-color:var(--gold);background:transparent}
 </style>
@@ -545,9 +535,6 @@ body::before{
 
 </div>
 
-<!-- REFRESH BAR -->
-<div class="refresh-bar">
-  <div class="refresh-dot" id="refresh-dot"></div>
   <span id="refresh-label">Hazır</span>
 </div>
 
@@ -621,13 +608,11 @@ function openDetail(fixtureId, isLive) {
 
 // ── LOAD MATCHES ──────────────────────────────────────────────────────────
 async function loadMatches(silent=false) {
-  if (!silent) setRefreshing(true);
   try {
     if (currentPage === 'live') await loadLive(silent);
     else if (currentPage === 'today') await loadDaily();
     else await loadUpcoming();
   } catch(e) { console.error("catch:", e?.message || JSON.stringify(e)); }
-  if (!silent) setRefreshing(false);
 }
 
 async function loadLive(silent=false) {
@@ -1103,7 +1088,6 @@ function startRefresh() {
   updateRefreshLabel();
   refreshTimer = setInterval(async () => {
     refreshCountdown--;
-    updateRefreshLabel();
     if (refreshCountdown <= 0) {
       refreshCountdown = 30;
       if (!currentDetailId) {
@@ -1115,14 +1099,7 @@ function startRefresh() {
   }, 1000);
 }
 
-function setRefreshing(on) {
-  const dot = document.getElementById('refresh-dot');
-  dot.className = 'refresh-dot' + (on ? ' spinning' : '');
-}
 
-function updateRefreshLabel() {
-  document.getElementById('refresh-label').textContent = `${refreshCountdown}s`;
-}
 
 window.addEventListener('load', () => {
   sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
