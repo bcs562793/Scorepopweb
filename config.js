@@ -1,0 +1,2 @@
+const SUPABASE_URL = 'BURAYA_URL';
+const SUPABASE_KEY = 'BURAYA_KEY';
