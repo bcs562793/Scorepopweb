@@ -490,7 +490,7 @@ body::before{
 const SUPABASE_URL = 'BURAYA_URL';
 const SUPABASE_KEY = 'BURAYA_KEY';
 
-let supabase = null;
+let sbClient = null;
 let currentPage = 'live';
 let selectedDate = null;
 let selectedLeague = 'all';
@@ -567,7 +567,7 @@ async function loadMatches() {
 }
 
 async function loadLive() {
-  const {data,error} = await supabase
+  const {data,error} = await sbClient
     .from('live_matches')
     .select('*')
     .inFilter('status_short',['1H','2H','HT','ET','BT','P','LIVE'])
@@ -578,7 +578,7 @@ async function loadLive() {
 }
 
 async function loadDaily() {
-  const {data,error} = await supabase
+  const {data,error} = await sbClient
     .from('daily_matches')
     .select('*')
     .eq('match_date', selectedDate)
@@ -588,7 +588,7 @@ async function loadDaily() {
 }
 
 async function loadUpcoming() {
-  const {data,error} = await supabase
+  const {data,error} = await sbClient
     .from('future_matches')
     .select('*')
     .eq('date', selectedDate)
@@ -739,12 +739,12 @@ async function loadDetail(fixtureId, isLive) {
   try {
     const table = isLive ? 'live_matches' : 'daily_matches';
     const [{data: match}, {data: events}, {data: stats}, {data: lineups}, {data: h2h}, {data: pred}] = await Promise.all([
-      supabase.from(table).select('*').eq('fixture_id', fixtureId).single(),
-      supabase.from('match_events').select('*').eq('fixture_id', fixtureId).order('elapsed_time'),
-      supabase.from('match_statistics').select('*').eq('fixture_id', fixtureId).single(),
-      supabase.from('match_lineups').select('*').eq('fixture_id', fixtureId).single(),
-      supabase.from('match_h2h').select('*').like('h2h_key', `%${match?.home_team_id}%`).maybeSingle(),
-      supabase.from('match_predictions').select('*').eq('fixture_id', fixtureId).single(),
+      sbClient.from(table).select('*').eq('fixture_id', fixtureId).single(),
+      sbClient.from('match_events').select('*').eq('fixture_id', fixtureId).order('elapsed_time'),
+      sbClient.from('match_statistics').select('*').eq('fixture_id', fixtureId).single(),
+      sbClient.from('match_lineups').select('*').eq('fixture_id', fixtureId).single(),
+      sbClient.from('match_h2h').select('*').like('h2h_key', `%${match?.home_team_id}%`).maybeSingle(),
+      sbClient.from('match_predictions').select('*').eq('fixture_id', fixtureId).single(),
     ]);
 
     if (!match) { document.getElementById('detail-content').innerHTML = '<div class="empty">Maç bulunamadı</div>'; return; }
@@ -1002,7 +1002,7 @@ function updateRefreshLabel() {
 }
 
 window.addEventListener('load', () => {
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   boot();
 });
 </script>
