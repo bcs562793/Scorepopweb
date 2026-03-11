@@ -568,7 +568,7 @@ async function loadLive() {
   const {data,error} = await sbClient
     .from('live_matches')
     .select('*')
-    .inFilter('status_short',['1H','2H','HT','ET','BT','P','LIVE'])
+    .in('status_short',['1H','2H','HT','ET','BT','P','LIVE'])
     .order('league_name');
   if (error) throw error;
   document.getElementById('live-count').textContent = `${(data||[]).length} Canlı`;
