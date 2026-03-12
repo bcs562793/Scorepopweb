@@ -19,12 +19,22 @@ const S = {
 };
 
 /* ── BOOT ───────────────────────────────────── */
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
   S.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  Forum.init(S.sb);          // ← forum modülünü başlat
+
+  /* Opsiyonel modüller — hata olursa devam et */
+  try { if (typeof Auth    !== 'undefined') await Auth.init(S.sb); }    catch(e) { console.warn('Auth hatası:', e); }
+  try { if (typeof Payment !== 'undefined') Payment.init(S.sb); }       catch(e) { console.warn('Payment hatası:', e); }
+  try { Forum.init(S.sb); }                                              catch(e) { console.warn('Forum hatası:', e); }
+
   buildDateStrip();
   bindEvents();
-  navigate('live');
+
+  /* Router — hash değişince navigate çağırır ama
+     navigate geri Router'ı ÇAĞIRMAZ → sonsuz döngü yok */
+  try { if (typeof Router !== 'undefined') Router.init(); }
+  catch(e) { navigate('live'); }  // Router yoksa direkt başlat
+
   startClock();
 });
 
@@ -52,6 +62,17 @@ function navigate(page) {
 
   const showDate = page !== 'live';
   document.getElementById('date-strip').style.display = showDate ? 'flex' : 'none';
+
+  /* URL ve meta güncelle (Router varsa) */
+  try {
+    if (typeof Router !== 'undefined') {
+      if      (page === 'live')     Router.goLive();
+      else if (page === 'today')    Router.goToday(S.date);
+      else if (page === 'upcoming') Router.goUpcoming(S.date);
+      const titles = { live:'Canlı Maçlar', today:'Bugün', upcoming:'Yaklaşan Maçlar' };
+      Router.setPageMeta(titles[page] || '');
+    }
+  } catch(e) {}
 
   showView('matches');
   loadMatches();
@@ -126,24 +147,75 @@ async function loadLive(silent = false) {
 }
 
 async function loadToday() {
-  const { data, error } = await S.sb
-    .from('daily_matches').select('*')
+  let rows = [];
+
+  /* 1) daily_matches → match_date */
+  const { data: d1 } = await S.sb.from('daily_matches').select('*')
     .eq('match_date', S.date).order('league_name');
-  if (error) throw error;
-  render(data || [], false);
+  if (d1?.length) { rows = d1; }
+
+  /* 2) daily_matches → date */
+  if (!rows.length) {
+    const { data: d2 } = await S.sb.from('daily_matches').select('*')
+      .eq('date', S.date).order('league_name');
+    if (d2?.length) rows = d2;
+  }
+
+  /* 3) live_matches → match_date */
+  if (!rows.length) {
+    const { data: d3 } = await S.sb.from('live_matches').select('*')
+      .eq('match_date', S.date).order('league_name');
+    if (d3?.length) rows = d3;
+  }
+
+  /* 4) live_matches → tüm NS (bugünse) */
+  if (!rows.length && S.date === todayStr()) {
+    const { data: d4 } = await S.sb.from('live_matches').select('*')
+      .in('status_short', ['NS','1H','2H','HT','ET','FT','AET','PEN'])
+      .order('league_name');
+    if (d4?.length) rows = d4;
+  }
+
+  render(rows, false);
 }
 
 async function loadUpcoming() {
-  const { data, error } = await S.sb
-    .from('future_matches').select('*')
+  let raw = [];
+
+  /* future_matches → date */
+  const { data: u1 } = await S.sb.from('future_matches').select('*')
     .eq('date', S.date).order('league_id');
-  if (error) throw error;
+  if (u1?.length) raw = u1;
+
+  /* future_matches → match_date */
+  if (!raw.length) {
+    const { data: u2 } = await S.sb.from('future_matches').select('*')
+      .eq('match_date', S.date).order('league_id');
+    if (u2?.length) raw = u2;
+  }
+
+  /* daily_matches → match_date (yarın için bazı tablolar burada) */
+  if (!raw.length) {
+    const { data: u3 } = await S.sb.from('daily_matches').select('*')
+      .eq('match_date', S.date).order('league_name');
+    if (u3?.length) raw = u3;
+  }
+
+  /* daily_matches → date */
+  if (!raw.length) {
+    const { data: u4 } = await S.sb.from('daily_matches').select('*')
+      .eq('date', S.date).order('league_name');
+    if (u4?.length) raw = u4;
+  }
+
+  /* Nested JSON normalize */
   const rows = [];
-  (data || []).forEach(r => {
+  raw.forEach(r => {
     if (!r.data) { rows.push(r); return; }
     if (Array.isArray(r.data)) r.data.forEach(m => rows.push(normFix(m)));
     else rows.push(normFix(r.data));
   });
+
   render(rows, false);
 }
 
@@ -326,6 +398,14 @@ async function loadDetail(id, isLive) {
 function buildDetail(m, evs, stats, lus, h2h, pred) {
   const st = statusInfo(m);
   const hs = m.home_score ?? '-', as = m.away_score ?? '-';
+
+  /* URL + meta güncelle */
+  try {
+    if (typeof Router !== 'undefined') {
+      Router.goMatch(m.fixture_id, m.home_team, m.away_team);
+      Router.setMatchMeta(m.home_team, m.away_team, m.home_score, m.away_score, m.league_name);
+    }
+  } catch(e) {}
 
   /* hero */
   let html = `
