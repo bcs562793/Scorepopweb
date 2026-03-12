@@ -682,6 +682,20 @@ function parseStatsData(row) {
     return { home: hs, away: as };
   }
 
+    /* ✅ Format 5 — flat dizi: [{type, home, away}, ...] */
+  if (d && Array.isArray(d) && d.length > 0 && 'type' in (d[0] || {})) {
+    const home = d.map(s => ({ type: s.type, value: s.home ?? s.home_value ?? s.value_home }));
+    const away = d.map(s => ({ type: s.type, value: s.away ?? s.away_value ?? s.value_away }));
+    if (home.length) return { home, away };
+  }
+
+  /* ✅ Format 6 — d[0].stats (statistics yerine stats key'i) */
+  if (d && Array.isArray(d) && d.length >= 2) {
+    const home = d[0]?.stats || d[0]?.stat || [];
+    const away = d[1]?.stats || d[1]?.stat || [];
+    if (home.length) return { home, away };
+  }
+
   console.warn('[Stats] Tanınamayan veri formatı:', row);
   return null;
 }
