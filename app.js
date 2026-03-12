@@ -188,6 +188,8 @@ async function loadToday() {
 
   render(rows, false);
 
+   }
+
 async function loadUpcoming() {
   // Eğer future_matches tablon da live_matches ile aynı yapıdaysa (match_date yoksa)
   // .eq('match_date', S.date) kısmını buradan da kaldırıyoruz.
