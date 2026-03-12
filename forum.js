@@ -54,6 +54,22 @@ const Forum = (() => {
     _sb = sb;
     _sessionId = _getOrCreateSession();
     _nickname  = _getStoredNickname();
+
+    /* Auth giriş/çıkışında nickname'i güncelle */
+    if (typeof Auth !== 'undefined') {
+      Auth.onChange(user => {
+        if (user) {
+          const name = Auth.getDisplayName();
+          if (name) {
+            _nickname = name;
+            try { localStorage.setItem('sp_nick', name); } catch {}
+            /* Forum paneli açıksa nick bar'ı güncelle */
+            const nickEl = document.querySelector('.fr-nick-lbl strong');
+            if (nickEl) nickEl.textContent = name;
+          }
+        }
+      });
+    }
   }
 
   /* ── OPEN / CLOSE ─────────────────────────── */
@@ -92,12 +108,13 @@ const Forum = (() => {
   }
 
   function _getStoredNickname() {
-    /* Giriş yapılmışsa Auth'dan al, yoksa localStorage */
+    /* Auth giriş yapılmışsa oradan al */
     if (typeof Auth !== 'undefined' && Auth.isLoggedIn()) {
-      return Auth.getDisplayName();
+      const authName = Auth.getDisplayName();
+      if (authName) return authName;
     }
-    try { return localStorage.getItem('sp_nick') || null; }
-    catch { return null; }
+    /* localStorage fallback */
+    try { return localStorage.getItem('sp_nick') || null; } catch { return null; }
   }
 
   function _saveNickname(nick) {
@@ -370,12 +387,8 @@ const Forum = (() => {
     const tier = TIERS[tierKey];
     if (!tier) return;
 
-    /* Giriş kontrolü — öne çıkan mesaj için üyelik zorunlu */
-    if (typeof Auth !== 'undefined' && !Auth.isLoggedIn()) {
-      Auth.showLoginModal('login');
-      _showToast('Öne çıkan mesaj için giriş yapmalısın.');
-      return;
-    }
+    /* Öne çıkan mesaj için nickname gerekli ama üyelik zorunlu değil */
+    if (!_nickname) { _showNickModal(() => _processFeaturedPayment(tierKey, message)); return; }
 
     _showToast(`${tier.emoji} Mesajınız gönderiliyor…`);
 
