@@ -425,8 +425,14 @@ async function loadDetail(id, isLive) {
     }
 
     /* Paralel sorgular — her biri try/catch ile korunuyor */
-    const sq = async (query) => { try { return await query; } catch { return { data: null }; } };
-
+// Düzeltme:
+const sq = async (query) => {
+  try {
+    const res = await query;
+    if (res.error) console.warn('[sq error]', res.error.message);
+    return res;
+  } catch { return { data: null }; }
+};
     const [
       { data: evs  },
       { data: stats },
