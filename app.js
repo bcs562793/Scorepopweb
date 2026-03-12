@@ -433,6 +433,9 @@ const sq = async (query) => {
     return res;
   } catch { return { data: null }; }
 };
+
+     console.log('[H2H] home_team_id:', m.home_team_id, 'away_team_id:', m.away_team_id);
+
     const [
       { data: evs   },
       { data: stats },
