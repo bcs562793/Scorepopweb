@@ -38,6 +38,7 @@ const Auth = (() => {
     _ready = true;
     _renderTopbarBtn();
     _updateTopbarBtn();
+    console.log('[Auth] init tamamlandı — user:', _user?.email || 'yok');
   }
 
   /* ── HOOK ───────────────────────────────────── */
