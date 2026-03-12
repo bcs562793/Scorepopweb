@@ -653,50 +653,44 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
  */
 function parseStatsData(row) {
   if (!row) return null;
-
-  /* Format 1: row.data dizisi (orijinal format) */
   const d = row.data;
-  if (d && Array.isArray(d) && d.length >= 2) {
-    const home = d[0]?.statistics || [];
+  if (!d) return null;
+
+  /* Format A: [{statistics:[...]}, {statistics:[...]}] */
+  if (Array.isArray(d) && d[0]?.statistics) {
+    const home = d[0].statistics;
     const away = d[1]?.statistics || [];
     if (home.length) return { home, away };
   }
 
-  /* Format 2: row.data.home / row.data.away */
-  if (d && d.home && Array.isArray(d.home) && d.away) {
-    return { home: d.home, away: d.away };
+  /* Format B: [{stats:[...]}, ...] */
+  if (Array.isArray(d) && d[0]?.stats) {
+    const home = d[0].stats;
+    const away = d[1]?.stats || [];
+    if (home.length) return { home, away };
   }
 
-  /* Format 3: doğrudan row.statistics dizisi */
-  if (row.statistics && Array.isArray(row.statistics) && row.statistics.length >= 2) {
+  /* Format C: [{type, homeVal, awayVal}]  ← senin formatın bu */
+  if (Array.isArray(d) && d[0]?.type !== undefined &&
+      ('home' in d[0] || 'away' in d[0] || 'homeVal' in d[0])) {
     return {
-      home: row.statistics[0]?.statistics || [],
-      away: row.statistics[1]?.statistics || [],
+      home: d.map(s => ({ type: s.type, value: s.homeVal ?? s.home ?? 0 })),
+      away: d.map(s => ({ type: s.type, value: s.awayVal ?? s.away ?? 0 })),
     };
   }
 
-  /* Format 4: row kendisi iki takım içeriyor (home_stats / away_stats kolonları) */
-  if (row.home_stats || row.home_statistics) {
-    const hs = row.home_stats || row.home_statistics || [];
-    const as = row.away_stats || row.away_statistics || [];
-    return { home: hs, away: as };
+  /* Format D: [{type, value, team_id}] */
+  if (Array.isArray(d) && d[0]?.type !== undefined && d[0]?.team_id !== undefined) {
+    const ids = [...new Set(d.map(s => s.team_id))];
+    const homeStats = d.filter(s => s.team_id === ids[0]).map(s => ({ type: s.type, value: s.value }));
+    const awayStats = d.filter(s => s.team_id === ids[1]).map(s => ({ type: s.type, value: s.value }));
+    if (homeStats.length) return { home: homeStats, away: awayStats };
   }
 
-    /* ✅ Format 5 — flat dizi: [{type, home, away}, ...] */
-  if (d && Array.isArray(d) && d.length > 0 && 'type' in (d[0] || {})) {
-    const home = d.map(s => ({ type: s.type, value: s.home ?? s.home_value ?? s.value_home }));
-    const away = d.map(s => ({ type: s.type, value: s.away ?? s.away_value ?? s.value_away }));
-    if (home.length) return { home, away };
-  }
+  /* Format E: {home:[...], away:[...]} */
+  if (d.home && d.away) return { home: d.home, away: d.away };
 
-  /* ✅ Format 6 — d[0].stats (statistics yerine stats key'i) */
-  if (d && Array.isArray(d) && d.length >= 2) {
-    const home = d[0]?.stats || d[0]?.stat || [];
-    const away = d[1]?.stats || d[1]?.stat || [];
-    if (home.length) return { home, away };
-  }
-
-  console.warn('[Stats] Tanınamayan veri formatı:', row);
+  console.warn('[Stats] Bilinmeyen format. data[0] keys:', Object.keys(d[0] || d));
   return null;
 }
 
