@@ -134,6 +134,7 @@ const Payment = (() => {
       const result = await resp.json();
 
       /* Shopier'den gelen form HTML'ini yeni sekmeye bas ve otomatik submit et */
+      /* Shopier'den gelen form HTML'ini yeni sekmeye bas ve otomatik submit et */
       if (result.shopierHTML) {
         payWindow.document.body.innerHTML = result.shopierHTML;
         
