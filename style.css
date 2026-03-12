@@ -886,6 +886,7 @@ img { display: block; }
 /* ── MESAJ LİSTESİ ───────────────────────────── */
 .fr-msg-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 12px 14px;
   display: flex;
