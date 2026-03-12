@@ -22,18 +22,32 @@ const S = {
 window.addEventListener('load', async () => {
   S.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  /* Opsiyonel modüller — hata olursa devam et */
-  try { if (typeof Auth    !== 'undefined') await Auth.init(S.sb); }    catch(e) { console.warn('Auth hatası:', e); }
-  try { if (typeof Payment !== 'undefined') Payment.init(S.sb); }       catch(e) { console.warn('Payment hatası:', e); }
-  try { Forum.init(S.sb); }                                              catch(e) { console.warn('Forum hatası:', e); }
+  /* 1. Forum — Auth'dan önce başlat (session bağımsız) */
+  try { Forum.init(S.sb); } catch(e) { console.warn('Forum:', e); }
+
+  /* 2. Auth — async, tamamlanmasını bekle */
+  try {
+    if (typeof Auth !== 'undefined') {
+      await Auth.init(S.sb);
+      /* Auth giriş yapınca forum nickname'ini de güncelle */
+      Auth.onChange(user => {
+        if (user) {
+          const n = Auth.getDisplayName();
+          if (n) try { localStorage.setItem('sp_nick', n); } catch {}
+        }
+      });
+    }
+  } catch(e) { console.warn('Auth:', e); }
+
+  /* 3. Payment */
+  try { if (typeof Payment !== 'undefined') Payment.init(S.sb); } catch(e) {}
 
   buildDateStrip();
   bindEvents();
 
-  /* Router — hash değişince navigate çağırır ama
-     navigate geri Router'ı ÇAĞIRMAZ → sonsuz döngü yok */
+  /* 4. Router */
   try { if (typeof Router !== 'undefined') Router.init(); }
-  catch(e) { navigate('live'); }  // Router yoksa direkt başlat
+  catch(e) { navigate('live'); }
 
   startClock();
 });
@@ -147,33 +161,52 @@ async function loadLive(silent = false) {
 }
 
 async function loadToday() {
-  let rows = [];
+  let raw = [];
 
   /* 1) daily_matches → match_date */
   const { data: d1 } = await S.sb.from('daily_matches').select('*')
     .eq('match_date', S.date).order('league_name');
-  if (d1?.length) { rows = d1; }
+  if (d1?.length) raw = d1;
 
   /* 2) daily_matches → date */
-  if (!rows.length) {
+  if (!raw.length) {
     const { data: d2 } = await S.sb.from('daily_matches').select('*')
       .eq('date', S.date).order('league_name');
-    if (d2?.length) rows = d2;
+    if (d2?.length) raw = d2;
   }
 
   /* 3) live_matches → match_date */
-  if (!rows.length) {
+  if (!raw.length) {
     const { data: d3 } = await S.sb.from('live_matches').select('*')
       .eq('match_date', S.date).order('league_name');
-    if (d3?.length) rows = d3;
+    if (d3?.length) raw = d3;
   }
 
   /* 4) live_matches → tüm NS (bugünse) */
-  if (!rows.length && S.date === todayStr()) {
+  if (!raw.length && S.date === todayStr()) {
     const { data: d4 } = await S.sb.from('live_matches').select('*')
       .in('status_short', ['NS','1H','2H','HT','ET','FT','AET','PEN'])
       .order('league_name');
-    if (d4?.length) rows = d4;
+    if (d4?.length) raw = d4;
+  }
+
+  /* Nested JSON normalize + ilk satırı debug log et */
+  const rows = [];
+  (raw || []).forEach(r => {
+    /* Nested data kolonu varsa açıkla */
+    if (r.data && typeof r.data === 'object') {
+      const list = Array.isArray(r.data) ? r.data : [r.data];
+      list.forEach(m => rows.push(normFix(m)));
+    } else {
+      rows.push(normFix(r));  /* flat row'u da normFix'ten geçir */
+    }
+  });
+
+  /* DEBUG: Supabase'deki gerçek kolon adlarını console'a yaz */
+  if (raw.length > 0) {
+    console.log('[ScorePop] daily_matches kolonları:', Object.keys(raw[0]));
+    const first = rows[0];
+    console.log('[ScorePop] normFix sonrası kickoff_time:', first?.kickoff_time, '| status:', first?.status_short);
   }
 
   render(rows, false);
