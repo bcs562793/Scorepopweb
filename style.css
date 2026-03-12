@@ -254,8 +254,14 @@ img { display: block; }
 .dp-d { font-weight: 600; font-size: 12px; }
 .dp-w { font-size: 10px; letter-spacing: .3px; }
 
-.tb-right { padding: 0 12px; flex-shrink: 0; }
-.tb-live {
+.tb-right {
+  padding: 0 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}.tb-live {
   display: flex; align-items: center; gap: 6px;
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 12px; font-weight: 700; letter-spacing: 1.5px;
