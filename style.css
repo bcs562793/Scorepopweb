@@ -1602,3 +1602,18 @@ img { display: block; }
   .sp-modal { padding: 16px; gap: 10px; }
   .tb-auth-btn span { display: none; }
 }
+
+/* NS maç "v" kutusu */
+.mr-sb.ns {
+  background: transparent;
+  border-color: var(--b2);
+  min-width: 36px;
+  justify-content: center;
+}
+.mr-sb.ns .mr-n {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--tx3);
+  padding: 0 12px;
+}
