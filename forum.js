@@ -92,6 +92,10 @@ const Forum = (() => {
   }
 
   function _getStoredNickname() {
+    /* Giriş yapılmışsa Auth'dan al, yoksa localStorage */
+    if (typeof Auth !== 'undefined' && Auth.isLoggedIn()) {
+      return Auth.getDisplayName();
+    }
     try { return localStorage.getItem('sp_nick') || null; }
     catch { return null; }
   }
@@ -366,13 +370,38 @@ const Forum = (() => {
     const tier = TIERS[tierKey];
     if (!tier) return;
 
+    /* Giriş kontrolü — öne çıkan mesaj için üyelik zorunlu */
+    if (typeof Auth !== 'undefined' && !Auth.isLoggedIn()) {
+      Auth.showLoginModal('login');
+      _showToast('Öne çıkan mesaj için giriş yapmalısın.');
+      return;
+    }
+
     _showToast(`${tier.emoji} Mesajınız gönderiliyor…`);
 
     try {
-      /* PRODUCTION'DA BURAYA ÖDEME AKIŞI EKLENİR
-         Örnek: const paymentResult = await PaymentGateway.charge(tier.amount);
-         if (!paymentResult.success) throw new Error('Ödeme başarısız');          */
+      /* Payment modülü varsa kullan (gerçek ödeme akışı) */
+      if (typeof Payment !== 'undefined') {
+        const result = await Payment.startPayment({
+          tierKey,
+          message,
+          fixtureId:  _fixtureId,
+          sessionId:  _sessionId,
+          nickname:   _nickname,
+        });
 
+        if (!result.success) { _showError(result.error || 'Ödeme başarısız.'); return; }
+        if (result.pending)  return;  // ödeme modal'ı açık, callback bekliyor
+
+        /* Demo/doğrudan onay — mesajı öne çıkar */
+        _messages.unshift(result.data);
+        _prependFeaturedMessage(result.data);
+        scrollToBottom();
+        _showToast(`${tier.emoji} Mesajınız öne çıktı!`);
+        return;
+      }
+
+      /* Fallback: Payment modülü yoksa eski davranış */
       const { data, error } = await _sb.from('forum_messages').insert({
         fixture_id:     _fixtureId,
         session_id:     _sessionId,
@@ -381,16 +410,16 @@ const Forum = (() => {
         is_featured:    true,
         feature_tier:   tierKey,
         feature_amount: tier.amount,
-        payment_status: 'verified',   // ⚠️ DEMO: prod'da Edge Function günceller
-        expires_at:     null,          // kalıcı
+        payment_status: 'verified',
+        expires_at:     null,
       }).select().single();
 
       if (error) throw error;
-
-      _messages.unshift(data);         // listeye en üste ekle
+      _messages.unshift(data);
       _prependFeaturedMessage(data);
       scrollToBottom();
       _showToast(`${tier.emoji} Mesajınız öne çıktı!`);
+
     } catch (e) {
       console.error('[Forum] Öne çıkan mesaj hatası:', e);
       _showError('İşlem başarısız. Lütfen tekrar deneyin.');
