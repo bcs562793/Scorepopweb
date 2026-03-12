@@ -253,18 +253,30 @@ async function loadUpcoming() {
 }
 
 function normFix(m) {
+  /* Tüm olası saat kolonlarını dene */
+  const kt = m.fixture?.date    || m.kickoff_time || m.fixture_date
+          || m.match_time       || m.event_date   || m.date_time
+          || m.start_time       || m.event_time   || m.scheduled_at
+          || m.fixture_time     || m.game_time    || m.time
+          || null;
+
   return {
-    fixture_id:   m.fixture?.id  || m.fixture_id,
-    league_name:  m.league?.name || m.league_name || '',
-    league_logo:  m.league?.logo || m.league_logo || '',
-    home_team:    m.teams?.home?.name || m.home_team || '',
-    away_team:    m.teams?.away?.name || m.away_team || '',
-    home_logo:    m.teams?.home?.logo || m.home_logo || '',
-    away_logo:    m.teams?.away?.logo || m.away_logo || '',
+    fixture_id:   m.fixture?.id       || m.fixture_id,
+    league_id:    m.league?.id        || m.league_id   || 0,
+    league_name:  m.league?.name      || m.league_name || '',
+    league_logo:  m.league?.logo      || m.league_logo || '',
+    home_team:    m.teams?.home?.name || m.home_team   || '',
+    away_team:    m.teams?.away?.name || m.away_team   || '',
+    home_logo:    m.teams?.home?.logo || m.home_logo   || '',
+    away_logo:    m.teams?.away?.logo || m.away_logo   || '',
+    home_team_id: m.teams?.home?.id   || m.home_team_id || null,
+    away_team_id: m.teams?.away?.id   || m.away_team_id || null,
     home_score:   m.goals?.home  ?? m.home_score  ?? null,
     away_score:   m.goals?.away  ?? m.away_score  ?? null,
     status_short: m.fixture?.status?.short   || m.status_short  || 'NS',
     elapsed_time: m.fixture?.status?.elapsed || m.elapsed_time  || null,
+    kickoff_time: kt,
+    visual_url:   m.visual_url || null,
   };
 }
 
