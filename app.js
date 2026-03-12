@@ -503,8 +503,11 @@ async function loadDetail(id, isLive) {
       sq(S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time')),
       sq(S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle()),
       sq(S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle()),
-      sq(S.sb.from('match_h2h').select('*').or(`h2h_key.like.%${m.home_team_id}%,h2h_key.like.%${m.away_team_id}%`).limit(1).then(r => ({ data: r.data?.[0] ?? null, error: r.error }))),
-      sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
+sq(S.sb.from('match_h2h').select('*')
+  .or(`h2h_key.eq.${m.home_team_id}-${m.away_team_id},h2h_key.eq.${m.away_team_id}-${m.home_team_id}`)
+  .limit(1)
+  .then(r => ({ data: r.data?.[0] ?? null, error: r.error }))
+),      sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
     ]);
 
     buildDetail(m, evs||[], stats, lus, h2h, pred);
