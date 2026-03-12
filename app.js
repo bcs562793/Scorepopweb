@@ -454,8 +454,6 @@ async function loadDetail(id, isLive) {
 }
 
 function buildDetail(m, evs, stats, lus, h2h, pred) {
-     console.log('[H2H data]', h2h);  // ← bunu ekle
-
   const st = statusInfo(m);
   const hs = m.home_score ?? '-', as = m.away_score ?? '-';
 
@@ -610,20 +608,24 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
   html += `</div>`;
 
   /* ── h2h panel ───────────────────────────── */
+  /* ── h2h panel ───────────────────────────── */
   html += `<div class="d-panel" id="d-h2">`;
   const raw = h2h?.data;
-const hd = Array.isArray(raw?.h2h)      ? raw.h2h
-         : Array.isArray(raw?.response)  ? raw.response
-         : Array.isArray(raw)            ? raw
-         : [];
+  const hd   = Array.isArray(raw?.h2h)       ? raw.h2h       : [];
+  const hf   = Array.isArray(raw?.homeForm)   ? raw.homeForm  : [];
+  const af   = Array.isArray(raw?.awayForm)   ? raw.awayForm  : [];
+  const hsc  = Array.isArray(raw?.homeScorers)? raw.homeScorers: [];
+  const asc  = Array.isArray(raw?.awayScorers)? raw.awayScorers: [];
+
+  /* ── Karşılaşmalar ── */
   if (hd.length) {
-    html += `<div class="h2h-list">`;
+    html += `<div class="h2h-section-title">🆚 Karşılaşmalar</div><div class="h2h-list">`;
     hd.slice(-10).reverse().forEach(hm => {
       const dt  = hm.date || '';
-      const htn = esc(hm.homeTeam || hm.home_team || hm.teams?.home?.name || '');
-      const atn = esc(hm.awayTeam || hm.away_team || hm.teams?.away?.name || '');
-      const hg  = hm.homeGoals ?? hm.home_goals ?? hm.goals?.home ?? '-';
-      const ag  = hm.awayGoals ?? hm.away_goals ?? hm.goals?.away ?? '-';
+      const htn = esc(hm.homeTeam || '');
+      const atn = esc(hm.awayTeam || '');
+      const hg  = hm.homeGoals ?? '-';
+      const ag  = hm.awayGoals ?? '-';
       html += `
         <div class="h2h-row">
           <div class="h2h-d">${dt}</div>
@@ -633,9 +635,48 @@ const hd = Array.isArray(raw?.h2h)      ? raw.h2h
         </div>`;
     });
     html += `</div>`;
-  } else {
+  }
+
+  /* ── Son Form ── */
+  const renderForm = (form, title) => {
+    if (!form.length) return '';
+    let s = `<div class="h2h-section-title">${title}</div><div class="h2h-list">`;
+    form.forEach(fm => {
+      const resCls = fm.result === 'W' ? 'h2h-res w' : fm.result === 'L' ? 'h2h-res l' : 'h2h-res d';
+      s += `
+        <div class="h2h-row">
+          <div class="h2h-d">${fm.date || ''}</div>
+          <div class="h2h-t">${esc(fm.homeTeam || '')}</div>
+          <div class="h2h-sc">${fm.homeGoals ?? '-'} - ${fm.awayGoals ?? '-'}</div>
+          <div class="h2h-t r">${esc(fm.awayTeam || '')}</div>
+          <div class="${resCls}">${fm.result}</div>
+        </div>`;
+    });
+    s += `</div>`;
+    return s;
+  };
+
+  html += renderForm(hf, `🏠 ${esc(m.home_team)} Son 10 Maç`);
+  html += renderForm(af, `✈️ ${esc(m.away_team)} Son 10 Maç`);
+
+  /* ── En Golcüler ── */
+  const renderScorers = (scorers, title) => {
+    if (!scorers.length) return '';
+    let s = `<div class="h2h-section-title">${title}</div><div class="h2h-scorers">`;
+    scorers.forEach(sc => {
+      s += `<div class="h2h-scorer-row"><span class="h2h-scorer-n">${esc(sc.name || '')}</span><span class="h2h-scorer-g">${sc.goals ?? 0} ⚽</span></div>`;
+    });
+    s += `</div>`;
+    return s;
+  };
+
+  html += renderScorers(hsc, `🏠 ${esc(m.home_team)} Gol Krallığı`);
+  html += renderScorers(asc, `✈️ ${esc(m.away_team)} Gol Krallığı`);
+
+  if (!hd.length && !hf.length && !af.length) {
     html += `<div class="empty"><div class="empty-t">H2H verisi yok</div></div>`;
   }
+
   html += `</div>`;
 
   /* ── forum panel ─────────────────────────── */
