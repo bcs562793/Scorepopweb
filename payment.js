@@ -40,21 +40,13 @@ const Payment = (() => {
   }
 
   /* ── ANA ÖDEME AKIŞI ─────────────────────── */
-  /**
-   * @param {string} tierKey     - 'bronze'|'silver'|'gold'|'diamond'
-   * @param {string} message     - mesaj metni (zaten sanitize edilmiş)
-   * @param {number} fixtureId   - maç ID
-   * @param {string} sessionId   - anonim oturum ID
-   * @param {string} nickname    - kullanıcı adı
-   * @returns {Promise<{success:boolean, data?:object, error?:string}>}
-   */
   async function startPayment({ tierKey, message, fixtureId, sessionId, nickname }) {
     const amount = TIER_PRICES[tierKey];
     if (!amount) return { success: false, error: 'Geçersiz tier.' };
 
     /* 1. Supabase'e pending kayıt oluştur */
     const expires = null;  // öne çıkan mesajlar kalıcı
-    const { data: pending, error: insertErr } = await _sb
+    const { data: insertData, error: insertErr } = await _sb
       .from('forum_messages')
       .insert({
         fixture_id:     fixtureId,
@@ -67,10 +59,12 @@ const Payment = (() => {
         payment_status: 'pending',
         expires_at:     expires,
       })
-      .select()
-      .single();
+      .select(); // .single() KALDIRILDI
 
     if (insertErr) return { success: false, error: insertErr.message };
+
+    const pending = insertData && insertData.length > 0 ? insertData[0] : null;
+    if (!pending) return { success: false, error: 'Kayıt oluşturulamadı.' };
 
     /* 2. Demo mod mu yoksa gerçek ödeme mi? */
     if (!_edgeFnUrl) {
@@ -86,14 +80,15 @@ const Payment = (() => {
     /* Demo modda Edge Function olmadığı için direkt verified yapıyoruz */
     console.warn('[Payment] ⚠️ DEMO MOD — Gerçek ödeme yapılmıyor!');
 
-    const { data, error } = await _sb
+    const { data: updateData, error } = await _sb
       .from('forum_messages')
       .update({ is_featured: true, payment_status: 'verified' })
       .eq('id', pending.id)
-      .select()
-      .single();
+      .select(); // .single() KALDIRILDI
 
     if (error) return { success: false, error: error.message };
+
+    const data = updateData && updateData.length > 0 ? updateData[0] : null;
     return { success: true, data };
   }
 
@@ -186,18 +181,16 @@ const Payment = (() => {
 
   /* ── ÖDEME SONUÇ CALLBACK'LERİ ──────────── */
   async function _onPaymentSuccess(messageId) {
-    /* Edge Function webhook zaten güncellemiş olmalı;
-       yine de kontrol amaçlı fetch et */
-    const { data } = await _sb
+    const { data: rows } = await _sb
       .from('forum_messages')
       .select('*')
-      .eq('id', messageId)
-      .single();
+      .eq('id', messageId); // .single() KALDIRILDI
+
+    const data = rows && rows.length > 0 ? rows[0] : null;
 
     if (data?.payment_status === 'verified') {
       _showToast('✅ Ödeme başarılı! Mesajın öne çıktı.');
     } else {
-      /* Webhook henüz gelmemişse kısa polling */
       _pollVerification(messageId, 8);
     }
   }
@@ -208,8 +201,13 @@ const Payment = (() => {
       return;
     }
     await _sleep(2000);
-    const { data } = await _sb
-      .from('forum_messages').select('payment_status').eq('id', messageId).single();
+    const { data: rows } = await _sb
+      .from('forum_messages')
+      .select('payment_status')
+      .eq('id', messageId); // .single() KALDIRILDI
+
+    const data = rows && rows.length > 0 ? rows[0] : null;
+
     if (data?.payment_status === 'verified') {
       _showToast('✅ Mesajın öne çıktı!');
     } else {
@@ -218,7 +216,6 @@ const Payment = (() => {
   }
 
   async function _onPaymentFail(messageId) {
-    /* Başarısız kaydı güncelle */
     await _sb.from('forum_messages')
       .update({ payment_status: 'failed' })
       .eq('id', messageId)
