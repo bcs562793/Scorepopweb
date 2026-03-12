@@ -338,7 +338,8 @@ function renderGroup(g, isLive) {
     ? `${esc(g.country)} ${esc(g.name)}`
     : esc(g.name);
   const liveBadge = liveCount
-    ? `<span class="lg-live-ct">${liveCount} CANLI</span>` : '';
+    ? `<span style="display:inline-flex;align-items:center;white-space:nowrap;...">${liveCount} CANLI</span>`
+    : '';
   return `
     <div class="lg-grp" data-league="${esc(g.name)}">
       <div class="lg-hdr" onclick="this.closest('.lg-grp').classList.toggle('closed')">
