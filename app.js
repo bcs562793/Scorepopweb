@@ -297,24 +297,35 @@ function renderGroup(g, isLive) {
 
 function renderRow(m, isLive) {
   const st = statusInfo(m);
-  const hs = m.home_score != null ? m.home_score : '-';
-  const as = m.away_score != null ? m.away_score : '-';
+
+  /* NS tespiti: canlı değil + tamamlanmamış statü */
+  const DONE  = new Set(['FT','AET','PEN']);
+  const LIVE2 = new Set(['1H','2H','HT','ET','BT','P','LIVE']);
+  const isNS  = !LIVE2.has(m.status_short) && !DONE.has(m.status_short);
+
+  /* Skor gösterimi */
+  const hs = isNS ? 'v' : (m.home_score != null ? m.home_score : '-');
+  const as = isNS ? ''  : (m.away_score != null ? m.away_score : '-');
+
+  /* Kazananı kalın yap */
   let hcls = '', acls = '';
-  if (st.cls === 'done' && hs !== '-' && as !== '-') {
-    const hi = +hs, ai = +as;
-    if   (hi > ai) { hcls = 'bold'; acls = 'dim'; }
-    else if (ai > hi) { acls = 'bold'; hcls = 'dim'; }
+  if (!isNS && st.cls === 'done' && hs !== '-' && as !== '-') {
+    if      (+hs > +as) { hcls = 'bold'; acls = 'dim'; }
+    else if (+as > +hs) { acls = 'bold'; hcls = 'dim'; }
   }
+
   const hLogo = m.home_logo
     ? `<img class="mr-logo" src="${m.home_logo}" onerror="this.style.display='none'" alt="">`
     : `<div class="mr-logo-ph"></div>`;
   const aLogo = m.away_logo
     ? `<img class="mr-logo" src="${m.away_logo}" onerror="this.style.display='none'" alt="">`
     : `<div class="mr-logo-ph"></div>`;
-  const sbCls = st.live ? 'mr-sb live' : 'mr-sb';
+
+  const sbCls = st.live ? 'mr-sb live' : (isNS ? 'mr-sb ns' : 'mr-sb');
   const extra = m.visual_url
     ? `<span class="mr-tv">TV</span>`
     : `<span class="mr-arr">›</span>`;
+
   return `
     <div class="mr ${st.live ? 'is-live' : ''}" data-id="${m.fixture_id}"
          onclick="openDetail(${m.fixture_id},${st.live})">
@@ -329,8 +340,8 @@ function renderRow(m, isLive) {
       <div class="mr-score">
         <div class="${sbCls}">
           <span class="mr-n">${hs}</span>
-          <div class="mr-sep"></div>
-          <span class="mr-n">${as}</span>
+          ${isNS ? '' : '<div class="mr-sep"></div>'}
+          ${isNS ? '' : `<span class="mr-n">${as}</span>`}
         </div>
       </div>
       <div class="mr-away">
@@ -406,8 +417,9 @@ async function loadDetail(id, isLive) {
       if (nested) m = { ...m, ...normFix(nested) };
     }
 
-    /* Paralel sorgular — hata olursa null döner, sayfa çökmez */
-    const safeQuery = q => q.catch(() => ({ data: null }));
+    /* Paralel sorgular — her biri try/catch ile korunuyor */
+    const sq = async (query) => { try { return await query; } catch { return { data: null }; } };
+
     const [
       { data: evs  },
       { data: stats },
@@ -415,15 +427,13 @@ async function loadDetail(id, isLive) {
       { data: h2h  },
       { data: pred },
     ] = await Promise.all([
-      safeQuery(S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time')),
-      safeQuery(S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle()),
-      safeQuery(S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle()),
-      safeQuery(
-        m.home_team_id
+      sq(S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time')),
+      sq(S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle()),
+      sq(S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle()),
+      sq(m.home_team_id
           ? S.sb.from('match_h2h').select('*').like('h2h_key', `%${m.home_team_id}%`).maybeSingle()
-          : Promise.resolve({ data: null })
-      ),
-      safeQuery(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
+          : Promise.resolve({ data: null })),
+      sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
     ]);
 
     if (stErr) console.warn('İstatistik hatası:', stErr.message);
@@ -757,15 +767,27 @@ function statusInfo(m) {
 }
 
 function fmtKickoff(m) {
-  /* updated_at ASLA kullanılmaz — maç saati değil DB güncelleme saati */
-  const raw = m.kickoff_time  || m.fixture_date  || m.match_time
-           || m.event_date    || m.date_time      || m.start_time
-           || m.event_time    || m.scheduled_at   || null;
+  /* Tüm olası zaman alanlarını tara — updated_at ASLA */
+  const candidates = [
+    m.kickoff_time, m.fixture_date,  m.match_time,
+    m.event_date,   m.date_time,     m.start_time,
+    m.event_time,   m.scheduled_at,  m.match_date,
+    m.fixture_time, m.game_time,     m.time,
+  ];
+  const raw = candidates.find(v => {
+    if (!v || typeof v !== 'string') return false;
+    /* Sadece tarih içeren (saat olmayan) değerleri atla: "2026-03-12" */
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v.trim())) return false;
+    return v.trim().length > 4;
+  }) || null;
+
   if (!raw) return '--:--';
   try {
+    /* "HH:MM" veya "HH:MM:SS" formatı */
     if (/^\d{2}:\d{2}/.test(raw.trim())) return raw.trim().slice(0,5);
     const d = new Date(raw);
     if (isNaN(d.getTime())) return '--:--';
+    /* UTC → Europe/Istanbul (UTC+3) */
     return d.toLocaleTimeString('tr-TR', {
       hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Istanbul'
     });
