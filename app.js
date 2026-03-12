@@ -434,21 +434,22 @@ const sq = async (query) => {
   } catch { return { data: null }; }
 };
     const [
-      { data: evs  },
+      { data: evs   },
       { data: stats },
-      { data: lus  },
-      { data: h2h  },
-      { data: pred },
+      { data: lus   },
+      { data: h2h   },
+      { data: pred  },
     ] = await Promise.all([
       sq(S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time')),
       sq(S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle()),
       sq(S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle()),
-      sq(m.home_team_id
-          ? S.sb.from('match_h2h').select('*').like('h2h_key', `%${m.home_team_id}%`).maybeSingle()
+      sq(m.home_team_id && m.away_team_id
+          ? S.sb.from('match_h2h').select('*')
+              .or(`h2h_key.like.%${m.home_team_id}-${m.away_team_id}%,h2h_key.like.%${m.away_team_id}-${m.home_team_id}%`)
+              .maybeSingle()
           : Promise.resolve({ data: null })),
       sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
     ]);
-
     // stats hata kontrolü sq içinde handle ediliyor
 
     buildDetail(m, evs||[], stats, lus, h2h, pred);
@@ -614,18 +615,25 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
 
   /* ── h2h panel ───────────────────────────── */
   html += `<div class="d-panel" id="d-h2">`;
-  const hd = h2h?.data?.response || h2h?.data || [];
+  const raw = h2h?.data;
+const hd = Array.isArray(raw?.h2h)      ? raw.h2h
+         : Array.isArray(raw?.response)  ? raw.response
+         : Array.isArray(raw)            ? raw
+         : [];
   if (hd.length) {
     html += `<div class="h2h-list">`;
     hd.slice(-10).reverse().forEach(hm => {
-      const f=hm.fixture||hm, t=hm.teams||{}, g=hm.goals||{};
-      const dt = f.date ? new Date(f.date).toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',year:'2-digit'}) : '';
+      const dt  = hm.date || '';
+      const htn = esc(hm.homeTeam || hm.home_team || hm.teams?.home?.name || '');
+      const atn = esc(hm.awayTeam || hm.away_team || hm.teams?.away?.name || '');
+      const hg  = hm.homeGoals ?? hm.home_goals ?? hm.goals?.home ?? '-';
+      const ag  = hm.awayGoals ?? hm.away_goals ?? hm.goals?.away ?? '-';
       html += `
         <div class="h2h-row">
           <div class="h2h-d">${dt}</div>
-          <div class="h2h-t">${esc(t.home?.name||'')}</div>
-          <div class="h2h-sc">${g.home??'-'} - ${g.away??'-'}</div>
-          <div class="h2h-t r">${esc(t.away?.name||'')}</div>
+          <div class="h2h-t">${htn}</div>
+          <div class="h2h-sc">${hg} - ${ag}</div>
+          <div class="h2h-t r">${atn}</div>
         </div>`;
     });
     html += `</div>`;
