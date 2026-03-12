@@ -436,7 +436,7 @@ async function loadDetail(id, isLive) {
       sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
     ]);
 
-    if (stErr) console.warn('İstatistik hatası:', stErr.message);
+    // stats hata kontrolü sq içinde handle ediliyor
 
     buildDetail(m, evs||[], stats, lus, h2h, pred);
   } catch (e) {
