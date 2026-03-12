@@ -196,19 +196,45 @@ async function loadUpcoming() {
     return;
   }
 
+  /* DEBUG: ilk satirin yapisini konsola yaz */
+  if (data && data[0]) {
+    console.log('[future] kolonlar:', Object.keys(data[0]));
+    console.log('[future] ilk satir:', JSON.stringify(data[0]).slice(0, 500));
+  }
+
   const rows = [];
   (data || []).forEach(r => {
-    /* 1. raw_data string kolonu */
+    /* 1. raw_data TEXT kolonu */
     if (r.raw_data) {
       try { rows.push(normFix({...r, ...JSON.parse(r.raw_data)})); return; } catch(e) {}
     }
-    /* 2. data JSONB kolonu — { fixture: { date, id }, teams: {...}, ... } */
-    if (r.data && typeof r.data === 'object') {
-      const list = Array.isArray(r.data) ? r.data : [r.data];
-      list.forEach(m => rows.push(normFix({ ...r, ...m })));
-      return;
+
+    /* 2. data kolonu - JSONB obje veya TEXT string */
+    if (r.data) {
+      let d = r.data;
+      if (typeof d === 'string') {
+        try { d = JSON.parse(d); } catch(e) { d = null; }
+      }
+      if (d && typeof d === 'object') {
+        const list = Array.isArray(d) ? d : [d];
+        list.forEach(m => rows.push(normFix({ ...r, ...m })));
+        return;
+      }
     }
-    /* 3. Düz satır */
+
+    /* 3. fixture kolonu dogrudan var mi - JSONB veya TEXT string */
+    if (r.fixture) {
+      let fx = r.fixture;
+      if (typeof fx === 'string') {
+        try { fx = JSON.parse(fx); } catch(e) { fx = null; }
+      }
+      if (fx && typeof fx === 'object') {
+        rows.push(normFix({ ...r, fixture: fx }));
+        return;
+      }
+    }
+
+    /* 4. Duz satir */
     rows.push(normFix(r));
   });
 
