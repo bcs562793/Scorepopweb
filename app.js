@@ -400,7 +400,6 @@ function applyFilter() {
 async function loadDetail(id, isLive) {
   setDetailHTML(`<div class="empty" style="min-height:160px"><div class="empty-i">⚽</div></div>`);
   try {
-    /* Hangi tabloda olduğunu bilmeyebiliriz — sırayla 3 tabloyu dene */
     let m = null;
     const tables = isLive
       ? ['live_matches','daily_matches','future_matches']
@@ -418,41 +417,34 @@ async function loadDetail(id, isLive) {
       return;
     }
 
-    /* future_matches nested JSON normalize */
     if (m.data && typeof m.data === 'object') {
       const nested = Array.isArray(m.data) ? m.data[0] : m.data;
       if (nested) m = { ...m, ...normFix(nested) };
     }
 
-    /* Paralel sorgular — her biri try/catch ile korunuyor */
-// Düzeltme:
-const sq = async (query) => {
-  try {
-    const res = await query;
-    if (res.error) console.warn('[sq error]', res.error.message);
-    return res;
-  } catch { return { data: null }; }
-};
+    const sq = async (query) => {
+      try {
+        const res = await query;
+        if (res.error) console.warn('[sq error]', res.error.message);
+        return res;
+      } catch { return { data: null }; }
+    };
 
-     console.log('[H2H] home_team_id:', m.home_team_id, 'away_team_id:', m.away_team_id);
+    console.log('[H2H] home_team_id:', m.home_team_id, 'away_team_id:', m.away_team_id);
 
     const [
-      { data: evs   },
+      { data: evs  },
       { data: stats },
-      { data: lus   },
-      { data: h2h   },
-      { data: pred  },
+      { data: lus  },
+      { data: h2h  },
+      { data: pred },
     ] = await Promise.all([
       sq(S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time')),
       sq(S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle()),
       sq(S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle()),
-      sq(S.sb.from('match_h2h').select('*')
-    .like('h2h_key', `%${m.home_team_id || m.away_team_id}%`)
-    .maybeSingle()),
-sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
-]);
-    
-    // stats hata kontrolü sq içinde handle ediliyor
+      sq(S.sb.from('match_h2h').select('*').like('h2h_key', `%${m.home_team_id || m.away_team_id}%`).maybeSingle()),
+      sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
+    ]);
 
     buildDetail(m, evs||[], stats, lus, h2h, pred);
   } catch (e) {
