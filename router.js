@@ -19,13 +19,35 @@ const Router = (() => {
   };
 
   /* ── BAŞLAT ────────────────────────────────── */
+  let _busy = false;   // sonsuz döngü koruması
+
   function init() {
-    window.addEventListener('hashchange', _handle);
-    _handle();   // sayfa yüklenince mevcut hash'i işle
+    window.addEventListener('hashchange', () => {
+      if (_busy) return;
+      _handle();
+    });
+
+    /* Hash yoksa /canli'ye yönlendir, varsayılan sayfa */
+    const hash = _getHash();
+    const isEmpty = !hash || hash === '/' || hash === '';
+    if (isEmpty) {
+      /* Hash'i sessizce kur — hashchange tetiklemez */
+      history.replaceState(null, '', '#/canli');
+      if (typeof navigate === 'function') navigate('live');
+    } else {
+      _handle();
+    }
   }
 
   /* ── HASH İŞLE ─────────────────────────────── */
   function _handle() {
+    if (_busy) return;
+    _busy = true;
+    _handleInner();
+    setTimeout(() => { _busy = false; }, 100);
+  }
+
+  function _handleInner() {
     const hash = _getHash();
 
     /* /mac/ID-slug */
@@ -57,19 +79,25 @@ const Router = (() => {
 
     /* / veya /canli (varsayılan) */
     if (typeof navigate === 'function') navigate('live');
-  }
+  }  // _handleInner sonu
 
   /* ── URL PUSH ──────────────────────────────── */
   function goLive() {
+    _busy = true;
     _setHash('/canli');
+    setTimeout(() => { _busy = false; }, 150);
   }
 
   function goToday(date) {
+    _busy = true;
     _setHash(date ? `/bugun/${date}` : '/bugun');
+    setTimeout(() => { _busy = false; }, 150);
   }
 
   function goUpcoming(date) {
+    _busy = true;
     _setHash(date ? `/yakin/${date}` : '/yakin');
+    setTimeout(() => { _busy = false; }, 150);
   }
 
   /**
@@ -77,8 +105,10 @@ const Router = (() => {
    * scorepop.com.tr/#/mac/1234567-galatasaray-vs-fenerbahce
    */
   function goMatch(fixtureId, homeTeam, awayTeam) {
+    _busy = true;
     const slug = _makeSlug(homeTeam, awayTeam);
     _setHash(`/mac/${fixtureId}${slug ? '-' + slug : ''}`);
+    setTimeout(() => { _busy = false; }, 150);
   }
 
   function goBack() {
