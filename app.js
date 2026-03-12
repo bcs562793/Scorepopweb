@@ -187,44 +187,6 @@ async function loadToday() {
   });
 
   render(rows, false);
-}
-
-  /* 3) live_matches → match_date */
-  if (!raw.length) {
-  const { data: d3 } = await S.sb.from('live_matches').select('*')
-    .order('league_name'); 
-  if (d3?.length) raw = d3;
-}
-
-  /* 4) live_matches → tüm NS (bugünse) */
-  if (!raw.length && S.date === todayStr()) {
-    const { data: d4 } = await S.sb.from('live_matches').select('*')
-      .in('status_short', ['NS','1H','2H','HT','ET','FT','AET','PEN'])
-      .order('league_name');
-    if (d4?.length) raw = d4;
-  }
-
-  /* Nested JSON normalize + ilk satırı debug log et */
-  const rows = [];
-  (raw || []).forEach(r => {
-    /* Nested data kolonu varsa açıkla */
-    if (r.data && typeof r.data === 'object') {
-      const list = Array.isArray(r.data) ? r.data : [r.data];
-      list.forEach(m => rows.push(normFix(m)));
-    } else {
-      rows.push(normFix(r));  /* flat row'u da normFix'ten geçir */
-    }
-  });
-
-  /* DEBUG: Supabase'deki gerçek kolon adlarını console'a yaz */
-  if (raw.length > 0) {
-    console.log('[ScorePop] daily_matches kolonları:', Object.keys(raw[0]));
-    const first = rows[0];
-    console.log('[ScorePop] normFix sonrası kickoff_time:', first?.kickoff_time, '| status:', first?.status_short);
-  }
-
-  render(rows, false);
-}
 
 async function loadUpcoming() {
   // Eğer future_matches tablon da live_matches ile aynı yapıdaysa (match_date yoksa)
