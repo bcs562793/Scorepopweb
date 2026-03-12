@@ -418,23 +418,32 @@ if (i >= 0 && insertedData) {
       }
 
       /* Fallback: Payment modülü yoksa eski davranış */
-      const { data, error } = await _sb.from('forum_messages').insert({
-        fixture_id:     _fixtureId,
-        session_id:     _sessionId,
-        nickname:       _nickname,
-        message,
-        is_featured:    true,
-        feature_tier:   tierKey,
-        feature_amount: tier.amount,
-        payment_status: 'verified',
-        expires_at:     null,
-      }).select().single();
+      // ESKİ KOD:
+// const { data, error } = await _sb.from('forum_messages').insert({ ... }).select().single();
 
-      if (error) throw error;
-      _messages.unshift(data);
-      _prependFeaturedMessage(data);
-      scrollToBottom();
-      _showToast(`${tier.emoji} Mesajınız öne çıktı!`);
+// YENİ KOD:
+const { data, error } = await _sb.from('forum_messages').insert({
+  fixture_id:     _fixtureId,
+  session_id:     _sessionId,
+  nickname:       _nickname,
+  message,
+  is_featured:    true,
+  feature_tier:   tierKey,
+  feature_amount: tier.amount,
+  payment_status: 'verified',
+  expires_at:     null,
+}).select(); // .single() KALDIRILDI
+
+if (error) throw error;
+
+const insertedData = data && data.length > 0 ? data[0] : null;
+
+if (insertedData) {
+  _messages.unshift(insertedData);
+  _prependFeaturedMessage(insertedData);
+  scrollToBottom();
+}
+_showToast(`${tier.emoji} Mesajınız öne çıktı!`);
 
     } catch (e) {
       console.error('[Forum] Öne çıkan mesaj hatası:', e);
