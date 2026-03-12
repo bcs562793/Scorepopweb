@@ -152,7 +152,16 @@ const Payment = (() => {
         _pollVerification(pending.id, 60); // 60 defa (yaklaşık 2 dk) kontrol et
         
         return { success: true, data: pending, pending: true };
-      }
+    } else {
+      payWindow.close();
+      return { success: false, error: 'Sunucudan geçersiz yanıt geldi.' };
+    }
+
+  } catch (err) {
+    console.error('[Payment] Kritik hata:', err);
+    return { success: false, error: 'Ödeme başlatılırken bir hata oluştu: ' + err.message };
+  }
+} // _realPayment fonksiyonunu kapatan parantez
 
   /* ── ÖDEME SONUÇ KONTROLÜ (Polling) ──────────── */
   async function _pollVerification(messageId, retries) {
