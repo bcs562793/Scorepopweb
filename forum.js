@@ -518,13 +518,15 @@ const Forum = (() => {
     panel.innerHTML = `
       <div class="fr-wrap">
         <div class="fr-msg-list" id="fr-msg-list" role="log" aria-live="polite" aria-label="Forum mesajları">
-          ${_messages.length
-            ? _messages.map(m => _buildMessageHTML(m)).join('')
-            : '<div class="fr-empty">İlk mesajı sen gönder! 🎉</div>'
-          }
+          ${_messages.length ? _messages.map(m => _buildMessageHTML(m)).join('') : '<div class="fr-empty">İlk mesajı sen gönder! 🎉</div>'}
         </div>
         ${_buildInputArea()}
       </div>`;
+    /* innerHTML'den sonra mesaj metinlerini güvenli şekilde set et */
+    _messages.forEach(m => {
+      const el = panel.querySelector(`[data-msg-id="${String(m.id)}"]`);
+      if (el) _setMessageText(el, m.message);
+    });
     _bindInputEvents();
   }
 
