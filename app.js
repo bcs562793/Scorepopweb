@@ -313,13 +313,28 @@ function applyFilter() {
 async function loadDetail(id, isLive) {
   setDetailHTML(`<div class="empty" style="min-height:160px"><div class="empty-i">⚽</div></div>`);
   try {
-    const tbl = isLive ? 'live_matches' : 'daily_matches';
-    const { data: m, error: mErr } = await S.sb
-      .from(tbl).select('*').eq('fixture_id', id).maybeSingle();   // ← maybeSingle
-    if (mErr) throw mErr;
+    /* Maçı bul — hangi tabloda olduğunu bilmeyebiliriz, 3 tabloyu sırayla dene */
+    let m = null;
+    const tablesToTry = isLive
+      ? ['live_matches', 'daily_matches', 'future_matches']
+      : ['daily_matches', 'live_matches', 'future_matches'];
+
+    for (const tbl of tablesToTry) {
+      const { data, error } = await S.sb
+        .from(tbl).select('*').eq('fixture_id', id).maybeSingle();
+      if (error) { console.warn(`[${tbl}] sorgu hatası:`, error.message); continue; }
+      if (data) { m = data; break; }
+    }
+
     if (!m) {
       setDetailHTML('<div class="empty"><div class="empty-t">Maç bulunamadı</div></div>');
       return;
+    }
+
+    /* future_matches nested JSON ise normalize et */
+    if (m.data && typeof m.data === 'object') {
+      const nested = Array.isArray(m.data) ? m.data[0] : m.data;
+      if (nested) m = { ...m, ...normFix(nested) };
     }
 
     /* paralel sorgular — hepsi maybeSingle ile güvenli */
@@ -333,7 +348,9 @@ async function loadDetail(id, isLive) {
       S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time'),
       S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle(),  // ← DÜZELTİLDİ
       S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle(),
-      S.sb.from('match_h2h').select('*').like('h2h_key',`%${m.home_team_id}%`).maybeSingle(),
+      m.home_team_id
+        ? S.sb.from('match_h2h').select('*').like('h2h_key',`%${m.home_team_id}%`).maybeSingle()
+        : Promise.resolve({ data: null }),
       S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle(), // ← maybeSingle
     ]);
 
