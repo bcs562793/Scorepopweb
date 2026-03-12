@@ -1,5 +1,7 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js
+   SCOREPOP — app.js  (v2)
+   Fixes: match_statistics uses maybeSingle + robust data parsing
+   New  : Forum tab wired to forum.js
 ════════════════════════════════════════════════ */
 'use strict';
 
@@ -19,6 +21,7 @@ const S = {
 /* ── BOOT ───────────────────────────────────── */
 window.addEventListener('load', () => {
   S.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  Forum.init(S.sb);          // ← forum modülünü başlat
   buildDateStrip();
   bindEvents();
   navigate('live');
@@ -62,6 +65,7 @@ function openDetail(id, isLive) {
 }
 
 function closeDetail(reload = true) {
+  Forum.close();           // ← forum aboneliğini kapat
   S.detail = null;
   showView('matches');
   if (reload) loadMatches();
@@ -94,13 +98,13 @@ function buildDateStrip() {
     });
     el.appendChild(btn);
   }
-  el.style.display = 'none'; // hidden on live page initially
+  el.style.display = 'none';
 }
 
 /* ── LOAD ────────────────────────────────────── */
 async function loadMatches(silent = false) {
   try {
-    if (S.page === 'live')     await loadLive(silent);
+    if (S.page === 'live')        await loadLive(silent);
     else if (S.page === 'today')  await loadToday();
     else                          await loadUpcoming();
   } catch (e) {
@@ -166,15 +170,12 @@ function render(rows, isLive) {
     buildSidebarLeagues([]);
     return;
   }
-
-  // group by league
   const groups = {};
   rows.forEach(m => {
     const k = m.league_name || 'Diğer';
     if (!groups[k]) groups[k] = { name: k, logo: m.league_logo || '', matches: [] };
     groups[k].matches.push(m);
   });
-
   S.allLeagues = Object.values(groups);
   buildSidebarLeagues(S.allLeagues);
   setMatchesHTML(S.allLeagues.map(g => renderGroup(g, isLive)).join(''));
@@ -188,7 +189,6 @@ function renderGroup(g, isLive) {
     : `<div class="lg-flag-ph"></div>`;
   const liveBadge = liveCount
     ? `<span class="lg-live-ct">${liveCount} CANLI</span>` : '';
-
   return `
     <div class="lg-grp" data-league="${esc(g.name)}">
       <div class="lg-hdr" onclick="this.closest('.lg-grp').classList.toggle('closed')">
@@ -207,27 +207,22 @@ function renderRow(m, isLive) {
   const st = statusInfo(m);
   const hs = m.home_score != null ? m.home_score : '-';
   const as = m.away_score != null ? m.away_score : '-';
-
-  // bold winner, dim loser
   let hcls = '', acls = '';
   if (st.cls === 'done' && hs !== '-' && as !== '-') {
     const hi = +hs, ai = +as;
     if   (hi > ai) { hcls = 'bold'; acls = 'dim'; }
     else if (ai > hi) { acls = 'bold'; hcls = 'dim'; }
   }
-
   const hLogo = m.home_logo
     ? `<img class="mr-logo" src="${m.home_logo}" onerror="this.style.display='none'" alt="">`
     : `<div class="mr-logo-ph"></div>`;
   const aLogo = m.away_logo
     ? `<img class="mr-logo" src="${m.away_logo}" onerror="this.style.display='none'" alt="">`
     : `<div class="mr-logo-ph"></div>`;
-
   const sbCls = st.live ? 'mr-sb live' : 'mr-sb';
   const extra = m.visual_url
     ? `<span class="mr-tv">TV</span>`
     : `<span class="mr-arr">›</span>`;
-
   return `
     <div class="mr ${st.live ? 'is-live' : ''}" data-id="${m.fixture_id}"
          onclick="openDetail(${m.fixture_id},${st.live})">
@@ -258,13 +253,11 @@ function renderRow(m, isLive) {
 function buildSidebarLeagues(groups) {
   const el = document.getElementById('sb-league-list');
   el.innerHTML = '';
-
   const allBtn = document.createElement('div');
   allBtn.className = 'sb-lg-item' + (S.league === 'all' ? ' active' : '');
   allBtn.innerHTML = `<span class="sb-lg-n">Tüm Ligler</span><span class="sb-lg-ct">${groups.reduce((a,g)=>a+g.matches.length,0)}</span>`;
   allBtn.addEventListener('click', () => { setLeague('all'); if(window.innerWidth<=680) toggleSidebar(); });
   el.appendChild(allBtn);
-
   groups.forEach(g => {
     const item = document.createElement('div');
     item.className = 'sb-lg-item' + (S.league === g.name ? ' active' : '');
@@ -298,27 +291,35 @@ async function loadDetail(id, isLive) {
   setDetailHTML(`<div class="empty" style="min-height:160px"><div class="empty-i">⚽</div></div>`);
   try {
     const tbl = isLive ? 'live_matches' : 'daily_matches';
-    const { data: m } = await S.sb.from(tbl).select('*').eq('fixture_id', id).single();
-    if (!m) { setDetailHTML('<div class="empty"><div class="empty-t">Maç bulunamadı</div></div>'); return; }
+    const { data: m, error: mErr } = await S.sb
+      .from(tbl).select('*').eq('fixture_id', id).maybeSingle();   // ← maybeSingle
+    if (mErr) throw mErr;
+    if (!m) {
+      setDetailHTML('<div class="empty"><div class="empty-t">Maç bulunamadı</div></div>');
+      return;
+    }
 
+    /* paralel sorgular — hepsi maybeSingle ile güvenli */
     const [
       { data: evs },
-      { data: stats },
+      { data: stats,  error: stErr  },
       { data: lus },
       { data: h2h },
       { data: pred },
     ] = await Promise.all([
       S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time'),
-      S.sb.from('match_statistics').select('*').eq('fixture_id', id).single(),
-      S.sb.from('match_lineups').select('*').eq('fixture_id', id).single(),
+      S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle(),  // ← DÜZELTİLDİ
+      S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle(),
       S.sb.from('match_h2h').select('*').like('h2h_key',`%${m.home_team_id}%`).maybeSingle(),
-      S.sb.from('match_predictions').select('*').eq('fixture_id', id).single(),
+      S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle(), // ← maybeSingle
     ]);
+
+    if (stErr) console.warn('İstatistik hatası:', stErr.message);
 
     buildDetail(m, evs||[], stats, lus, h2h, pred);
   } catch (e) {
     console.error(e);
-    setDetailHTML(`<div class="empty"><div class="empty-t">Hata: ${e.message}</div></div>`);
+    setDetailHTML(`<div class="empty"><div class="empty-t">Hata: ${esc(e.message)}</div></div>`);
   }
 }
 
@@ -353,7 +354,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
       </div>
     </div>`;
 
-  /* visual */
+  /* visual stream */
   html += `
     <div class="d-visual">
       <div class="d-visual-hdr">
@@ -372,10 +373,10 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
       <div class="d-tab" onclick="switchTab('st',this)">İstatistik</div>
       <div class="d-tab" onclick="switchTab('lu',this)">Kadro</div>
       <div class="d-tab" onclick="switchTab('h2',this)">H2H</div>
-      <div class="d-tab" onclick="switchTab('pr',this)">Forum</div>
+      <div class="d-tab" onclick="switchTab('fr',this)">Forum</div>
     </div>`;
 
-  /* events */
+  /* ── events panel ────────────────────────── */
   html += `<div class="d-panel active" id="d-ev">`;
   if (!evs.length) {
     html += `<div class="ev-list"><div class="ev-none">Henüz olay yok</div></div>`;
@@ -404,21 +405,23 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
   }
   html += `</div>`;
 
-  /* stats */
+  /* ── stats panel — DÜZELTİLMİŞ ─────────── */
   html += `<div class="d-panel" id="d-st">`;
-  const sd = stats?.data;
-  if (sd && Array.isArray(sd) && sd.length >= 2) {
-    const hs2 = sd[0]?.statistics||[], as2 = sd[1]?.statistics||[];
+  const sd = parseStatsData(stats);
+  if (sd && sd.home.length && sd.away.length) {
     html += `<div class="st-panel">`;
-    hs2.forEach((r,i) => {
-      const ar = as2[i];
-      const hv = r.value ?? 0, av = ar?.value ?? 0;
-      const hvn = parseFloat(String(hv))||0, avn = parseFloat(String(av))||0;
+    sd.home.forEach((r, i) => {
+      const ar    = sd.away[i];
+      const hvRaw = r.value   ?? 0;
+      const avRaw = ar?.value ?? 0;
+      /* yüzde değerlerini sayıya çevir (%64 → 64) */
+      const hvn = parseFloat(String(hvRaw).replace('%','')) || 0;
+      const avn = parseFloat(String(avRaw).replace('%','')) || 0;
       const tot = hvn + avn;
-      const pct = tot > 0 ? Math.round(hvn/tot*100) : 50;
+      const pct = tot > 0 ? Math.round(hvn / tot * 100) : 50;
       html += `
         <div class="st-row">
-          <div class="st-v h">${hv}</div>
+          <div class="st-v h">${hvRaw}</div>
           <div class="st-mid">
             <div class="st-name">${esc(r.type||'')}</div>
             <div class="st-bar-row">
@@ -426,7 +429,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
               <div class="st-ba" style="width:${100-pct}%"></div>
             </div>
           </div>
-          <div class="st-v a">${av}</div>
+          <div class="st-v a">${avRaw}</div>
         </div>`;
     });
     html += `</div>`;
@@ -435,7 +438,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
   }
   html += `</div>`;
 
-  /* lineups */
+  /* ── lineups panel ───────────────────────── */
   html += `<div class="d-panel" id="d-lu">`;
   const ld = lus?.data;
   if (ld && Array.isArray(ld) && ld.length >= 2) {
@@ -466,7 +469,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
   }
   html += `</div>`;
 
-  /* h2h */
+  /* ── h2h panel ───────────────────────────── */
   html += `<div class="d-panel" id="d-h2">`;
   const hd = h2h?.data?.response || h2h?.data || [];
   if (hd.length) {
@@ -488,39 +491,68 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
   }
   html += `</div>`;
 
-  /* pred */
-  html += `<div class="d-panel" id="d-pr">`;
-  const pd = pred?.data?.response?.[0] || pred?.data?.[0] || pred?.data;
-  if (pd) {
-    const pct = pd.predictions?.percent || {};
-    const winner = pd.predictions?.winner;
-    html += `
-      <div class="pr-grid">
-        <div class="pr-card pr-home"><div class="pr-pct">${pct.home||'-%'}</div><div class="pr-lbl">Ev Sahibi</div></div>
-        <div class="pr-card pr-draw"><div class="pr-pct">${pct.draw||'-%'}</div><div class="pr-lbl">Beraberlik</div></div>
-        <div class="pr-card pr-away"><div class="pr-pct">${pct.away||'-%'}</div><div class="pr-lbl">Deplasman</div></div>
-      </div>`;
-    if (winner) {
-      html += `
-        <div class="pr-win">
-          ${winner.logo ? `<img src="${winner.logo}" width="28" height="28" onerror="this.style.display='none'" alt="">` : '⚽'}
-          <div><div class="pr-win-lbl">TAHMİN — KAZANAN</div><div class="pr-win-name">${esc(winner.name||'Belirsiz')}</div></div>
-        </div>`;
-    }
-  } else {
-    html += `<div class="empty"><div class="empty-t">Tahmin verisi yok</div></div>`;
-  }
-  html += `</div>`;
+  /* ── forum panel ─────────────────────────── */
+  html += `<div class="d-panel" id="d-fr"></div>`;
 
   setDetailHTML(html);
+
+  /* forum'u bu fixture için başlat */
+  Forum.open(m.fixture_id);
 }
 
+/* ── STATS PARSER (düzeltilmiş) ──────────────── */
+/**
+ * Supabase'den gelen istatistik satırını normalleştirir.
+ * Desteklenen formatlar:
+ *   { data: [ {statistics:[...]}, {statistics:[...]} ] }
+ *   { data: { home: [...], away: [...] } }
+ *   { statistics: [ {statistics:[...]}, ... ] }  (flat)
+ */
+function parseStatsData(row) {
+  if (!row) return null;
+
+  /* Format 1: row.data dizisi (orijinal format) */
+  const d = row.data;
+  if (d && Array.isArray(d) && d.length >= 2) {
+    const home = d[0]?.statistics || [];
+    const away = d[1]?.statistics || [];
+    if (home.length) return { home, away };
+  }
+
+  /* Format 2: row.data.home / row.data.away */
+  if (d && d.home && Array.isArray(d.home) && d.away) {
+    return { home: d.home, away: d.away };
+  }
+
+  /* Format 3: doğrudan row.statistics dizisi */
+  if (row.statistics && Array.isArray(row.statistics) && row.statistics.length >= 2) {
+    return {
+      home: row.statistics[0]?.statistics || [],
+      away: row.statistics[1]?.statistics || [],
+    };
+  }
+
+  /* Format 4: row kendisi iki takım içeriyor (home_stats / away_stats kolonları) */
+  if (row.home_stats || row.home_statistics) {
+    const hs = row.home_stats || row.home_statistics || [];
+    const as = row.away_stats || row.away_statistics || [];
+    return { home: hs, away: as };
+  }
+
+  console.warn('[Stats] Tanınamayan veri formatı:', row);
+  return null;
+}
+
+/* ── TAB SWITCH ─────────────────────────────── */
 function switchTab(name, el) {
   document.querySelectorAll('.d-tab').forEach(t => t.classList.remove('active'));
   if (el) el.classList.add('active');
   document.querySelectorAll('.d-panel').forEach(p => p.classList.remove('active'));
   const panel = document.getElementById('d-' + name);
   if (panel) panel.classList.add('active');
+
+  /* forum sekmesi ilk açıldığında kaydır */
+  if (name === 'fr') Forum.scrollToBottom();
 }
 
 /* ── SILENT UPDATE ───────────────────────────── */
@@ -575,7 +607,7 @@ function startClock() {
     if (S.cd <= 0) {
       S.cd = S.cycle;
       if (S.detail) await silentUpdateDetail();
-      else await loadMatches(true);
+      else          await loadMatches(true);
     }
   }, 1000);
 }
@@ -638,5 +670,8 @@ function todayStr() { return fmtDate(new Date()); }
 function fmtDate(d) { return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
 function pad2(n) { return String(n).padStart(2,'0'); }
 function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
 }
