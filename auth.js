@@ -156,55 +156,136 @@ const Auth = (() => {
 
   /* ── PROFİL MODAL ───────────────────────────── */
   function _showProfileModal() {
-    _closeModal();
-    const name     = getDisplayName() || 'Kullanıcı';
-    const email    = _user?.email || '';
-    const initials = name.slice(0,2).toUpperCase();
-    const ov       = _makeOverlay('sp-auth-overlay');
+  _closeModal();
+  const name     = getDisplayName() || 'Kullanıcı';
+  const email    = _user?.email || '';
+  const initials = name.slice(0,2).toUpperCase();
+  const provider = _user?.app_metadata?.provider || 'email';
+  const joinDate = _user?.created_at
+    ? new Date(_user.created_at).toLocaleDateString('tr-TR', { day:'numeric', month:'long', year:'numeric' })
+    : '—';
+  const ov = _makeOverlay('sp-auth-overlay');
 
-    ov.innerHTML = `
-      <div class="sp-modal sp-profile-modal">
-        <div class="sp-modal-hdr">
-          <div class="sp-modal-title">👤 Profilim</div>
-          <button class="sp-modal-close" onclick="document.getElementById('sp-auth-overlay')?.remove()">✕</button>
-        </div>
-        <div class="sp-profile-card">
-          <div class="sp-profile-avatar">${initials}</div>
+  ov.innerHTML = `
+    <div class="sp-modal sp-profile-modal" style="max-width:420px;gap:0;padding:0;overflow:hidden;">
+
+      <!-- Hero banner -->
+      <div style="background:linear-gradient(135deg,#1a1f2e 0%,#0f1218 100%);padding:28px 24px 20px;position:relative;">
+        <button class="sp-modal-close" onclick="document.getElementById('sp-auth-overlay')?.remove()"
+          style="position:absolute;top:14px;right:14px;color:rgba(255,255,255,.45);">✕</button>
+
+        <div style="display:flex;align-items:center;gap:16px;">
+          <div style="
+            width:58px;height:58px;border-radius:50%;
+            background:var(--or);
+            display:flex;align-items:center;justify-content:center;
+            font-family:'Barlow Condensed',sans-serif;
+            font-size:20px;font-weight:800;color:#fff;
+            flex-shrink:0;
+            border:3px solid rgba(242,100,25,.35);
+            box-shadow:0 0 0 6px rgba(242,100,25,.08);
+          ">${initials}</div>
           <div>
-            <div class="sp-profile-name">${_esc(name)}</div>
-            <div class="sp-profile-email">${_esc(email)}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:#fff;letter-spacing:.3px;">${_esc(name)}</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.45);margin-top:3px;">${_esc(email)}</div>
+            <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+              <span style="
+                display:inline-flex;align-items:center;gap:5px;
+                font-family:'Barlow Condensed',sans-serif;
+                font-size:10px;font-weight:700;letter-spacing:1px;
+                color:var(--or);background:rgba(242,100,25,.12);
+                border:1px solid rgba(242,100,25,.25);
+                border-radius:20px;padding:3px 10px;
+                text-transform:uppercase;
+              ">
+                <span style="width:5px;height:5px;border-radius:50%;background:var(--or);display:inline-block;"></span>
+                Üye
+              </span>
+              <span style="
+                font-family:'Barlow Condensed',sans-serif;
+                font-size:10px;font-weight:700;letter-spacing:.5px;
+                color:rgba(255,255,255,.3);text-transform:uppercase;
+              ">${provider === 'google' ? '🔵 Google' : '✉️ E-posta'}</span>
+            </div>
           </div>
         </div>
-        <div class="sp-field">
-          <label class="sp-lbl">Görünen Ad</label>
-          <input type="text" id="sp-profile-nick" class="sp-input" value="${_esc(name)}" maxlength="24"/>
+
+        <div style="
+          display:grid;grid-template-columns:1fr 1fr;
+          gap:1px;margin-top:20px;
+          background:rgba(255,255,255,.06);border-radius:8px;overflow:hidden;
+        ">
+          <div style="background:rgba(255,255,255,.04);padding:10px 14px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Katılım</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:rgba(255,255,255,.7);">${joinDate}</div>
+          </div>
+          <div style="background:rgba(255,255,255,.04);padding:10px 14px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Hesap</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--green);">Aktif ✓</div>
+          </div>
         </div>
+      </div>
+
+      <!-- Form alanı -->
+      <div style="padding:20px 24px;display:flex;flex-direction:column;gap:14px;">
+        <div class="sp-field">
+          <label class="sp-lbl" style="display:flex;align-items:center;gap:5px;">
+            <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="5" r="3" stroke="currentColor" stroke-width="1.3"/>
+              <path d="M1 13c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            Görünen Ad
+          </label>
+          <input type="text" id="sp-profile-nick" class="sp-input"
+            value="${_esc(name)}" maxlength="24" placeholder="Forum'da görünecek adın"/>
+        </div>
+
         <div id="sp-profile-err" class="sp-err hidden"></div>
         <div id="sp-profile-ok"  class="sp-ok  hidden"></div>
-        <button class="sp-submit-btn" id="sp-profile-save">Kaydet</button>
-        <div class="sp-divider"></div>
-        <button class="sp-logout-btn" id="sp-logout-btn">🚪 Çıkış Yap</button>
-      </div>`;
 
-    document.body.appendChild(ov);
+        <button class="sp-submit-btn" id="sp-profile-save"
+          style="display:flex;align-items:center;justify-content:center;gap:7px;">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+            <path d="M2 7l4 4 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Değişiklikleri Kaydet
+        </button>
 
-    document.getElementById('sp-profile-save').onclick = async () => {
-      const n = document.getElementById('sp-profile-nick').value.trim();
-      if (n.length < 2) { _showErr('sp-profile-err','En az 2 karakter girin.'); return; }
-      const { error } = await _sb.auth.updateUser({ data: { display_name: n } });
-      if (error) { _showErr('sp-profile-err', _trErr(error.message)); return; }
-      if (_user) _user.user_metadata.display_name = n;
-      _updateTopbarBtn();
-      /* Forum nickname güncelle */
-      try { localStorage.setItem('sp_nick', n); } catch {}
-      _showOk('sp-profile-ok','✅ Kaydedildi!');
-    };
+        <div style="height:1px;background:var(--b1);"></div>
 
-    document.getElementById('sp-logout-btn').onclick = async () => {
-      await _sb.auth.signOut();
-      ov.remove();
-    };
-  }
+        <button class="sp-logout-btn" id="sp-logout-btn"
+          style="display:flex;align-items:center;justify-content:center;gap:7px;">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+            <path d="M5 7h7M9 4.5l2.5 2.5L9 9.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5 2H2.5A1.5 1.5 0 001 3.5v7A1.5 1.5 0 002.5 12H5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+          Çıkış Yap
+        </button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(ov);
+
+  document.getElementById('sp-profile-save').onclick = async () => {
+    const n = document.getElementById('sp-profile-nick').value.trim();
+    if (n.length < 2) { _showErr('sp-profile-err','En az 2 karakter girin.'); return; }
+    const btn = document.getElementById('sp-profile-save');
+    btn.disabled = true; btn.textContent = 'Kaydediliyor…';
+    const { error } = await _sb.auth.updateUser({ data: { display_name: n } });
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Değişiklikleri Kaydet`;
+    if (error) { _showErr('sp-profile-err', _trErr(error.message)); return; }
+    if (_user) _user.user_metadata.display_name = n;
+    _updateTopbarBtn();
+    try { localStorage.setItem('sp_nick', n); } catch {}
+    _showOk('sp-profile-ok','✅ Kaydedildi!');
+  };
+
+  document.getElementById('sp-logout-btn').onclick = async () => {
+    await _sb.auth.signOut();
+    ov.remove();
+  };
+}
 
   /* ── ŞİFRE SIFIRLAMA ────────────────────────── */
   function showResetModal() {
