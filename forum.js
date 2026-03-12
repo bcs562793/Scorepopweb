@@ -137,7 +137,7 @@ const Forum = (() => {
 
     /* Pinned bölmesi boşsa gizle */
     const section = document.getElementById('fr-pinned-section');
-    if (section && _pinnedSlots.length === 0) section.style.display = 'none';
+    if (section && _pinnedSlots.length === 0) section.style.cssText = 'flex-shrink:0;display:none;border-bottom:1px solid rgba(255,255,255,.08);';
 
     /* Zamanlı pin kalmadıysa timer'ı durdur */
     if (!_pinnedSlots.some(s => s.unpinAt !== Infinity)) _stopPinTimer();
@@ -521,11 +521,17 @@ const Forum = (() => {
     const panel = document.getElementById('d-fr');
     if (!panel) return;
 
+    /* fr-wrap her zaman flex-column, mesaj listesi scroll alır */
+    const WRAP_STYLE  = 'display:flex;flex-direction:column;height:100%;overflow:hidden;';
+    const LIST_STYLE  = 'flex:1;overflow-y:auto;min-height:0;';
+    const PIN_STYLE_HIDDEN  = 'flex-shrink:0;display:none;border-bottom:1px solid rgba(255,255,255,.08);';
+    const PIN_STYLE_VISIBLE = 'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);';
+
     if (_isLoading) {
       panel.innerHTML = `
-        <div class="fr-wrap">
-          <div class="fr-pinned-section" id="fr-pinned-section" style="display:none"></div>
-          <div class="fr-msg-list" id="fr-msg-list">
+        <div class="fr-wrap" style="${WRAP_STYLE}">
+          <div class="fr-pinned-section" id="fr-pinned-section" style="${PIN_STYLE_HIDDEN}"></div>
+          <div class="fr-msg-list" id="fr-msg-list" style="${LIST_STYLE}">
             <div class="fr-loading">
               <div class="fr-loading-dot"></div>
               <div class="fr-loading-dot"></div>
@@ -544,9 +550,9 @@ const Forum = (() => {
       : '<div class="fr-empty">İlk mesajı sen gönder! 🎉</div>';
 
     panel.innerHTML = `
-      <div class="fr-wrap">
-        <div class="fr-pinned-section" id="fr-pinned-section" ${!_pinnedSlots.length ? 'style="display:none"' : ''}>${pinnedHTML}</div>
-        <div class="fr-msg-list" id="fr-msg-list" role="log" aria-live="polite" aria-label="Forum mesajları">${chatHTML}</div>
+      <div class="fr-wrap" style="${WRAP_STYLE}">
+        <div class="fr-pinned-section" id="fr-pinned-section" style="${_pinnedSlots.length ? PIN_STYLE_VISIBLE : PIN_STYLE_HIDDEN}">${pinnedHTML}</div>
+        <div class="fr-msg-list" id="fr-msg-list" role="log" aria-live="polite" aria-label="Forum mesajları" style="${LIST_STYLE}">${chatHTML}</div>
         ${_buildInputArea()}
       </div>`;
 
@@ -569,11 +575,11 @@ const Forum = (() => {
     if (!section) { _renderAll(); return; }
 
     if (_pinnedSlots.length === 0) {
-      section.style.display = 'none';
+      section.style.cssText = 'flex-shrink:0;display:none;border-bottom:1px solid rgba(255,255,255,.08);';
       section.innerHTML = '';
       return;
     }
-    section.style.display = '';
+    section.style.cssText = 'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);';
     section.innerHTML = '';
     _pinnedSlots.forEach(s => {
       const tmp = document.createElement('div');
@@ -636,15 +642,16 @@ const Forum = (() => {
     const remainMs  = permanent ? 0 : Math.max(0, unpinAt - Date.now());
     const remainS   = Math.ceil(remainMs / 1000);
 
+    const boxStyle = `background:${tier.bg};border:1px solid ${tier.border};border-left:3px solid ${tier.color};border-radius:8px;padding:10px 12px;margin:4px 8px;`;
     return `
       <div class="fr-pin-slot fr-tier-${msg.feature_tier} ${isOwn ? 'fr-own' : ''}"
            data-pin-id="${esc(String(msg.id))}"
-           style="--tc:${tier.color};--tb:${tier.bg};--tbr:${tier.border}">
+           style="${boxStyle}--tc:${tier.color};--tb:${tier.bg};--tbr:${tier.border}">
         <div class="fr-feat-header">
           <span class="fr-feat-badge">${tier.emoji} ${tier.label}</span>
           ${permanent
             ? '<span class="fr-pin-badge">📌 SABİTLENDİ</span>'
-            : `<span class="fr-pin-countdown" data-pin-id="${esc(String(msg.id))}" data-unpin="${unpinAt}">${remainS}s</span>`}
+            : `<span class="fr-pin-countdown" data-countdown-id="${esc(String(msg.id))}" data-unpin="${unpinAt}">${remainS}s</span>`}
           <span class="fr-msg-time">${time}</span>
         </div>
         <div class="fr-feat-nick">${esc(msg.nickname)}</div>
@@ -658,10 +665,11 @@ const Forum = (() => {
     const time  = _fmtTime(msg.created_at);
 
     if (tier) {
+      const boxStyle = `background:${tier.bg};border:1px solid ${tier.border};border-left:3px solid ${tier.color};border-radius:8px;padding:10px 12px;margin:4px 0;`;
       return `
         <div class="fr-msg fr-featured fr-tier-${msg.feature_tier} ${isOwn ? 'fr-own' : ''}"
              data-msg-id="${esc(String(msg.id))}"
-             style="--tc:${tier.color};--tb:${tier.bg};--tbr:${tier.border}">
+             style="${boxStyle}--tc:${tier.color};--tb:${tier.bg};--tbr:${tier.border}">
           <div class="fr-feat-header">
             <span class="fr-feat-badge">${tier.emoji} ${tier.label}</span>
             <span class="fr-msg-time">${time}</span>
