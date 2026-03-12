@@ -253,20 +253,19 @@ const Forum = (() => {
         is_featured: false,
         payment_status: 'none',
         expires_at:  expires,
-      }).select().single();
+      }).select(); // <-- .single() BURADAN SİLİNDİ
 
       if (error) throw error;
 
       /* temp satırını gerçek id ile güncelle */
       const insertedData = data && data.length > 0 ? data[0] : null;
 
-/* temp satırını gerçek id ile güncelle */
-const i = _messages.findIndex(m => m.id === temp.id);
-if (i >= 0 && insertedData) {
-  _messages[i] = insertedData;
-  const el = document.querySelector(`[data-msg-id="${temp.id}"]`);
-  if (el) el.dataset.msgId = insertedData.id;
-}
+      const i = _messages.findIndex(m => m.id === temp.id);
+      if (i >= 0 && insertedData) {
+        _messages[i] = insertedData;
+        const el = document.querySelector(`[data-msg-id="${temp.id}"]`);
+        if (el) el.dataset.msgId = insertedData.id;
+      }
     } catch (e) {
       console.error('[Forum] Gönderim hatası:', e);
       /* optimistic mesajı kaldır */
@@ -278,7 +277,6 @@ if (i >= 0 && insertedData) {
     } finally {
       _setBtnLoading(false);
     }
-  }
 
   /* ── ÖNE ÇIKAN MESAJ (Super Chat) ─────────── */
   function _showFeaturedModal() {
