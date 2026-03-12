@@ -134,9 +134,18 @@ const Payment = (() => {
       const result = await resp.json();
 
       /* Shopier'den gelen form HTML'ini yeni sekmeye bas ve otomatik submit et */
-      /* Shopier'den gelen form HTML'ini yeni sekmeye bas ve otomatik submit et */
       if (result.shopierHTML) {
-        payWindow.document.body.innerHTML = result.shopierHTML;
+        // 1. Yeni sekmenin içeriğini sıfırdan yazmak için aç
+        payWindow.document.open(); 
+        
+        // 2. Shopier HTML formunu içine bas
+        payWindow.document.write(result.shopierHTML); 
+        
+        // 3. Tarayıcının itiraz edemeyeceği şekilde, sayfanın en altına submit (gönder) kodunu zorla ekle
+        payWindow.document.write("<script>document.getElementById('shopier_form').submit();</script>");
+        
+        // 4. Yazma işlemini bitir ki tarayıcı kodu çalıştırmaya başlasın
+        payWindow.document.close(); 
         
         // Ana sekmede kullanıcıyı bilgilendir ve arka planda kontrol etmeye başla
         _showToast('⏳ Ödeme sayfası yeni sekmede açıldı. Bekleniyor...');
@@ -144,13 +153,6 @@ const Payment = (() => {
         
         return { success: true, data: pending, pending: true };
       }
-
-      payWindow.close();
-      return { success: false, error: 'Shopier form verisi alınamadı.' };
-    } catch (e) {
-      return { success: false, error: e.message };
-    }
-  }
 
   /* ── ÖDEME SONUÇ KONTROLÜ (Polling) ──────────── */
   async function _pollVerification(messageId, retries) {
