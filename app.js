@@ -196,11 +196,20 @@ async function loadUpcoming() {
     return;
   }
 
-  const rows = (data || []).map(r => {
+  const rows = [];
+  (data || []).forEach(r => {
+    /* 1. raw_data string kolonu */
     if (r.raw_data) {
-       try { return normFix({...r, ...JSON.parse(r.raw_data)}); } catch(e) { return normFix(r); }
+      try { rows.push(normFix({...r, ...JSON.parse(r.raw_data)})); return; } catch(e) {}
     }
-    return normFix(r);
+    /* 2. data JSONB kolonu — { fixture: { date, id }, teams: {...}, ... } */
+    if (r.data && typeof r.data === 'object') {
+      const list = Array.isArray(r.data) ? r.data : [r.data];
+      list.forEach(m => rows.push(normFix({ ...r, ...m })));
+      return;
+    }
+    /* 3. Düz satır */
+    rows.push(normFix(r));
   });
 
   render(rows, false);
