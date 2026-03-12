@@ -227,9 +227,9 @@ function renderGroup(g, isLive) {
 
 function renderRow(m, isLive) {
   const st = statusInfo(m);
-  const isNS = m.home_score == null && m.away_score == null && !statusInfo(m).live;
-  const hs = m.home_score != null ? m.home_score : (isNS ? 'v' : '-');
-  const as = m.away_score != null ? m.away_score : (isNS ? '' : '-');
+  const isNS = m.status_short === 'NS' || m.status_short === 'TBD' || (!st.live && m.home_score == null && m.away_score == null);
+  const hs = isNS ? 'v' : (m.home_score != null ? m.home_score : '-');
+  const as = isNS ? ''  : (m.away_score != null ? m.away_score : '-');
   let hcls = '', acls = '';
   if (st.cls === 'done' && hs !== '-' && as !== '-') {
     const hi = +hs, ai = +as;
@@ -660,10 +660,17 @@ function statusInfo(m) {
 }
 
 function fmtKickoff(m) {
-  const raw = m.kickoff_time || m.updated_at;
+  /* updated_at HİÇBİR ZAMAN fallback olarak kullanılmaz — o maç saati değil */
+  const raw = m.kickoff_time
+           || m.fixture_date
+           || m.match_time
+           || m.event_date
+           || m.date_time
+           || null;
   if (!raw) return '--:--';
   try {
     const d = new Date(raw);
+    if (isNaN(d.getTime())) return '--:--';
     return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
   } catch { return '--:--'; }
 }
