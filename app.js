@@ -52,6 +52,7 @@ window.addEventListener('load', async () => {
   catch(e) { navigate('live'); }
 
   startClock();
+  startRealtime();
 });
 
 /* ── EVENTS ─────────────────────────────────── */
@@ -91,6 +92,10 @@ function navigate(page) {
 
   showView('matches');
   loadMatches();
+
+  /* Canlı sayfada realtime aç, diğerlerinde kapat */
+  if (page === 'live') startRealtime();
+  else stopRealtime();
 }
 
 function openDetail(id, isLive) {
@@ -818,10 +823,93 @@ function flashEl(el) {
   }));
 }
 
-/* ── CLOCK ───────────────────────────────────── */
+/* ── REALTIME + CLOCK ────────────────────────── */
+
+/* Supabase Realtime channel referansı */
+S.realtimeChannel = null;
+
+function _parseRealtimeRow(row) {
+  /* Realtime payload.new — raw_data string ise parse et ve birleştir */
+  if (row.raw_data) {
+    try {
+      const parsed = JSON.parse(row.raw_data);
+      return normFix({ ...row, ...parsed });
+    } catch(e) {}
+  }
+  if (row.data && typeof row.data === 'object') {
+    const d = Array.isArray(row.data) ? row.data[0] : row.data;
+    return normFix({ ...row, ...d });
+  }
+  return normFix(row);
+}
+
+function startRealtime() {
+  if (S.realtimeChannel) {
+    S.sb.removeChannel(S.realtimeChannel);
+    S.realtimeChannel = null;
+  }
+
+  S.realtimeChannel = S.sb
+    .channel('live-scores')
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'live_matches',
+    }, payload => {
+      if (payload.eventType === 'DELETE') return;
+
+      const m = _parseRealtimeRow(payload.new);
+
+      /* Detay paneli açıksa → skor + dakika güncelle */
+      if (S.detail && String(m.fixture_id) === String(S.detail)) {
+        const nums = document.querySelectorAll('.d-score-n');
+        if (nums[0]) { if (nums[0].textContent !== String(m.home_score ?? '-')) { nums[0].textContent = m.home_score ?? '-'; flashEl(nums[0]); } }
+        if (nums[1]) { if (nums[1].textContent !== String(m.away_score ?? '-')) { nums[1].textContent = m.away_score ?? '-'; flashEl(nums[1]); } }
+        const ste = document.querySelector('.d-status');
+        const st = statusInfo(m);
+        if (ste) ste.textContent = st.live ? `⚡ ${st.label}` : st.label;
+        return;
+      }
+
+      /* Liste görünümü — sadece bu satırı güncelle, sayfayı yenileme */
+      if (payload.eventType === 'INSERT') {
+        /* Yeni maç geldi — listeye ekle */
+        loadMatches(true);
+      } else {
+        silentUpdate([m]);
+      }
+
+      /* Canlı maç sayısını güncelle */
+      const liveRows = document.querySelectorAll('.mr.is-live');
+      updLiveCt(liveRows.length);
+    })
+    .subscribe(status => {
+      const el = document.getElementById('sb-cd');
+      if (status === 'SUBSCRIBED') {
+        /* Realtime bağlandı — polling'i durdur */
+        if (S.timer) { clearInterval(S.timer); S.timer = null; }
+        if (el) el.closest('.sb-ring-wrap') && (el.closest('.sb-ring-wrap').style.display = 'none');
+        console.log('[Realtime] bağlandı ✓');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        /* Bağlantı koptu — polling'e geri dön */
+        startClock();
+        console.warn('[Realtime] koptu, polling başladı');
+      }
+    });
+}
+
+function stopRealtime() {
+  if (S.realtimeChannel) {
+    S.sb.removeChannel(S.realtimeChannel);
+    S.realtimeChannel = null;
+  }
+}
+
+/* Fallback: Realtime bağlanamadıysa 10 sn polling */
 function startClock() {
   if (S.timer) clearInterval(S.timer);
-  S.cd = S.cycle;
+  S.cd = 5;
+  S.cycle = 5;
   updateRing(1);
   S.timer = setInterval(async () => {
     S.cd--;
@@ -829,8 +917,12 @@ function startClock() {
     document.getElementById('sb-cd').textContent = S.cd;
     if (S.cd <= 0) {
       S.cd = S.cycle;
-      if (S.detail) await silentUpdateDetail();
-      else          await loadMatches(true);
+      /* Realtime bağlıysa polling gerekmez, sadece yedek */
+      const isConnected = S.realtimeChannel?.state === 'joined';
+      if (!isConnected) {
+        if (S.detail) await silentUpdateDetail();
+        else          await loadMatches(true);
+      }
     }
   }, 1000);
 }
