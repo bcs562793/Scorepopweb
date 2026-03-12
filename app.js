@@ -443,12 +443,11 @@ const sq = async (query) => {
       sq(S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time')),
       sq(S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle()),
       sq(S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle()),
-      sq(m.home_team_id && m.away_team_id
-          ? S.sb.from('match_h2h').select('*')
-              .or(`h2h_key.like.%${m.home_team_id}-${m.away_team_id}%,h2h_key.like.%${m.away_team_id}-${m.home_team_id}%`)
-              .maybeSingle()
-          : Promise.resolve({ data: null })),
-      sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
+      sq(S.sb.from('match_h2h').select('*')
+    .like('h2h_key', `%${m.home_team_id || m.away_team_id}%`)
+    .maybeSingle()),
+sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
+]);
     ]);
     // stats hata kontrolü sq içinde handle ediliyor
 
