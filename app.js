@@ -171,15 +171,24 @@ async function loadToday() {
     return;
   }
 
-  const raw = data || [];
   const rows = [];
-  raw.forEach(r => {
+  (data || []).forEach(r => {
+    /* 1. raw_data TEXT kolonu — live_matches saati buraya koyuyor */
+    if (r.raw_data) {
+      try {
+        const parsed = JSON.parse(r.raw_data);
+        rows.push(normFix({ ...r, ...parsed }));
+        return;
+      } catch(e) {}
+    }
+    /* 2. data JSONB kolonu */
     if (r.data && typeof r.data === 'object') {
       const list = Array.isArray(r.data) ? r.data : [r.data];
-      list.forEach(m => rows.push(normFix(m)));
-    } else {
-      rows.push(normFix(r));
+      list.forEach(m => rows.push(normFix({ ...r, ...m })));
+      return;
     }
+    /* 3. Düz satır */
+    rows.push(normFix(r));
   });
 
   render(rows, false);
@@ -235,18 +244,20 @@ async function loadUpcoming() {
 
 
 function normFix(m) {
-  /* fixture nesnesi data kolonunun içinden gelebilir */
-  const fx = m.fixture && typeof m.fixture === 'object' ? m.fixture : null;
+  /* fixture hem doğrudan hem data içinden gelebilir */
+  const fx = (m.fixture && typeof m.fixture === 'object') ? m.fixture : null;
 
+  /* Saat için: fixture.date en öncelikli, diğerleri yedek */
   const kt = fx?.date
         || m.kickoff_time || m.fixture_date
         || m.match_time   || m.event_date   || m.date_time
         || m.start_time   || m.event_time   || m.scheduled_at
         || m.fixture_time || m.game_time    || m.time
-        || null;  /* m.date kasıtlı atlandı — saat içermiyor */
+        || null;
+  /* NOT: m.date kasıtlı atlandı — "2026-03-15" gibi saat içermeyen tarih */
 
   return {
-    fixture_id:   m.fixture?.id       || m.fixture_id,
+    fixture_id:   fx?.id              || m.fixture_id,
     league_id:    m.league?.id        || m.league_id   || 0,
     league_name:  m.league?.name      || m.league_name || '',
     league_logo:  m.league?.logo      || m.league_logo || '',
@@ -258,8 +269,8 @@ function normFix(m) {
     away_team_id: m.teams?.away?.id   || m.away_team_id || null,
     home_score:   m.goals?.home  ?? m.home_score  ?? null,
     away_score:   m.goals?.away  ?? m.away_score  ?? null,
-    status_short: m.fixture?.status?.short   || m.status_short  || 'NS',
-    elapsed_time: m.fixture?.status?.elapsed || m.elapsed_time  || null,
+    status_short: fx?.status?.short   || m.status_short  || 'NS',
+    elapsed_time: fx?.status?.elapsed || m.elapsed_time  || null,
     kickoff_time: kt,
     visual_url:   m.visual_url || null,
   };
