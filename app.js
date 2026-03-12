@@ -342,13 +342,13 @@ function renderGroup(g, isLive) {
   return `
     <div class="lg-grp" data-league="${esc(g.name)}">
       <div class="lg-hdr" onclick="this.closest('.lg-grp').classList.toggle('closed')">
-        <div class="lg-hdr-left" style="display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden">
+        <div class="lg-hdr-left" style="display:flex;align-items:center;gap:6px;flex:1">
           ${countryFlag}
           ${logo}
-          <span class="lg-hdr-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fullName}</span>
-        </div>
-        <div class="lg-hdr-right" style="display:flex;align-items:center;gap:6px;flex-shrink:0;white-space:nowrap">
+          <span class="lg-hdr-name">${fullName}</span>
           ${liveBadge}
+        </div>
+        <div class="lg-hdr-right" style="display:flex;align-items:center;gap:4px;flex-shrink:0">
           <span class="lg-arrow">▾</span>
         </div>
       </div>
