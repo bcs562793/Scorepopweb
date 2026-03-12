@@ -451,7 +451,7 @@ const sq = async (query) => {
     .maybeSingle()),
 sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
 ]);
-    ]);
+    
     // stats hata kontrolü sq içinde handle ediliyor
 
     buildDetail(m, evs||[], stats, lus, h2h, pred);
