@@ -1,19 +1,14 @@
 /* ═══════════════════════════════════════════════
    SCOREPOP — payment.js
-   Ödeme sistemi — İyzico (TR) + Stripe (global)
+   Ödeme sistemi — Shopier Entegrasyonu
 
    AKIŞ:
    1. Kullanıcı tier seçer
-   2. Supabase'e "pending" kayıt oluşturulur
-   3. Ödeme sağlayıcısına yönlendirilir (iframe veya redirect)
-   4. Ödeme tamamlanınca webhook → Edge Function →
-      UPDATE forum_messages SET payment_status='verified', is_featured=true
-   5. Realtime abonelik değişikliği yakalar → mesaj öne çıkar
-
-   GÜVENLİK:
-   - Fiyatlar CLIENT'ta asla değiştirilmez → Edge Function doğrular
-   - message_id + amount imzalanmış token ile gönderilir
-   - Supabase RLS: anon is_featured/payment_status güncelleme yapamaz
+   2. Supabase'e "pending" (bekliyor) kayıt oluşturulur
+   3. Tarayıcıda yeni bir sekme açılır (Pop-up blokerı aşmak için senkron açılır)
+   4. Edge Function'dan Shopier HTML formu istenir ve yeni sekmeye basılır
+   5. Ana sekme arka planda Supabase'i dinlemeye (poll) başlar
+   6. Shopier Webhook işlemi onaylayınca, ana sekme mesajı öne çıkarır.
 ════════════════════════════════════════════════ */
 'use strict';
 
@@ -58,7 +53,7 @@ const Payment = (() => {
         payment_status: 'pending',
         expires_at:     null,            // öne çıkan mesajlar kalıcı
       })
-      .select(); // .single() KALDIRILDI
+      .select();
 
     if (insertErr) return { success: false, error: insertErr.message };
 
@@ -70,7 +65,7 @@ const Payment = (() => {
       return _demoPayment(pending);
     }
 
-    /* 3. Gerçek ödeme akışı */
+    /* 3. Gerçek ödeme akışı (Shopier) */
     return _realPayment(pending, amount);
   }
 
@@ -82,10 +77,9 @@ const Payment = (() => {
       .from('forum_messages')
       .update({ is_featured: true, payment_status: 'verified' })
       .eq('id', pending.id)
-      .select(); // .single() KALDIRILDI
+      .select();
 
     if (error) {
-      /* RLS engellediyse pending kaydı manuel olarak featured gibi döndür */
       console.warn('[Payment] UPDATE hatası (muhtemelen RLS):', error.message);
       return {
         success: true,
@@ -100,143 +94,89 @@ const Payment = (() => {
     return { success: true, data };
   }
 
-  /* ── GERÇEK ÖDEME (İyzico / Stripe) ─────── */
+  /* ── GERÇEK ÖDEME (Shopier Yeni Sekme) ─────── */
   async function _realPayment(pending, amount) {
     try {
-      /* Edge Function'dan ödeme formu/URL'i al */
-      const resp = await fetch(_edgeFnUrl + '/create-payment', {
+      /* Kritik UX Adımı: Tarayıcıların "Pop-up Engelleyicisini" aşmak için, 
+         fetch (asenkron) işleminden HEMEN ÖNCE senkron olarak boş bir sekme açmalıyız. 
+      */
+      const payWindow = window.open('', '_blank');
+      if (!payWindow) {
+        return { success: false, error: 'Lütfen tarayıcınızın açılır pencere (pop-up) engelleyicisine izin verin.' };
+      }
+      
+      // Kullanıcıya yeni sekmede geçici bir yükleniyor ekranı göster
+      payWindow.document.write(`
+        <div style="font-family:sans-serif; text-align:center; padding-top:50px;">
+          <h2>Güvenli Ödeme Sayfasına Yönlendiriliyorsunuz...</h2>
+          <p>Lütfen bekleyin.</p>
+        </div>
+      `);
+
+      /* Edge Function'dan Shopier HTML formu (post) isteği yap */
+      const resp = await fetch(_edgeFnUrl + '/create-shopier-payment', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message_id:  pending.id,
           amount,
           currency:    'TRY',
-          description: `ScorePop Öne Çıkan Mesaj — ${pending.feature_tier}`,
+          tier_label:  pending.feature_tier
         }),
       });
 
       if (!resp.ok) {
+        payWindow.close(); // Hata olursa sekmeyi kapat
         const err = await resp.text();
         return { success: false, error: err || 'Ödeme başlatılamadı.' };
       }
 
       const result = await resp.json();
 
-      /* İyzico: checkoutFormContent (HTML form) */
-      if (result.checkoutFormContent) {
-        _showIyzicoModal(result.checkoutFormContent, pending.id);
+      /* Shopier'den gelen form HTML'ini yeni sekmeye bas ve otomatik submit et */
+      if (result.shopierHTML) {
+        payWindow.document.body.innerHTML = result.shopierHTML;
+        
+        // Ana sekmede kullanıcıyı bilgilendir ve arka planda kontrol etmeye başla
+        _showToast('⏳ Ödeme sayfası yeni sekmede açıldı. Bekleniyor...');
+        _pollVerification(pending.id, 60); // 60 defa (yaklaşık 2 dk) kontrol et
+        
         return { success: true, data: pending, pending: true };
       }
 
-      /* Stripe: url (redirect) */
-      if (result.url) {
-        window.location.href = result.url;
-        return { success: true, data: pending, pending: true };
-      }
-
-      return { success: false, error: 'Ödeme sağlayıcısından yanıt alınamadı.' };
+      payWindow.close();
+      return { success: false, error: 'Shopier form verisi alınamadı.' };
     } catch (e) {
       return { success: false, error: e.message };
     }
   }
 
-  /* ── İYZİCO CHECKOUT MODAL ───────────────── */
-  function _showIyzicoModal(formContent, messageId) {
-    document.getElementById('sp-pay-overlay')?.remove();
-
-    const overlay = document.createElement('div');
-    overlay.id = 'sp-pay-overlay';
-    overlay.className = 'sp-modal-overlay';
-
-    overlay.innerHTML = `
-      <div class="sp-modal sp-pay-modal" role="dialog" aria-modal="true">
-        <div class="sp-modal-hdr">
-          <div class="sp-modal-title">💳 Ödeme</div>
-          <button class="sp-modal-close" onclick="_cancelPayment('${messageId}')">✕</button>
-        </div>
-        <div class="sp-pay-frame" id="sp-pay-frame"></div>
-        <p class="sp-pay-note">🔒 Ödeme güvenli İyzico altyapısıyla işlenmektedir.</p>
-      </div>`;
-
-    document.body.appendChild(overlay);
-
-    /* İyzico form HTML'ini güvenle enjekte et */
-    const frame = document.getElementById('sp-pay-frame');
-    frame.innerHTML = formContent;
-
-    /* İyzico scriptlerini çalıştır */
-    frame.querySelectorAll('script').forEach(oldScript => {
-      const newScript = document.createElement('script');
-      if (oldScript.src) newScript.src = oldScript.src;
-      else newScript.textContent = oldScript.textContent;
-      document.body.appendChild(newScript);
-    });
-
-    /* Ödeme tamamlanınca İyzico postMessage gönderir */
-    window.addEventListener('message', function _pmHandler(e) {
-      if (e.data?.status === 'success') {
-        overlay.remove();
-        window.removeEventListener('message', _pmHandler);
-        _onPaymentSuccess(messageId);
-      }
-      if (e.data?.status === 'failure') {
-        overlay.remove();
-        window.removeEventListener('message', _pmHandler);
-        _onPaymentFail(messageId);
-      }
-    });
-  }
-
-  /* ── ÖDEME SONUÇ CALLBACK'LERİ ──────────── */
-  async function _onPaymentSuccess(messageId) {
-    const { data: rows } = await _sb
-      .from('forum_messages')
-      .select('*')
-      .eq('id', messageId); // .single() KALDIRILDI
-
-    const data = rows && rows.length > 0 ? rows[0] : null;
-
-    if (data?.payment_status === 'verified') {
-      _showToast('✅ Ödeme başarılı! Mesajın öne çıktı.');
-    } else {
-      _pollVerification(messageId, 8);
-    }
-  }
-
+  /* ── ÖDEME SONUÇ KONTROLÜ (Polling) ──────────── */
   async function _pollVerification(messageId, retries) {
     if (retries <= 0) {
-      _showToast('⏳ Ödeme işleniyor, kısa süre sonra görünecek.');
+      _showToast('❌ Ödeme süresi doldu veya onaylanmadı.');
       return;
     }
+    
+    // 2 saniyede bir Supabase'i kontrol et
     await _sleep(2000);
+    
     const { data: rows } = await _sb
       .from('forum_messages')
       .select('payment_status')
-      .eq('id', messageId); // .single() KALDIRILDI
+      .eq('id', messageId);
 
     const data = rows && rows.length > 0 ? rows[0] : null;
 
     if (data?.payment_status === 'verified') {
-      _showToast('✅ Mesajın öne çıktı!');
+      _showToast('✅ Ödeme başarılı! Mesajın anında öne çıktı.');
+      // Not: forum.js realtime dinlediği için mesajı DOM'a otomatik ekleyecektir.
+    } else if (data?.payment_status === 'failed') {
+       _showToast('❌ Ödeme başarısız oldu.');
     } else {
+      // Hala pending, tekrar dene
       _pollVerification(messageId, retries - 1);
     }
-  }
-
-  async function _onPaymentFail(messageId) {
-    await _sb.from('forum_messages')
-      .update({ payment_status: 'failed' })
-      .eq('id', messageId)
-      .eq('payment_status', 'pending');
-    _showToast('❌ Ödeme başarısız. Tekrar deneyin.');
-  }
-
-  async function _cancelPayment(messageId) {
-    document.getElementById('sp-pay-overlay')?.remove();
-    await _sb.from('forum_messages')
-      .update({ payment_status: 'failed' })
-      .eq('id', messageId)
-      .eq('payment_status', 'pending');
   }
 
   /* ── YARDIMCILAR ──────────────────────────── */
@@ -246,7 +186,7 @@ const Payment = (() => {
     t.textContent = msg;
     document.body.appendChild(t);
     requestAnimationFrame(() => t.classList.add('show'));
-    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3500);
+    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 4000);
   }
 
   function _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
