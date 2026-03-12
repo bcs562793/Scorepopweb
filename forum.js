@@ -737,3 +737,15 @@ _showToast(`${tier.emoji} Mesajınız öne çıktı!`);
   return { init, open, close, scrollToBottom };
 
 })();
+
+
+const result = await Payment.startPayment({...});
+if (!result.success) { _showError(result.error || 'Ödeme başarısız.'); return; }
+if (result.pending)  return;
+
+if (result.data) {  // ← null kontrolü
+  _messages.unshift(result.data);
+  _prependFeaturedMessage(result.data);
+  scrollToBottom();
+}
+_showToast(`${tier.emoji} Mesajınız öne çıktı!`);
