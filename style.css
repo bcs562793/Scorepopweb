@@ -1381,11 +1381,224 @@ img { display: block; }
   .fr-featured { max-width: 100%; }
 }
 
-/* ── NS MATCH — "v" skor kutusu ──────────────── */
-.mr-sb .mr-n:only-child {
+/* ═══════════════════════════════════════════════
+   AUTH — Üyelik Sistemi Stilleri
+════════════════════════════════════════════════ */
+
+/* Topbar Auth Butonu */
+.tb-auth-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--b2);
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 13px; font-weight: 700;
-  letter-spacing: 1px;
+  font-size: 12px; font-weight: 700; letter-spacing: .5px;
+  color: var(--tx2);
+  margin-right: 8px;
+  transition: all .13s;
+}
+.tb-auth-btn:hover { border-color: var(--b3); color: var(--tx1); background: var(--b1); }
+.tb-auth-avatar {
+  width: 24px; height: 24px;
+  background: var(--or);
+  color: #fff;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800;
+}
+
+/* Paylaşımlı Modal Altyapısı */
+.sp-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.78);
+  backdrop-filter: blur(8px);
+  z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  animation: fr-fade-in .18s ease;
+}
+.sp-modal {
+  background: var(--bg3);
+  border: 1px solid var(--b2);
+  border-radius: 14px;
+  width: 100%; max-width: 400px;
+  max-height: 90vh; overflow-y: auto;
+  padding: 22px;
+  display: flex; flex-direction: column; gap: 14px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.65);
+  animation: fr-modal-in .2s cubic-bezier(.34,1.56,.64,1);
+}
+.sp-modal-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sp-modal-logo { display: flex; align-items: center; gap: 8px; }
+.sp-modal-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px; font-weight: 800; letter-spacing: .5px;
+}
+.sp-modal-close {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; color: var(--tx3); font-size: 12px;
+  transition: all .12s;
+}
+.sp-modal-close:hover { background: var(--b2); color: var(--tx1); }
+.sp-modal-sub { font-size: 12px; color: var(--tx3); margin-top: -8px; }
+
+/* Auth Tabs */
+.sp-auth-tabs {
+  display: flex;
+  background: var(--bg4);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+.sp-auth-tab {
+  flex: 1; padding: 8px;
+  border-radius: 6px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px; font-weight: 700; letter-spacing: .5px;
   color: var(--tx3);
-  padding: 0 14px;
+  transition: all .13s;
+}
+.sp-auth-tab.active { background: var(--bg2); color: var(--tx1); }
+.sp-auth-tab:hover:not(.active) { color: var(--tx2); }
+
+/* Paneller */
+.sp-auth-panel { display: none; flex-direction: column; gap: 10px; }
+.sp-auth-panel.active { display: flex; }
+
+/* Form Elemanları */
+.sp-field { display: flex; flex-direction: column; gap: 5px; }
+.sp-lbl {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px; font-weight: 700; letter-spacing: .5px;
+  color: var(--tx3); text-transform: uppercase;
+}
+.sp-hint { font-weight: 400; letter-spacing: 0; text-transform: none; }
+.sp-input {
+  background: var(--bg);
+  border: 1px solid var(--b2);
+  border-radius: 8px;
+  color: var(--tx1);
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px; padding: 10px 12px;
+  outline: none; width: 100%;
+  transition: border-color .15s;
+}
+.sp-input:focus { border-color: rgba(242,100,25,.45); }
+.sp-input::placeholder { color: var(--tx3); }
+
+.sp-pw-wrap { position: relative; }
+.sp-pw-wrap .sp-input { padding-right: 38px; }
+.sp-pw-eye {
+  position: absolute; right: 10px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px; color: var(--tx3);
+  transition: color .12s;
+}
+.sp-pw-eye:hover { color: var(--tx2); }
+
+/* Butonlar */
+.sp-submit-btn {
+  width: 100%; padding: 12px;
+  border-radius: 9px;
+  background: var(--or);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 15px; font-weight: 800; letter-spacing: 1px;
+  color: #fff; text-transform: uppercase;
+  transition: all .13s;
+}
+.sp-submit-btn:hover { background: #e05010; transform: translateY(-1px); }
+.sp-submit-btn:disabled { opacity: .5; transform: none; cursor: not-allowed; }
+
+.sp-google-btn {
+  width: 100%; padding: 11px;
+  border-radius: 9px;
+  background: var(--bg4);
+  border: 1px solid var(--b2);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px; font-weight: 500;
+  color: var(--tx2);
+  transition: all .13s;
+}
+.sp-google-btn:hover { border-color: var(--b3); color: var(--tx1); background: var(--bg3); }
+
+.sp-logout-btn {
+  width: 100%; padding: 11px;
+  border-radius: 9px;
+  background: rgba(244,63,94,.1);
+  border: 1px solid rgba(244,63,94,.2);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px; font-weight: 700; letter-spacing: .5px;
+  color: var(--live);
+  transition: all .13s;
+}
+.sp-logout-btn:hover { background: rgba(244,63,94,.18); }
+
+.sp-divider {
+  display: flex; align-items: center; gap: 10px;
+  color: var(--tx3); font-size: 11px;
+}
+.sp-divider::before, .sp-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--b2);
+}
+.sp-divider:empty { height: 1px; background: var(--b2); }
+
+.sp-forgot {
+  text-align: center; font-size: 11px; color: var(--tx3);
+}
+.sp-forgot button { color: var(--or); text-decoration: underline; font-size: 11px; }
+
+/* Hata / Başarı */
+.sp-err {
+  font-size: 12px; color: var(--live);
+  background: rgba(244,63,94,.08);
+  border: 1px solid rgba(244,63,94,.2);
+  border-radius: 6px; padding: 7px 10px;
+  animation: fr-slide-in .15s ease;
+}
+.sp-ok {
+  font-size: 12px; color: var(--green);
+  background: rgba(16,185,129,.08);
+  border: 1px solid rgba(16,185,129,.2);
+  border-radius: 6px; padding: 7px 10px;
+}
+
+/* Profil Modal */
+.sp-profile-modal { max-width: 340px; }
+.sp-profile-card {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg4);
+  border: 1px solid var(--b2);
+  border-radius: 10px; padding: 14px;
+}
+.sp-profile-avatar {
+  width: 42px; height: 42px;
+  background: var(--or);
+  color: #fff; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px; font-weight: 800;
+  flex-shrink: 0;
+}
+.sp-profile-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 15px; font-weight: 700;
+}
+.sp-profile-email { font-size: 11px; color: var(--tx3); margin-top: 2px; }
+
+/* Ödeme Modal */
+.sp-pay-modal { max-width: 500px; }
+.sp-pay-frame { min-height: 200px; }
+.sp-pay-note {
+  font-size: 11px; color: var(--tx3);
+  text-align: center; padding-top: 4px;
+}
+
+/* Responsive */
+@media (max-width: 420px) {
+  .sp-modal { padding: 16px; gap: 10px; }
+  .tb-auth-btn span { display: none; }
 }
