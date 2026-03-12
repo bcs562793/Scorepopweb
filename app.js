@@ -126,11 +126,32 @@ async function loadLive(silent = false) {
 }
 
 async function loadToday() {
-  const { data, error } = await S.sb
+  let rows = [];
+
+  /* 1) match_date kolonu dene */
+  const { data: d1 } = await S.sb
     .from('daily_matches').select('*')
     .eq('match_date', S.date).order('league_name');
-  if (error) throw error;
-  render(data || [], false);
+  if (d1 && d1.length) { rows = d1; }
+
+  /* 2) date kolonu dene */
+  if (!rows.length) {
+    const { data: d2 } = await S.sb
+      .from('daily_matches').select('*')
+      .eq('date', S.date).order('league_name');
+    if (d2 && d2.length) rows = d2;
+  }
+
+  /* 3) live_matches'ta NS status dene */
+  if (!rows.length) {
+    const { data: ns } = await S.sb
+      .from('live_matches').select('*')
+      .eq('status_short', 'NS')
+      .order('league_name');
+    if (ns && ns.length) rows = ns;
+  }
+
+  render(rows, false);
 }
 
 async function loadUpcoming() {
@@ -160,6 +181,7 @@ function normFix(m) {
     away_score:   m.goals?.away  ?? m.away_score  ?? null,
     status_short: m.fixture?.status?.short   || m.status_short  || 'NS',
     elapsed_time: m.fixture?.status?.elapsed || m.elapsed_time  || null,
+    kickoff_time: m.fixture?.date            || m.kickoff_time  || null,
   };
 }
 
@@ -205,8 +227,9 @@ function renderGroup(g, isLive) {
 
 function renderRow(m, isLive) {
   const st = statusInfo(m);
-  const hs = m.home_score != null ? m.home_score : '-';
-  const as = m.away_score != null ? m.away_score : '-';
+  const isNS = m.home_score == null && m.away_score == null && !statusInfo(m).live;
+  const hs = m.home_score != null ? m.home_score : (isNS ? 'v' : '-');
+  const as = m.away_score != null ? m.away_score : (isNS ? '' : '-');
   let hcls = '', acls = '';
   if (st.cls === 'done' && hs !== '-' && as !== '-') {
     const hi = +hs, ai = +as;
@@ -237,8 +260,8 @@ function renderRow(m, isLive) {
       <div class="mr-score">
         <div class="${sbCls}">
           <span class="mr-n">${hs}</span>
-          <div class="mr-sep"></div>
-          <span class="mr-n">${as}</span>
+          ${isNS ? '' : '<div class="mr-sep"></div>'}
+          ${isNS ? '' : `<span class="mr-n">${as}</span>`}
         </div>
       </div>
       <div class="mr-away">
