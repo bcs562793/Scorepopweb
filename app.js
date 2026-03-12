@@ -196,25 +196,19 @@ async function loadUpcoming() {
     return;
   }
 
-  /* DEBUG: ilk satirin yapisini konsola yaz */
-  if (data && data[0]) {
-    console.log('[future] kolonlar:', Object.keys(data[0]));
-    console.log('[future] ilk satir:', JSON.stringify(data[0]).slice(0, 500));
-  }
-
   const rows = [];
   (data || []).forEach(r => {
+    /* Tüm veri formatlarını destekle */
+
     /* 1. raw_data TEXT kolonu */
     if (r.raw_data) {
       try { rows.push(normFix({...r, ...JSON.parse(r.raw_data)})); return; } catch(e) {}
     }
 
-    /* 2. data kolonu - JSONB obje veya TEXT string */
+    /* 2. data kolonu (JSONB veya TEXT) — { fixture:{date,...}, teams:{...}, ... } */
     if (r.data) {
       let d = r.data;
-      if (typeof d === 'string') {
-        try { d = JSON.parse(d); } catch(e) { d = null; }
-      }
+      if (typeof d === 'string') { try { d = JSON.parse(d); } catch(e) { d = null; } }
       if (d && typeof d === 'object') {
         const list = Array.isArray(d) ? d : [d];
         list.forEach(m => rows.push(normFix({ ...r, ...m })));
@@ -222,19 +216,17 @@ async function loadUpcoming() {
       }
     }
 
-    /* 3. fixture kolonu dogrudan var mi - JSONB veya TEXT string */
+    /* 3. fixture doğrudan JSONB kolonu — { id, date, venue, ... } */
     if (r.fixture) {
       let fx = r.fixture;
-      if (typeof fx === 'string') {
-        try { fx = JSON.parse(fx); } catch(e) { fx = null; }
-      }
+      if (typeof fx === 'string') { try { fx = JSON.parse(fx); } catch(e) { fx = null; } }
       if (fx && typeof fx === 'object') {
         rows.push(normFix({ ...r, fixture: fx }));
         return;
       }
     }
 
-    /* 4. Duz satir */
+    /* 4. Düz satır */
     rows.push(normFix(r));
   });
 
@@ -473,7 +465,7 @@ async function loadDetail(id, isLive) {
       sq(S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time')),
       sq(S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle()),
       sq(S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle()),
-      sq(S.sb.from('match_h2h').select('*').like('h2h_key', `%${m.home_team_id || m.away_team_id}%`).maybeSingle()),
+      sq(S.sb.from('match_h2h').select('*').or(`h2h_key.like.%${m.home_team_id}%,h2h_key.like.%${m.away_team_id}%`).limit(1).then(r => ({ data: r.data?.[0] ?? null, error: r.error }))),
       sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
     ]);
 
