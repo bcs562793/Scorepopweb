@@ -710,11 +710,16 @@ function silentUpdate(rows) {
 
 async function silentUpdateDetail() {
   if (!S.detail) return;
-  const tbl = S.detailLive ? 'live_matches' : 'daily_matches';
+  
+  // Her zaman live_matches kullan (daily_matches artık yok)
   const { data } = await S.sb
-    .from(tbl).select('home_score,away_score,elapsed_time,status_short')
-    .eq('fixture_id', S.detail).single();
+    .from('live_matches')
+    .select('home_score,away_score,elapsed_time,status_short')
+    .eq('fixture_id', S.detail)
+    .maybeSingle();  // single() yerine maybeSingle() kullan
+    
   if (!data) return;
+  
   const st = statusInfo(data);
   const nums = document.querySelectorAll('.d-score-n');
   if (nums[0]) nums[0].textContent = data.home_score ?? '-';
