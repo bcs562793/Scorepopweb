@@ -126,32 +126,11 @@ async function loadLive(silent = false) {
 }
 
 async function loadToday() {
-  let rows = [];
-
-  /* 1) match_date kolonu dene */
-  const { data: d1 } = await S.sb
+  const { data, error } = await S.sb
     .from('daily_matches').select('*')
     .eq('match_date', S.date).order('league_name');
-  if (d1 && d1.length) { rows = d1; }
-
-  /* 2) date kolonu dene */
-  if (!rows.length) {
-    const { data: d2 } = await S.sb
-      .from('daily_matches').select('*')
-      .eq('date', S.date).order('league_name');
-    if (d2 && d2.length) rows = d2;
-  }
-
-  /* 3) live_matches'ta NS status dene */
-  if (!rows.length) {
-    const { data: ns } = await S.sb
-      .from('live_matches').select('*')
-      .eq('status_short', 'NS')
-      .order('league_name');
-    if (ns && ns.length) rows = ns;
-  }
-
-  render(rows, false);
+  if (error) throw error;
+  render(data || [], false);
 }
 
 async function loadUpcoming() {
@@ -181,7 +160,6 @@ function normFix(m) {
     away_score:   m.goals?.away  ?? m.away_score  ?? null,
     status_short: m.fixture?.status?.short   || m.status_short  || 'NS',
     elapsed_time: m.fixture?.status?.elapsed || m.elapsed_time  || null,
-    kickoff_time: m.fixture?.date            || m.kickoff_time  || null,
   };
 }
 
@@ -227,9 +205,8 @@ function renderGroup(g, isLive) {
 
 function renderRow(m, isLive) {
   const st = statusInfo(m);
-  const isNS = m.status_short === 'NS' || m.status_short === 'TBD' || (!st.live && m.home_score == null && m.away_score == null);
-  const hs = isNS ? 'v' : (m.home_score != null ? m.home_score : '-');
-  const as = isNS ? ''  : (m.away_score != null ? m.away_score : '-');
+  const hs = m.home_score != null ? m.home_score : '-';
+  const as = m.away_score != null ? m.away_score : '-';
   let hcls = '', acls = '';
   if (st.cls === 'done' && hs !== '-' && as !== '-') {
     const hi = +hs, ai = +as;
@@ -260,8 +237,8 @@ function renderRow(m, isLive) {
       <div class="mr-score">
         <div class="${sbCls}">
           <span class="mr-n">${hs}</span>
-          ${isNS ? '' : '<div class="mr-sep"></div>'}
-          ${isNS ? '' : `<span class="mr-n">${as}</span>`}
+          <div class="mr-sep"></div>
+          <span class="mr-n">${as}</span>
         </div>
       </div>
       <div class="mr-away">
@@ -313,28 +290,13 @@ function applyFilter() {
 async function loadDetail(id, isLive) {
   setDetailHTML(`<div class="empty" style="min-height:160px"><div class="empty-i">⚽</div></div>`);
   try {
-    /* Maçı bul — hangi tabloda olduğunu bilmeyebiliriz, 3 tabloyu sırayla dene */
-    let m = null;
-    const tablesToTry = isLive
-      ? ['live_matches', 'daily_matches', 'future_matches']
-      : ['daily_matches', 'live_matches', 'future_matches'];
-
-    for (const tbl of tablesToTry) {
-      const { data, error } = await S.sb
-        .from(tbl).select('*').eq('fixture_id', id).maybeSingle();
-      if (error) { console.warn(`[${tbl}] sorgu hatası:`, error.message); continue; }
-      if (data) { m = data; break; }
-    }
-
+    const tbl = isLive ? 'live_matches' : 'daily_matches';
+    const { data: m, error: mErr } = await S.sb
+      .from(tbl).select('*').eq('fixture_id', id).maybeSingle();   // ← maybeSingle
+    if (mErr) throw mErr;
     if (!m) {
       setDetailHTML('<div class="empty"><div class="empty-t">Maç bulunamadı</div></div>');
       return;
-    }
-
-    /* future_matches nested JSON ise normalize et */
-    if (m.data && typeof m.data === 'object') {
-      const nested = Array.isArray(m.data) ? m.data[0] : m.data;
-      if (nested) m = { ...m, ...normFix(nested) };
     }
 
     /* paralel sorgular — hepsi maybeSingle ile güvenli */
@@ -348,9 +310,7 @@ async function loadDetail(id, isLive) {
       S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time'),
       S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle(),  // ← DÜZELTİLDİ
       S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle(),
-      m.home_team_id
-        ? S.sb.from('match_h2h').select('*').like('h2h_key',`%${m.home_team_id}%`).maybeSingle()
-        : Promise.resolve({ data: null }),
+      S.sb.from('match_h2h').select('*').like('h2h_key',`%${m.home_team_id}%`).maybeSingle(),
       S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle(), // ← maybeSingle
     ]);
 
@@ -677,17 +637,10 @@ function statusInfo(m) {
 }
 
 function fmtKickoff(m) {
-  /* updated_at HİÇBİR ZAMAN fallback olarak kullanılmaz — o maç saati değil */
-  const raw = m.kickoff_time
-           || m.fixture_date
-           || m.match_time
-           || m.event_date
-           || m.date_time
-           || null;
+  const raw = m.kickoff_time || m.updated_at;
   if (!raw) return '--:--';
   try {
     const d = new Date(raw);
-    if (isNaN(d.getTime())) return '--:--';
     return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
   } catch { return '--:--'; }
 }
