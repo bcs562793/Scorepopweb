@@ -328,14 +328,15 @@ function render(rows, isLive) {
 function renderGroup(g, isLive) {
   const liveCount = g.matches.filter(m => statusInfo(m).live).length;
   const logo = g.logo
-    ? `<img class="lg-flag" src="${g.logo}" onerror="this.style.display='none'" alt="" style="width:16px;height:16px;object-fit:contain;flex-shrink:0">`
-    : `<div class="lg-flag-ph"></div>`;
+    ? `<img src="${g.logo}" onerror="this.style.display='none'" alt="" style="width:16px;height:16px;object-fit:contain;flex-shrink:0">`
+    : '';
   const countryFlag = g.flag
-    ? `<img src="${g.flag}" onerror="this.style.display='none'" alt="" style="width:14px;height:10px;object-fit:cover;border-radius:2px;flex-shrink:0">`
+    ? `<img src="${g.flag}" onerror="this.style.display='none'" alt="" style="width:16px;height:11px;object-fit:cover;border-radius:2px;flex-shrink:0">`
     : '';
-  const countryName = g.country
-    ? `<span style="font-size:11px;color:var(--color-text-secondary);flex-shrink:0">${esc(g.country)}</span>`
-    : '';
+  /* "Belgium Pro League" — ülke + lig tek string */
+  const fullName = g.country
+    ? `${esc(g.country)} ${esc(g.name)}`
+    : esc(g.name);
   const liveBadge = liveCount
     ? `<span class="lg-live-ct">${liveCount} CANLI</span>` : '';
   return `
@@ -343,13 +344,11 @@ function renderGroup(g, isLive) {
       <div class="lg-hdr" onclick="this.closest('.lg-grp').classList.toggle('closed')">
         <div class="lg-hdr-left" style="display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden">
           ${countryFlag}
-          ${countryName}
           ${logo}
-          <span class="lg-hdr-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(g.name)}</span>
+          <span class="lg-hdr-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fullName}</span>
         </div>
         <div class="lg-hdr-right" style="display:flex;align-items:center;gap:6px;flex-shrink:0;white-space:nowrap">
           ${liveBadge}
-          <span class="lg-ct">${g.matches.length}</span>
           <span class="lg-arrow">▾</span>
         </div>
       </div>
