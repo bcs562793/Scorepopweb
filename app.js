@@ -255,10 +255,10 @@ async function loadUpcoming() {
 function normFix(m) {
   /* Tüm olası saat kolonlarını dene */
   const kt = m.fixture?.date    || m.kickoff_time || m.fixture_date
-          || m.match_time       || m.event_date   || m.date_time
-          || m.start_time       || m.event_time   || m.scheduled_at
-          || m.fixture_time     || m.game_time    || m.time
-          || null;
+        || m.match_time       || m.event_date   || m.date_time
+        || m.start_time       || m.event_time   || m.scheduled_at
+        || m.fixture_time     || m.game_time    || m.time
+        || m.date             || null;
 
   return {
     fixture_id:   m.fixture?.id       || m.fixture_id,
@@ -818,6 +818,7 @@ function fmtKickoff(m) {
     m.event_date,   m.date_time,     m.start_time,
     m.event_time,   m.scheduled_at,  m.match_date,
     m.fixture_time, m.game_time,     m.time,
+    m.date,
   ];
   const raw = candidates.find(v => {
     if (!v || typeof v !== 'string') return false;
