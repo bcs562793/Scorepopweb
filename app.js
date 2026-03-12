@@ -257,10 +257,12 @@ function normFix(m) {
   /* NOT: m.date kasıtlı atlandı — "2026-03-15" gibi saat içermeyen tarih */
 
   return {
-    fixture_id:   fx?.id              || m.fixture_id,
-    league_id:    m.league?.id        || m.league_id   || 0,
-    league_name:  m.league?.name      || m.league_name || '',
-    league_logo:  m.league?.logo      || m.league_logo || '',
+    fixture_id:    fx?.id              || m.fixture_id,
+    league_id:     m.league?.id        || m.league_id    || 0,
+    league_name:   m.league?.name      || m.league_name  || '',
+    league_logo:   m.league?.logo      || m.league_logo  || '',
+    league_country:m.league?.country   || m.league_country || '',
+    league_flag:   m.league?.flag      || m.league_flag  || '',
     home_team:    m.teams?.home?.name || m.home_team   || '',
     away_team:    m.teams?.away?.name || m.away_team   || '',
     home_logo:    m.teams?.home?.logo || m.home_logo   || '',
@@ -302,7 +304,13 @@ function render(rows, isLive) {
   const groups = {};
   rows.forEach(m => {
     const k = m.league_name || 'Diğer';
-    if (!groups[k]) groups[k] = { name: k, logo: m.league_logo || '', matches: [] };
+    if (!groups[k]) groups[k] = {
+      name:    k,
+      logo:    m.league_logo    || '',
+      country: m.league_country || '',
+      flag:    m.league_flag    || '',
+      matches: []
+    };
     groups[k].matches.push(m);
   });
   Object.values(groups).forEach(g => { g.matches = _sortMatches(g.matches); });
@@ -315,15 +323,26 @@ function render(rows, isLive) {
 function renderGroup(g, isLive) {
   const liveCount = g.matches.filter(m => statusInfo(m).live).length;
   const logo = g.logo
-    ? `<img class="lg-flag" src="${g.logo}" onerror="this.style.display='none'" alt="">`
+    ? `<img class="lg-flag" src="${g.logo}" onerror="this.style.display='none'" alt="" style="width:16px;height:16px;object-fit:contain;flex-shrink:0">`
     : `<div class="lg-flag-ph"></div>`;
+  const countryFlag = g.flag
+    ? `<img src="${g.flag}" onerror="this.style.display='none'" alt="" style="width:14px;height:10px;object-fit:cover;border-radius:2px;flex-shrink:0">`
+    : '';
+  const countryName = g.country
+    ? `<span style="font-size:11px;color:var(--color-text-secondary);flex-shrink:0">${esc(g.country)}</span>`
+    : '';
   const liveBadge = liveCount
     ? `<span class="lg-live-ct">${liveCount} CANLI</span>` : '';
   return `
     <div class="lg-grp" data-league="${esc(g.name)}">
       <div class="lg-hdr" onclick="this.closest('.lg-grp').classList.toggle('closed')">
-        <div class="lg-hdr-left">${logo}<span class="lg-hdr-name">${esc(g.name)}</span></div>
-        <div class="lg-hdr-right">
+        <div class="lg-hdr-left" style="display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden">
+          ${countryFlag}
+          ${countryName}
+          ${logo}
+          <span class="lg-hdr-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(g.name)}</span>
+        </div>
+        <div class="lg-hdr-right" style="display:flex;align-items:center;gap:6px;flex-shrink:0;white-space:nowrap">
           ${liveBadge}
           <span class="lg-ct">${g.matches.length}</span>
           <span class="lg-arrow">▾</span>
