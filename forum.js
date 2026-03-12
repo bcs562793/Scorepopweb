@@ -277,7 +277,7 @@ const Forum = (() => {
     } finally {
       _setBtnLoading(false);
     }
-
+  }
   /* ── ÖNE ÇIKAN MESAJ (Super Chat) ─────────── */
   function _showFeaturedModal() {
     if (!_nickname) { _showNickModal(() => _showFeaturedModal()); return; }
