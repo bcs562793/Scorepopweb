@@ -454,6 +454,8 @@ async function loadDetail(id, isLive) {
 }
 
 function buildDetail(m, evs, stats, lus, h2h, pred) {
+     console.log('[H2H data]', h2h);  // ← bunu ekle
+
   const st = statusInfo(m);
   const hs = m.home_score ?? '-', as = m.away_score ?? '-';
 
