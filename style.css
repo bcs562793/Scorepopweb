@@ -759,6 +759,15 @@ img { display: block; }
 .h2h-d { font-size: 10px; color: var(--tx3); }
 .h2h-t { font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 13px; }
 .h2h-t.r { text-align: right; }
+.h2h-section-title { padding: 10px 12px 4px; font-size: .72rem; font-weight: 700; color: var(--or); text-transform: uppercase; letter-spacing: .05em; }
+.h2h-res { font-size: .7rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; min-width: 20px; text-align: center; }
+.h2h-res.w { background: #1a3a1a; color: #4caf50; }
+.h2h-res.l { background: #3a1a1a; color: #f44336; }
+.h2h-res.d { background: #2a2a2a; color: #aaa; }
+.h2h-scorers { padding: 4px 12px 8px; }
+.h2h-scorer-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--bdr); font-size: .82rem; }
+.h2h-scorer-n { color: var(--tx); }
+.h2h-scorer-g { color: var(--or); font-weight: 700; }
 .h2h-sc {
   font-family: 'JetBrains Mono', monospace;
   font-size: 13px; font-weight: 700; text-align: center;
