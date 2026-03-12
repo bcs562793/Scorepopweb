@@ -235,12 +235,15 @@ async function loadUpcoming() {
 
 
 function normFix(m) {
-  /* Tüm olası saat kolonlarını dene */
-  const kt = m.fixture?.date    || m.kickoff_time || m.fixture_date
-        || m.match_time       || m.event_date   || m.date_time
-        || m.start_time       || m.event_time   || m.scheduled_at
-        || m.fixture_time     || m.game_time    || m.time
-        || m.date             || null;
+  /* fixture nesnesi data kolonunun içinden gelebilir */
+  const fx = m.fixture && typeof m.fixture === 'object' ? m.fixture : null;
+
+  const kt = fx?.date
+        || m.kickoff_time || m.fixture_date
+        || m.match_time   || m.event_date   || m.date_time
+        || m.start_time   || m.event_time   || m.scheduled_at
+        || m.fixture_time || m.game_time    || m.time
+        || null;  /* m.date kasıtlı atlandı — saat içermiyor */
 
   return {
     fixture_id:   m.fixture?.id       || m.fixture_id,
@@ -828,36 +831,33 @@ function statusInfo(m) {
 
 /* ── FIX: fmtKickoff — --:-- sorununu çözer ─── */
 function fmtKickoff(m) {
-  /* Tüm olası zaman alanlarını tara — updated_at ASLA */
+  /* Önce fixture.date'e bak — future_matches burada tutuyor */
+  const fixtureDate = m.fixture?.date || null;
+
   const candidates = [
+    fixtureDate,
     m.kickoff_time, m.fixture_date,  m.match_time,
     m.event_date,   m.date_time,     m.start_time,
     m.event_time,   m.scheduled_at,  m.match_date,
     m.fixture_time, m.game_time,     m.time,
-    m.date,
   ];
+  /* Not: m.date kolonuna BAKMA — "2026-03-15" gibi saat içermeyen tarih */
 
   for (const raw of candidates) {
     if (!raw || typeof raw !== 'string') continue;
     const v = raw.trim();
     if (!v) continue;
 
-    /* 1. Sadece "HH:MM" veya "HH:MM:SS" formatı → doğrudan kullan */
-    if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(v)) {
-      return v.slice(0, 5);
-    }
+    /* Sadece "HH:MM" veya "HH:MM:SS" */
+    if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(v)) return v.slice(0, 5);
 
-    /* 2. Pure date "YYYY-MM-DD" → saat bilgisi yok, atla */
+    /* Pure date "YYYY-MM-DD" — saat yok, atla */
     if (/^\d{4}-\d{2}-\d{2}$/.test(v)) continue;
 
-    /* 3. ISO veya datetime string → parse et */
+    /* ISO datetime — "2026-03-15T20:00:00+03:00" gibi */
     try {
       const d = new Date(v);
       if (!isNaN(d.getTime())) {
-        /* UTC 00:00:00 → büyük ihtimalle sadece tarih kaydı, saat bilgisi yok */
-        if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0
-            && !v.includes('T') && !v.includes(' ')) continue;
-
         return d.toLocaleTimeString('tr-TR', {
           hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Istanbul'
         });
