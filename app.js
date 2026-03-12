@@ -236,6 +236,24 @@ function normFix(m) {
 }
 
 /* ── RENDER ──────────────────────────────────── */
+/* Sıralama önceliği: Canlı → Planlanmış (NS) → Tamamlanmış (FT) */
+function _sortMatches(matches) {
+  const order = m => {
+    const s = m.status_short;
+    if (['1H','2H','HT','ET','BT','P','LIVE'].includes(s)) return 0;  // canlı
+    if (!s || s === 'NS' || s === 'TBD')                   return 1;  // planlanmış
+    return 2;                                                          // bitti
+  };
+  return [...matches].sort((a, b) => {
+    const od = order(a) - order(b);
+    if (od !== 0) return od;
+    /* Aynı gruptaysa saate göre sırala */
+    const ta = new Date(a.kickoff_time || a.fixture_date || a.match_date || 0).getTime();
+    const tb = new Date(b.kickoff_time || b.fixture_date || b.match_date || 0).getTime();
+    return ta - tb;
+  });
+}
+
 function render(rows, isLive) {
   if (!rows.length) {
     setMatchesHTML(`<div class="empty"><div class="empty-i">📭</div><div class="empty-t">Maç bulunamadı</div></div>`);
@@ -248,6 +266,8 @@ function render(rows, isLive) {
     if (!groups[k]) groups[k] = { name: k, logo: m.league_logo || '', matches: [] };
     groups[k].matches.push(m);
   });
+  /* Her ligin kendi içinde sırala */
+  Object.values(groups).forEach(g => { g.matches = _sortMatches(g.matches); });
   S.allLeagues = Object.values(groups);
   buildSidebarLeagues(S.allLeagues);
   setMatchesHTML(S.allLeagues.map(g => renderGroup(g, isLive)).join(''));
@@ -362,28 +382,48 @@ function applyFilter() {
 async function loadDetail(id, isLive) {
   setDetailHTML(`<div class="empty" style="min-height:160px"><div class="empty-i">⚽</div></div>`);
   try {
-    const tbl = isLive ? 'live_matches' : 'daily_matches';
-    const { data: m, error: mErr } = await S.sb
-      .from(tbl).select('*').eq('fixture_id', id).maybeSingle();   // ← maybeSingle
-    if (mErr) throw mErr;
+    /* Hangi tabloda olduğunu bilmeyebiliriz — sırayla 3 tabloyu dene */
+    let m = null;
+    const tables = isLive
+      ? ['live_matches','daily_matches','future_matches']
+      : ['daily_matches','live_matches','future_matches'];
+
+    for (const tbl of tables) {
+      const { data, error } = await S.sb
+        .from(tbl).select('*').eq('fixture_id', id).maybeSingle();
+      if (error) { console.warn('[Detail]', tbl, error.message); continue; }
+      if (data)  { m = data; break; }
+    }
+
     if (!m) {
       setDetailHTML('<div class="empty"><div class="empty-t">Maç bulunamadı</div></div>');
       return;
     }
 
-    /* paralel sorgular — hepsi maybeSingle ile güvenli */
+    /* future_matches nested JSON normalize */
+    if (m.data && typeof m.data === 'object') {
+      const nested = Array.isArray(m.data) ? m.data[0] : m.data;
+      if (nested) m = { ...m, ...normFix(nested) };
+    }
+
+    /* Paralel sorgular — hata olursa null döner, sayfa çökmez */
+    const safeQuery = q => q.catch(() => ({ data: null }));
     const [
-      { data: evs },
-      { data: stats,  error: stErr  },
-      { data: lus },
-      { data: h2h },
+      { data: evs  },
+      { data: stats },
+      { data: lus  },
+      { data: h2h  },
       { data: pred },
     ] = await Promise.all([
-      S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time'),
-      S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle(),  // ← DÜZELTİLDİ
-      S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle(),
-      S.sb.from('match_h2h').select('*').like('h2h_key',`%${m.home_team_id}%`).maybeSingle(),
-      S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle(), // ← maybeSingle
+      safeQuery(S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time')),
+      safeQuery(S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle()),
+      safeQuery(S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle()),
+      safeQuery(
+        m.home_team_id
+          ? S.sb.from('match_h2h').select('*').like('h2h_key', `%${m.home_team_id}%`).maybeSingle()
+          : Promise.resolve({ data: null })
+      ),
+      safeQuery(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
     ]);
 
     if (stErr) console.warn('İstatistik hatası:', stErr.message);
@@ -717,11 +757,18 @@ function statusInfo(m) {
 }
 
 function fmtKickoff(m) {
-  const raw = m.kickoff_time || m.updated_at;
+  /* updated_at ASLA kullanılmaz — maç saati değil DB güncelleme saati */
+  const raw = m.kickoff_time  || m.fixture_date  || m.match_time
+           || m.event_date    || m.date_time      || m.start_time
+           || m.event_time    || m.scheduled_at   || null;
   if (!raw) return '--:--';
   try {
+    if (/^\d{2}:\d{2}/.test(raw.trim())) return raw.trim().slice(0,5);
     const d = new Date(raw);
-    return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+    if (isNaN(d.getTime())) return '--:--';
+    return d.toLocaleTimeString('tr-TR', {
+      hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Istanbul'
+    });
   } catch { return '--:--'; }
 }
 
