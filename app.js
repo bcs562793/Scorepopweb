@@ -163,24 +163,38 @@ async function loadLive(silent = false) {
 async function loadToday() {
   let raw = [];
 
-  /* 1) daily_matches → match_date */
-  const { data: d1 } = await S.sb.from('daily_matches').select('*')
-    .eq('match_date', S.date).order('league_name');
-  if (d1?.length) raw = d1;
+  // daily_matches kısımlarını sildik, doğrudan live_matches'e bakıyoruz
+  const { data, error } = await S.sb.from('live_matches')
+    .select('*')
+    .order('league_name');
 
-  /* 2) daily_matches → date */
-  if (!raw.length) {
-    const { data: d2 } = await S.sb.from('daily_matches').select('*')
-      .eq('date', S.date).order('league_name');
-    if (d2?.length) raw = d2;
+  if (error) {
+    console.error("Maçlar çekilemedi:", error.message);
+    return;
   }
+
+  raw = data || [];
+
+  // Normalleştirme ve Render işlemleri devam eder...
+  const rows = [];
+  raw.forEach(r => {
+    if (r.data && typeof r.data === 'object') {
+      const list = Array.isArray(r.data) ? r.data : [r.data];
+      list.forEach(m => rows.push(normFix(m)));
+    } else {
+      rows.push(normFix(r));
+    }
+  });
+
+  render(rows, false);
+}
 
   /* 3) live_matches → match_date */
   if (!raw.length) {
-    const { data: d3 } = await S.sb.from('live_matches').select('*')
-      .eq('match_date', S.date).order('league_name');
-    if (d3?.length) raw = d3;
-  }
+  const { data: d3 } = await S.sb.from('live_matches').select('*')
+    .order('league_name'); 
+  if (d3?.length) raw = d3;
+}
 
   /* 4) live_matches → tüm NS (bugünse) */
   if (!raw.length && S.date === todayStr()) {
@@ -213,44 +227,28 @@ async function loadToday() {
 }
 
 async function loadUpcoming() {
-  let raw = [];
+  // Eğer future_matches tablon da live_matches ile aynı yapıdaysa (match_date yoksa)
+  // .eq('match_date', S.date) kısmını buradan da kaldırıyoruz.
+  const { data, error } = await S.sb
+    .from('future_matches')
+    .select('*')
+    .limit(100); // Çok fazla veri varsa sınırı koruyalım
 
-  /* future_matches → date */
-  const { data: u1 } = await S.sb.from('future_matches').select('*')
-    .eq('date', S.date).order('league_id');
-  if (u1?.length) raw = u1;
-
-  /* future_matches → match_date */
-  if (!raw.length) {
-    const { data: u2 } = await S.sb.from('future_matches').select('*')
-      .eq('match_date', S.date).order('league_id');
-    if (u2?.length) raw = u2;
+  if (error) {
+    console.error("Gelecek maçlar yüklenemedi:", error.message);
+    return;
   }
 
-  /* daily_matches → match_date (yarın için bazı tablolar burada) */
-  if (!raw.length) {
-    const { data: u3 } = await S.sb.from('daily_matches').select('*')
-      .eq('match_date', S.date).order('league_name');
-    if (u3?.length) raw = u3;
-  }
-
-  /* daily_matches → date */
-  if (!raw.length) {
-    const { data: u4 } = await S.sb.from('daily_matches').select('*')
-      .eq('date', S.date).order('league_name');
-    if (u4?.length) raw = u4;
-  }
-
-  /* Nested JSON normalize */
-  const rows = [];
-  raw.forEach(r => {
-    if (!r.data) { rows.push(r); return; }
-    if (Array.isArray(r.data)) r.data.forEach(m => rows.push(normFix(m)));
-    else rows.push(normFix(r.data));
+  const rows = (data || []).map(r => {
+    if (r.raw_data) {
+       try { return normFix({...r, ...JSON.parse(r.raw_data)}); } catch(e) { return normFix(r); }
+    }
+    return normFix(r);
   });
 
   render(rows, false);
 }
+
 
 function normFix(m) {
   /* Tüm olası saat kolonlarını dene */
