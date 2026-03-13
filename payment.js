@@ -51,51 +51,26 @@ const Payment = (() => {
 
   /* ── BAKİYE SORGULA ──────────────────────────── */
   async function getBalance(sessionId) {
-    if (!_sb || !sessionId) {
-      console.warn('[Payment] getBalance: _sb veya sessionId eksik', { _sb: !!_sb, sessionId });
-      return 0;
-    }
-
+    if (!_sb || !sessionId) return 0;
     try {
-      /* Auth kullanıcısını güvenli şekilde al — hata fırlatırsa yakalayıp devam et */
       let userId = null;
       try {
-        const { data, error: authErr } = await _sb.auth.getUser();
-        if (authErr) {
-          console.warn('[Payment] auth.getUser hatası:', authErr.message);
-        } else {
-          userId = data?.user?.id ?? null;
-        }
-      } catch (authEx) {
-        console.warn('[Payment] auth.getUser exception:', authEx);
-      }
+        const { data, error } = await _sb.auth.getUser();
+        if (!error) userId = data?.user?.id ?? null;
+      } catch {}
 
-      console.log('[Payment] getBalance → userId:', userId, '| sessionId:', sessionId);
+      const { data, error } = await _sb.rpc('get_balance', {
+        p_session_id: sessionId,
+        p_user_id:    userId,
+      });
 
-      /* Sorguyu oluştur */
-      let query = _sb.from('user_credits').select('balance');
-
-      if (userId) {
-        query = query.or(`user_id.eq.${userId},session_id.eq.${sessionId}`);
-      } else {
-        query = query.eq('session_id', sessionId);
-      }
-
-      const { data, error: queryErr } = await query
-        .order('balance', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (queryErr) {
-        console.error('[Payment] getBalance sorgu hatası:', queryErr.message, queryErr);
+      if (error) {
+        console.error('[Payment] get_balance RPC hatası:', error);
         return 0;
       }
-
-      console.log('[Payment] getBalance sonuç:', data);
-      return data?.balance ?? 0;
-
+      return data ?? 0;
     } catch (ex) {
-      console.error('[Payment] getBalance beklenmeyen hata:', ex);
+      console.error('[Payment] getBalance hata:', ex);
       return 0;
     }
   }
