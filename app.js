@@ -106,7 +106,7 @@ function openDetail(id, isLive) {
 }
 
 function closeDetail(reload = true) {
-  Forum.close();
+  try { if (typeof Forum !== 'undefined') Forum.close(); } catch(e) {}
   S.detail = null;
   showView('matches');
   if (reload) loadMatches();
@@ -782,7 +782,7 @@ function switchTab(name, el) {
   document.querySelectorAll('.d-panel').forEach(p => p.classList.remove('active'));
   const panel = document.getElementById('d-' + name);
   if (panel) panel.classList.add('active');
-  if (name === 'fr') Forum.scrollToBottom();
+  if (name === 'fr') { try { Forum.scrollToBottom(); } catch(e) {} }
 }
 
 /* ── SILENT UPDATE ───────────────────────────── */
