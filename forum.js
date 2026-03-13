@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — forum.js  (v3 — Kredi Sistemi)
+   SCOREPOP — forum.js  (v3.2 — Kompakt Pin)
 
    DEĞİŞİKLİKLER:
    ✅ Pinned section: Elmas kalıcı, Altın 30s, Gümüş 20s, Bronz 10s
@@ -10,6 +10,7 @@
    ✅ Geri sayım göstergesi pinned mesajlarda
    ✅ KREDİ SİSTEMİ: Bakiye kontrolü, anlık gönderim, Kredi Mağazası yönlendirme
    ✅ Giriş yapınca session_id → user_id bağlantısı
+   ✅ v3.2: Kompakt pin satırları — tıkla aç, chat asla gömülmez
 ════════════════════════════════════════════════ */
 'use strict';
 
@@ -54,7 +55,6 @@ const Forum = (() => {
       Auth.onChange(async user => {
         if (!user) return;
 
-        // Nickname güncelle
         const name = Auth.getDisplayName();
         if (name) {
           _nickname = name;
@@ -63,7 +63,6 @@ const Forum = (() => {
           if (el) el.textContent = name;
         }
 
-        // Session_id'yi user_id'ye bağla — bakiye bu kullanıcıya görünsün
         if (user.id && _sessionId && _sb) {
           try {
             await _sb.rpc('add_credits', {
@@ -139,10 +138,7 @@ const Forum = (() => {
       _insertChatDOM(slot.msg);
     });
 
-    const section = document.getElementById('fr-pinned-section');
-    if (section && _pinnedSlots.length === 0) {
-      section.style.cssText = 'flex-shrink:0;display:none;border-bottom:1px solid rgba(255,255,255,.08);';
-    }
+    _refreshPinnedSection();
 
     if (!_pinnedSlots.some(s => s.unpinAt !== Infinity)) _stopPinTimer();
   }
@@ -358,7 +354,6 @@ const Forum = (() => {
     if (!_nickname) { _showNickModal(() => _showFeaturedModal()); return; }
     document.getElementById('fr-modal-overlay')?.remove();
 
-    /* Bakiyeyi önceden çek — modal açılmadan önce */
     const balance = (typeof Payment !== 'undefined')
       ? await Payment.getBalance(_sessionId)
       : 0;
@@ -605,20 +600,105 @@ const Forum = (() => {
     input.addEventListener('keydown', e => { if (e.key === 'Enter') _save(); });
   }
 
+  /* ══════════════════════════════════════════════
+     KOMPAKT PİN SİSTEMİ
+     ──────────────────────────────────────────────
+     • Her pin tek satırda: BADGE + nick + kırpılmış metin + süre
+     • Tıklayınca tam metin açılır/kapanır
+     • Hepsi görünür — hiçbir mesaj gizlenmez
+     • Chat alanı asla gömülmez
+  ══════════════════════════════════════════════ */
+
+  /* Kompakt pin satırı — tıkla aç/kapa */
+  function _buildPinnedHTML(msg, unpinAt) {
+    const tier = TIERS[msg.feature_tier];
+    if (!tier) return '';
+    const isOwn     = msg.session_id === _sessionId;
+    const time      = _fmtTime(msg.created_at);
+    const permanent = unpinAt === Infinity;
+    const remainMs  = permanent ? 0 : Math.max(0, unpinAt - Date.now());
+    const remainS   = Math.ceil(remainMs / 1000);
+
+    const timerHTML = permanent
+      ? '<span style="font-size:10px;margin-left:auto;flex-shrink:0;opacity:.7;">📌</span>'
+      : `<span class="fr-pin-countdown" data-unpin="${unpinAt}" style="font-size:10px;margin-left:auto;flex-shrink:0;opacity:.7;">${remainS}s</span>`;
+
+    return `
+      <div class="fr-pin-slot ${isOwn ? 'fr-own' : ''}"
+           data-pin-id="${esc(String(msg.id))}"
+           style="
+             display:flex;align-items:center;gap:8px;
+             padding:6px 12px;margin:2px 8px;border-radius:6px;
+             cursor:pointer;font-size:12px;
+             background:${tier.bg};
+             border:1px solid ${tier.border};
+             border-left:3px solid ${tier.color};
+             transition:all .15s;
+           "
+           onclick="this.classList.toggle('fr-pin-open');var b=this.querySelector('.fr-pin-full');if(b)b.style.display=b.style.display==='block'?'none':'block';var t=this.querySelector('.fr-pin-trunc');if(t)t.style.display=t.style.display==='none'?'':'none'">
+        <span style="font-size:11px;font-weight:500;color:${tier.color};flex-shrink:0;white-space:nowrap;">${tier.emoji} ${tier.label.toUpperCase()}</span>
+        <span style="font-weight:500;font-size:11px;color:var(--color-text-primary);flex-shrink:0;">${esc(msg.nickname)}</span>
+        <span class="fr-pin-trunc" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--color-text-secondary);font-size:11px;"></span>
+        <span class="fr-pin-full" style="display:none;flex:1;color:var(--color-text-primary);font-size:12px;line-height:1.4;word-break:break-word;"></span>
+        <span style="font-size:10px;color:var(--color-text-tertiary);flex-shrink:0;white-space:nowrap;">${time}</span>
+        ${timerHTML}
+      </div>`;
+  }
+
+  /* Pinned section header + tüm kompakt satırlar */
+  function _buildPinnedSectionHTML() {
+    if (_pinnedSlots.length === 0) return '';
+
+    let html = `<div style="
+      display:flex;align-items:center;padding:4px 12px;
+      font-size:11px;color:var(--color-text-secondary);
+    ">📌 ${_pinnedSlots.length} sabitlenmiş mesaj</div>`;
+
+    _pinnedSlots.forEach(s => {
+      html += _buildPinnedHTML(s.msg, s.unpinAt);
+    });
+
+    return html;
+  }
+
+  /* Pinned section güncelle */
+  function _refreshPinnedSection() {
+    const section = document.getElementById('fr-pinned-section');
+    if (!section) return;
+
+    if (_pinnedSlots.length === 0) {
+      section.style.display = 'none';
+      section.innerHTML = '';
+      return;
+    }
+
+    section.style.display = '';
+    section.innerHTML = _buildPinnedSectionHTML();
+
+    /* Mesaj text'lerini güvenli ata */
+    _pinnedSlots.forEach(s => {
+      const el = section.querySelector(`.fr-pin-slot[data-pin-id="${String(s.msg.id)}"]`);
+      if (!el) return;
+      const trunc = el.querySelector('.fr-pin-trunc');
+      const full  = el.querySelector('.fr-pin-full');
+      if (trunc) trunc.textContent = s.msg.message;
+      if (full)  full.textContent  = s.msg.message;
+    });
+  }
+
   /* ── TAM RENDER ───────────────────────────── */
   function _renderAll() {
     const panel = document.getElementById('d-fr');
     if (!panel) return;
 
-    const WRAP_STYLE        = 'display:flex;flex-direction:column;height:500px;overflow:hidden;';
-    const LIST_STYLE        = 'flex:1;overflow-y:auto;min-height:0;';
-    const PIN_STYLE_HIDDEN  = 'flex-shrink:0;display:none;border-bottom:1px solid rgba(255,255,255,.08);';
-    const PIN_STYLE_VISIBLE = 'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);';
+    const WRAP_STYLE = 'display:flex;flex-direction:column;height:500px;overflow:hidden;';
+    const LIST_STYLE = 'flex:1;overflow-y:auto;min-height:0;';
+    const PIN_STYLE  = 'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);';
 
     if (_isLoading) {
       panel.innerHTML = `
         <div class="fr-wrap" style="${WRAP_STYLE}">
-          <div class="fr-pinned-section" id="fr-pinned-section" style="${PIN_STYLE_HIDDEN}"></div>
+          <div class="fr-pinned-section" id="fr-pinned-section" style="${PIN_STYLE}display:none;"></div>
           <div class="fr-msg-list" id="fr-msg-list" style="${LIST_STYLE}">
             <div class="fr-loading">
               <div class="fr-loading-dot"></div>
@@ -632,25 +712,32 @@ const Forum = (() => {
       return;
     }
 
-    const pinnedHTML = _pinnedSlots.map(s => _buildPinnedHTML(s.msg, s.unpinAt)).join('');
+    const pinnedHTML = _buildPinnedSectionHTML();
     const chatHTML   = _chatMsgs.length
       ? _chatMsgs.map(m => _buildMsgHTML(m)).join('')
       : '<div class="fr-empty">İlk mesajı sen gönder! 🎉</div>';
 
+    const hasPins = _pinnedSlots.length > 0;
+
     panel.innerHTML = `
       <div class="fr-wrap" style="${WRAP_STYLE}">
-        <div class="fr-pinned-section" id="fr-pinned-section" style="${_pinnedSlots.length ? PIN_STYLE_VISIBLE : PIN_STYLE_HIDDEN}">${pinnedHTML}</div>
+        <div class="fr-pinned-section" id="fr-pinned-section" style="${PIN_STYLE}${hasPins ? '' : 'display:none;'}">${pinnedHTML}</div>
         <div class="fr-msg-list" id="fr-msg-list" role="log" aria-live="polite" aria-label="Forum mesajları" style="${LIST_STYLE}">${chatHTML}</div>
         ${_buildInputArea()}
       </div>`;
 
+    /* Text'leri güvenli ata */
     _chatMsgs.forEach(m => {
       const el = panel.querySelector(`[data-msg-id="${String(m.id)}"]`);
       if (el) _setMsgText(el, m.message);
     });
     _pinnedSlots.forEach(s => {
       const el = panel.querySelector(`.fr-pin-slot[data-pin-id="${String(s.msg.id)}"]`);
-      if (el) { const b = el.querySelector('.fr-feat-body'); if (b) b.textContent = s.msg.message; }
+      if (!el) return;
+      const trunc = el.querySelector('.fr-pin-trunc');
+      const full  = el.querySelector('.fr-pin-full');
+      if (trunc) trunc.textContent = s.msg.message;
+      if (full)  full.textContent  = s.msg.message;
     });
 
     _bindInputEvents();
@@ -658,24 +745,7 @@ const Forum = (() => {
 
   /* ── PINNED BÖLME YENİDEN İNŞA ───────────── */
   function _rebuildPinnedDOM() {
-    const section = document.getElementById('fr-pinned-section');
-    if (!section) { _renderAll(); return; }
-
-    if (_pinnedSlots.length === 0) {
-      section.style.cssText = 'flex-shrink:0;display:none;border-bottom:1px solid rgba(255,255,255,.08);';
-      section.innerHTML = '';
-      return;
-    }
-    section.style.cssText = 'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);';
-    section.innerHTML = '';
-    _pinnedSlots.forEach(s => {
-      const tmp = document.createElement('div');
-      tmp.innerHTML = _buildPinnedHTML(s.msg, s.unpinAt);
-      const el = tmp.firstElementChild;
-      section.appendChild(el);
-      const bodyEl = el.querySelector('.fr-feat-body');
-      if (bodyEl) bodyEl.textContent = s.msg.message;
-    });
+    _refreshPinnedSection();
   }
 
   /* ── CHAT DOM: SONUNA EKLE ────────────────── */
@@ -718,33 +788,7 @@ const Forum = (() => {
     _setMsgText(el, msg.message);
   }
 
-  /* ── HTML OLUŞTURUCULARI ──────────────────── */
-  function _buildPinnedHTML(msg, unpinAt) {
-    const tier      = TIERS[msg.feature_tier];
-    if (!tier) return '';
-    const isOwn     = msg.session_id === _sessionId;
-    const time      = _fmtTime(msg.created_at);
-    const permanent = unpinAt === Infinity;
-    const remainMs  = permanent ? 0 : Math.max(0, unpinAt - Date.now());
-    const remainS   = Math.ceil(remainMs / 1000);
-
-    const boxStyle = `background:${tier.bg};border:1px solid ${tier.border};border-left:3px solid ${tier.color};border-radius:8px;padding:10px 12px;margin:4px 8px;`;
-    return `
-      <div class="fr-pin-slot fr-tier-${msg.feature_tier} ${isOwn ? 'fr-own' : ''}"
-           data-pin-id="${esc(String(msg.id))}"
-           style="${boxStyle}--tc:${tier.color};--tb:${tier.bg};--tbr:${tier.border}">
-        <div class="fr-feat-header">
-          <span class="fr-feat-badge">${tier.emoji} ${tier.label}</span>
-          ${permanent
-            ? '<span class="fr-pin-badge">📌 SABİTLENDİ</span>'
-            : `<span class="fr-pin-countdown" data-countdown-id="${esc(String(msg.id))}" data-unpin="${unpinAt}">${remainS}s</span>`}
-          <span class="fr-msg-time">${time}</span>
-        </div>
-        <div class="fr-feat-nick">${esc(msg.nickname)}</div>
-        <div class="fr-feat-body"></div>
-      </div>`;
-  }
-
+  /* ── CHAT MESAJ HTML (renk korunur) ───────── */
   function _buildMsgHTML(msg) {
     const tier  = msg.is_featured && msg.feature_tier ? TIERS[msg.feature_tier] : null;
     const isOwn = msg.session_id === _sessionId;
