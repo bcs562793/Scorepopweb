@@ -638,8 +638,8 @@ const Forum = (() => {
            onclick="this.classList.toggle('fr-pin-open');var b=this.querySelector('.fr-pin-full');if(b)b.style.display=b.style.display==='block'?'none':'block';var t=this.querySelector('.fr-pin-trunc');if(t)t.style.display=t.style.display==='none'?'':'none'">
         <span style="font-size:11px;font-weight:500;color:${tier.color};flex-shrink:0;white-space:nowrap;">${tier.emoji} ${tier.label.toUpperCase()}</span>
         <span style="font-weight:500;font-size:11px;color:var(--color-text-primary);flex-shrink:0;">${esc(msg.nickname)}</span>
-        <span class="fr-pin-trunc" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--color-text-secondary);font-size:11px;"></span>
-        <span class="fr-pin-full" style="display:none;flex:1;color:var(--color-text-primary);font-size:12px;line-height:1.4;word-break:break-word;"></span>
+        <span class="fr-pin-trunc" style="display:none;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--color-text-secondary);font-size:11px;"></span>
+<span class="fr-pin-full" style="flex:1;color:var(--color-text-primary);font-size:12px;line-height:1.4;word-break:break-word;"></span>
         <span style="font-size:10px;color:var(--color-text-tertiary);flex-shrink:0;white-space:nowrap;">${time}</span>
         ${timerHTML}
       </div>`;
