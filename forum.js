@@ -892,36 +892,40 @@ const Forum = (() => {
   }
 
   /* ── CHAT MESAJ HTML (renk korunur) ───────── */
+  /* ── CHAT MESAJ HTML (Aşağı düştüğünde Elmas Pin ile BİREBİR aynı olacak) ───────── */
   function _buildMsgHTML(msg) {
     const tier  = msg.is_featured && msg.feature_tier ? TIERS[msg.feature_tier] : null;
     const isOwn = msg.session_id === _sessionId;
     const time  = _fmtTime(msg.created_at);
 
     if (tier) {
-      const boxStyle = `background:${tier.bg};border:1px solid ${tier.border};border-left:3px solid ${tier.color};border-radius:8px;padding:10px 12px;margin:4px 0;`;
       return `
         <div class="fr-msg fr-featured fr-tier-${msg.feature_tier} ${isOwn ? 'fr-own' : ''}"
              data-msg-id="${esc(String(msg.id))}"
-             style="${boxStyle}--tc:${tier.color};--tb:${tier.bg};--tbr:${tier.border}">
-          <div class="fr-feat-header">
-            <span class="fr-feat-badge">${tier.emoji} ${tier.label}</span>
-            <span class="fr-msg-time">${time}</span>
-          </div>
-          <div class="fr-feat-nick">${esc(msg.nickname)}</div>
-          <div class="fr-feat-body"></div>
+             style="
+               display:flex; align-items:center; gap:8px;
+               padding:6px 12px; margin:4px 8px; border-radius:6px;
+               background:${tier.bg};
+               border:1px solid ${tier.border};
+               border-left:3px solid ${tier.color};
+             ">
+          <span style="font-size:11px; font-weight:700; color:${tier.color}; flex-shrink:0; white-space:nowrap;">${tier.emoji} ${tier.label.toUpperCase()}</span>
+          <span style="font-weight:600; font-size:11px; color:var(--color-text-primary); flex-shrink:0; white-space:nowrap;">${msg.nickname ? esc(msg.nickname) : 'Anonim'}</span>
+          <span class="fr-feat-body" style="flex:1; color:var(--color-text-primary); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${msg.message ? esc(msg.message) : '...'}</span>
+          <span style="font-size:10px; color:var(--color-text-tertiary); flex-shrink:0; white-space:nowrap;">${time}</span>
         </div>`;
     }
 
+    // Normal kullanıcı mesajları
     return `
       <div class="fr-msg ${isOwn ? 'fr-own' : ''}" data-msg-id="${esc(String(msg.id))}">
         <div class="fr-msg-meta">
-          <span class="fr-msg-nick ${isOwn ? 'fr-own-nick' : ''}">${esc(msg.nickname)}</span>
+          <span class="fr-msg-nick ${isOwn ? 'fr-own-nick' : ''}">${msg.nickname ? esc(msg.nickname) : 'Anonim'}</span>
           <span class="fr-msg-time">${time}</span>
         </div>
-        <div class="fr-msg-body"></div>
+        <div class="fr-msg-body">${msg.message ? esc(msg.message) : ''}</div>
       </div>`;
   }
-
   function _buildInputArea() {
     const nick = _nickname || 'Anonim';
     return `
