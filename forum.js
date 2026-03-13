@@ -506,7 +506,7 @@ async function _processFeaturedPayment(tierKey, message) {
     });
     return;
   }
-  /
+  
 
   _showToast(`${tier.emoji} Gönderiliyor…`);
 
