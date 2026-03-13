@@ -1,10 +1,13 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v3)
+   SCOREPOP — app.js  (v3.1)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
      - match_statistics uses maybeSingle + robust data parsing
      - Forum tab wired to forum.js
+   v3.1:
+     - Lig sıralaması: favori > üst lig > alt lig > diğer
+     - Favori lig takip (localStorage)
 ════════════════════════════════════════════════ */
 'use strict';
 
@@ -20,6 +23,99 @@ const S = {
   cycle:       30,
   allLeagues:  [],
 };
+
+/* ── LİG ÖNCELİK SİSTEMİ ───────────────────── */
+/*
+   tier 1 = Üst ligler (sıralı)
+   tier 2 = Alt ligler (sıralı)
+   Eşleşme: league_name içinde keyword geçiyorsa eşleşir.
+   Aynı tier içinde order küçük olan önce gelir.
+*/
+const LEAGUE_TIERS = [
+  /* ─── TIER 1: ÜST LİGLER ─── */
+  { tier: 1, order: 1,  keywords: ['süper lig', 'super lig', 'trendyol süper'] },
+  { tier: 1, order: 2,  keywords: ['premier league'] },
+  { tier: 1, order: 3,  keywords: ['la liga'] },
+  { tier: 1, order: 4,  keywords: ['serie a'] },
+  { tier: 1, order: 5,  keywords: ['bundesliga'] },
+  { tier: 1, order: 6,  keywords: ['ligue 1'] },
+  { tier: 1, order: 7,  keywords: ['primeira liga', 'liga portugal'] },
+  { tier: 1, order: 8,  keywords: ['eredivisie'] },
+  { tier: 1, order: 9,  keywords: ['champions league', 'şampiyonlar ligi'] },
+  { tier: 1, order: 10, keywords: ['europa league', 'avrupa ligi'] },
+  { tier: 1, order: 11, keywords: ['conference league', 'konferans ligi'] },
+
+  /* ─── TIER 2: ALT LİGLER ─── */
+  { tier: 2, order: 1,  keywords: ['1. lig', 'tff 1'] },
+  { tier: 2, order: 2,  keywords: ['championship'] },
+  { tier: 2, order: 3,  keywords: ['la liga 2', 'segunda', 'laliga2'] },
+  { tier: 2, order: 4,  keywords: ['serie b'] },
+  { tier: 2, order: 5,  keywords: ['2. bundesliga'] },
+  { tier: 2, order: 6,  keywords: ['ligue 2'] },
+  { tier: 2, order: 7,  keywords: ['league one', 'efl league one'] },
+  { tier: 2, order: 8,  keywords: ['league two', 'efl league two'] },
+  { tier: 2, order: 9,  keywords: ['2. lig', 'tff 2'] },
+  { tier: 2, order: 10, keywords: ['3. lig', 'tff 3'] },
+  { tier: 2, order: 11, keywords: ['jupiler', 'pro league'] },
+  { tier: 2, order: 12, keywords: ['super league', 'swiss super'] },
+  { tier: 2, order: 13, keywords: ['scottish premiership'] },
+  { tier: 2, order: 14, keywords: ['ekstraklasa'] },
+  { tier: 2, order: 15, keywords: ['süper kupa', 'super cup'] },
+];
+
+/* Favori ligler — localStorage'dan oku/yaz */
+function getFavLeagues() {
+  try {
+    const raw = localStorage.getItem('sp_fav_leagues');
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveFavLeagues(arr) {
+  try { localStorage.setItem('sp_fav_leagues', JSON.stringify(arr)); } catch {}
+}
+
+function toggleFavLeague(name) {
+  const favs = getFavLeagues();
+  const idx = favs.indexOf(name);
+  if (idx >= 0) favs.splice(idx, 1);
+  else favs.push(name);
+  saveFavLeagues(favs);
+  return favs;
+}
+
+function isFavLeague(name) {
+  return getFavLeagues().includes(name);
+}
+
+/*  Lig adından { tier, order } döndür  */
+function _matchLeagueTier(leagueName) {
+  const lower = (leagueName || '').toLowerCase().trim();
+  for (const entry of LEAGUE_TIERS) {
+    for (const kw of entry.keywords) {
+      if (lower.includes(kw)) return { tier: entry.tier, order: entry.order };
+    }
+  }
+  return { tier: 3, order: 999 };  /* Tanımsız → en sona */
+}
+
+/*  Grup sıralama anahtarı: favori(0/1) → tier → order → alfabe  */
+function _leagueSortKey(group) {
+  const fav = isFavLeague(group.name) ? 0 : 1;
+  const { tier, order } = _matchLeagueTier(group.name);
+  return { fav, tier, order, name: (group.name || '').toLowerCase() };
+}
+
+function _sortLeagueGroups(groups) {
+  return [...groups].sort((a, b) => {
+    const ka = _leagueSortKey(a);
+    const kb = _leagueSortKey(b);
+    if (ka.fav !== kb.fav)   return ka.fav - kb.fav;
+    if (ka.tier !== kb.tier) return ka.tier - kb.tier;
+    if (ka.order !== kb.order) return ka.order - kb.order;
+    return ka.name.localeCompare(kb.name, 'tr');
+  });
+}
 
 /* ── BOOT ───────────────────────────────────── */
 window.addEventListener('load', async () => {
@@ -319,7 +415,10 @@ function render(rows, isLive) {
     groups[k].matches.push(m);
   });
   Object.values(groups).forEach(g => { g.matches = _sortMatches(g.matches); });
-  S.allLeagues = Object.values(groups);
+
+  /* ▼ YENİ: Ligleri öncelik sırasına göre sırala ▼ */
+  S.allLeagues = _sortLeagueGroups(Object.values(groups));
+
   buildSidebarLeagues(S.allLeagues);
   setMatchesHTML(S.allLeagues.map(g => renderGroup(g, isLive)).join(''));
   applyFilter();
@@ -340,6 +439,14 @@ function renderGroup(g, isLive) {
   const liveBadge = liveCount
     ? `<span style="display:inline-flex;align-items:center;white-space:nowrap;...">${liveCount} CANLI</span>`
     : '';
+
+  /* ▼ YENİ: Favori yıldızı ▼ */
+  const isFav = isFavLeague(g.name);
+  const starBtn = `<span class="lg-fav" data-league="${esc(g.name)}"
+    onclick="event.stopPropagation();_toggleFavFromHeader(this)"
+    style="cursor:pointer;font-size:14px;margin-left:4px;opacity:${isFav ? '1' : '0.3'};transition:opacity .15s;"
+    title="${isFav ? 'Favoriden çıkar' : 'Favorilere ekle'}">${isFav ? '⭐' : '☆'}</span>`;
+
   return `
     <div class="lg-grp" data-league="${esc(g.name)}">
       <div class="lg-hdr" onclick="this.closest('.lg-grp').classList.toggle('closed')">
@@ -347,6 +454,7 @@ function renderGroup(g, isLive) {
           ${countryFlag}
           ${logo}
           <span class="lg-hdr-name" style="white-space:nowrap;font-size:13px;font-weight:500">${fullName}</span>
+          ${starBtn}
           ${liveBadge}
         </div>
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
@@ -355,6 +463,22 @@ function renderGroup(g, isLive) {
       </div>
       <div class="lg-body">${g.matches.map(m => renderRow(m, isLive)).join('')}</div>
     </div>`;
+}
+
+/* Favori toggle — lig başlığındaki yıldızdan çağrılır */
+function _toggleFavFromHeader(el) {
+  const name = el.dataset.league;
+  const favs = toggleFavLeague(name);
+  const nowFav = favs.includes(name);
+  el.textContent = nowFav ? '⭐' : '☆';
+  el.style.opacity = nowFav ? '1' : '0.3';
+  el.title = nowFav ? 'Favoriden çıkar' : 'Favorilere ekle';
+  /* Sidebar'ı da güncelle */
+  buildSidebarLeagues(S.allLeagues);
+  /* Listeyi yeniden sırala ve renderla (mevcut sayfada) */
+  S.allLeagues = _sortLeagueGroups(S.allLeagues);
+  setMatchesHTML(S.allLeagues.map(g => renderGroup(g, S.page === 'live')).join(''));
+  applyFilter();
 }
 
 function renderRow(m, isLive) {
@@ -428,11 +552,16 @@ function buildSidebarLeagues(groups) {
   allBtn.addEventListener('click', () => { setLeague('all'); if(window.innerWidth<=680) toggleSidebar(); });
   el.appendChild(allBtn);
 
-  groups.forEach(g => {
+  /* ▼ YENİ: Sidebar'da da favori → tier 1 → tier 2 → diğer sırasıyla göster ▼ */
+  const sorted = _sortLeagueGroups(groups);
+
+  sorted.forEach(g => {
+    const fav = isFavLeague(g.name);
     const item = document.createElement('div');
     item.className = 'sb-lg-item' + (S.league === g.name ? ' active' : '');
     item.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;cursor:pointer;white-space:nowrap;font-size:12px;';
     item.innerHTML = `
+      ${fav ? '<span style="font-size:10px;">⭐</span>' : ''}
       ${g.logo ? `<img src="${g.logo}" width="14" height="14" style="flex-shrink:0" onerror="this.style.display='none'" alt="">` : ''}
       <span class="sb-lg-n">${esc(g.name)}</span>
       <span class="sb-lg-ct">${g.matches.length}</span>`;
