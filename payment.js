@@ -42,7 +42,7 @@ const Payment = (() => {
   /* ── BAŞLAT ──────────────────────────────────── */
   function init(sb) {
     _sb        = sb;
-    _edgeFnUrl = window.PAYMENT_EDGE_URL || null;
+    _edgeFnUrl = (typeof PAYMENT_EDGE_URL !== 'undefined' ? PAYMENT_EDGE_URL : null) || window.PAYMENT_EDGE_URL || null;
   }
 
   /* ── BAKİYE SORGULA ──────────────────────────── */
@@ -275,7 +275,7 @@ const Payment = (() => {
 
     try {
       /* Edge Function'dan Shopier formu al */
-      const anonKey = window.SUPABASE_ANON_KEY || _sb?.supabaseKey || '';
+      const anonKey = (typeof SUPABASE_KEY !== 'undefined' ? SUPABASE_KEY : '') || _sb?.supabaseKey || '';
       const res = await fetch(_edgeFnUrl, {
         method:  'POST',
         headers: {
