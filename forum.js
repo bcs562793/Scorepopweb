@@ -131,7 +131,7 @@ const Forum = (() => {
     expired.forEach(slot => {
       _pinnedSlots = _pinnedSlots.filter(s => s !== slot);
 
-      const pinEl = document.querySelector(`.fr-pin-slot[data-pin-id="${CSS.escape(String(slot.msg.id))}"]`);
+      const pinEl = document.querySelector(`[data-pin-id="${CSS.escape(String(slot.msg.id))}"]`);
       if (pinEl) pinEl.remove();
 
       _insertChronologically(slot.msg);
@@ -623,21 +623,17 @@ const Forum = (() => {
       : `<span class="fr-pin-countdown" data-unpin="${unpinAt}" style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.08);color:var(--color-text-secondary);font-weight:600;">${remainS}s</span>`;
 
     return `
-      <div class="fr-pin-slot ${isOwn ? 'fr-own' : ''}"
-           data-pin-id="${esc(String(msg.id))}"
-           style="
-             padding:10px 14px;margin:4px 8px;border-radius:8px;
-             background:${tier.bg};
-             border:1px solid ${tier.border};
-             border-left:3px solid ${tier.color};
-           ">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
-          <span style="font-size:11px;font-weight:700;color:${tier.color};letter-spacing:.3px;">${tier.emoji} ${tier.label.toUpperCase()}</span>
-          <span style="font-size:11px;font-weight:600;color:var(--color-text-primary);">${esc(msg.nickname)}</span>
-          <span style="margin-left:auto;font-size:10px;color:var(--color-text-tertiary);">${time}</span>
+      <div data-pin-id="${esc(String(msg.id))}"
+           style="padding:10px 14px;margin:4px 8px;border-radius:8px;
+                  background:${tier.bg};border:1px solid ${tier.border};
+                  border-left:3px solid ${tier.color};box-sizing:border-box;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+          <span style="font-size:11px;font-weight:700;color:${tier.color};letter-spacing:.3px;flex-shrink:0;">${tier.emoji} ${tier.label.toUpperCase()}</span>
+          <span style="font-size:11px;font-weight:600;color:var(--color-text-primary);flex-shrink:0;">${esc(msg.nickname)}</span>
+          <span style="margin-left:auto;font-size:10px;color:var(--color-text-tertiary);flex-shrink:0;">${time}</span>
           ${timerBadge}
         </div>
-        <div class="fr-pin-msg-text" style="font-size:13px;color:var(--color-text-primary);line-height:1.5;word-break:break-word;"></div>
+        <div class="fr-pin-msg-text" style="font-size:13px;color:var(--color-text-primary);line-height:1.5;word-break:break-word;white-space:normal;overflow:visible;"></div>
       </div>`;
   }
 
@@ -674,7 +670,7 @@ const Forum = (() => {
 
     /* Mesaj text'lerini güvenli ata */
     _pinnedSlots.forEach(s => {
-      const el = section.querySelector(`.fr-pin-slot[data-pin-id="${String(s.msg.id)}"]`);
+      const el = section.querySelector(`[data-pin-id="${String(s.msg.id)}"]`);
       if (!el) return;
       const textEl = el.querySelector('.fr-pin-msg-text');
       if (textEl) textEl.textContent = s.msg.message;
@@ -727,7 +723,7 @@ const Forum = (() => {
       if (el) _setMsgText(el, m.message);
     });
     _pinnedSlots.forEach(s => {
-      const el = panel.querySelector(`.fr-pin-slot[data-pin-id="${String(s.msg.id)}"]`);
+      const el = panel.querySelector(`[data-pin-id="${String(s.msg.id)}"]`);
       if (!el) return;
       const textEl = el.querySelector('.fr-pin-msg-text');
       if (textEl) textEl.textContent = s.msg.message;
