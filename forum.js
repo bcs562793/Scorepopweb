@@ -485,26 +485,28 @@ const Forum = (() => {
   }
 
   /* ── ÖNE ÇIKAN MESAJ İŞLE ────────────────── */
-  async function _processFeaturedPayment(tierKey, message) {
+async function _processFeaturedPayment(tierKey, message) {
   const tier = TIERS[tierKey];
   if (!tier) return;
   if (!_nickname) { _showNickModal(() => _processFeaturedPayment(tierKey, message)); return; }
 
-  /* Kredi kontrolü — yetersizse direkt mağazaya gönder */
-  const balance = (typeof Payment !== 'undefined')
-    ? await Payment.getBalance(_sessionId)
-    : 0;
+  /* Kredi kontrolü — doğrudan Supabase'e sor */
+  let balance = 0;
+  if (typeof Payment !== 'undefined') {
+    balance = await Payment.getBalance(_sessionId);
+  }
+
+  console.log('[Forum] bakiye:', balance, 'gereken:', tier.amount); // debug
 
   if (balance < tier.amount) {
-    if (typeof Payment !== 'undefined') {
-      Payment.showCreditStore(_sessionId, (newBalance) => {
-        if (newBalance && newBalance >= tier.amount) {
-          _processFeaturedPayment(tierKey, message);
-        }
-      });
-    }
+    Payment.showCreditStore(_sessionId, (newBalance) => {
+      if (newBalance && newBalance >= tier.amount) {
+        _processFeaturedPayment(tierKey, message);
+      }
+    });
     return;
   }
+  /
 
   _showToast(`${tier.emoji} Gönderiliyor…`);
 
