@@ -32,13 +32,12 @@ const Payment = (() => {
 
   /* Kredi paketleri */
   const CREDIT_PACKAGES = [
-    { key: 'test',    credits: 100,  price: 1,   label: '🧪 Test',   popular: false, bonus: 'Test paketi', },
-    { key: 'starter', credits: 100,  price: 29,  label: 'Başlangıç', popular: false, bonus: null,          },
-    { key: 'popular', credits: 300,  price: 79,  label: 'Popüler',   popular: true,  bonus: '+ 20 bonus',  },
-    { key: 'pro',     credits: 750,  price: 179, label: 'Pro',       popular: false, bonus: '+ 75 bonus',  },
-    { key: 'ultra',   credits: 2000, price: 399, label: 'Ultra',     popular: false, bonus: '+ 300 bonus', },
+    { key: 'starter', credits: 100,  price: 29,  label: 'Başlangıç', popular: false, bonus: null,         url: 'https://www.shopier.com/bizedemiofsayt/45196611' },
+    { key: 'popular', credits: 300,  price: 79,  label: 'Popüler',   popular: true,  bonus: null,         url: 'https://www.shopier.com/bizedemiofsayt/45196663' },
+    { key: 'pro',     credits: 750,  price: 179, label: 'Pro',       popular: false, bonus: null,         url: 'https://www.shopier.com/bizedemiofsayt/45196703' },
+    { key: 'ultra',   credits: 2000, price: 399, label: 'Ultra',     popular: false, bonus: null,         url: 'https://www.shopier.com/bizedemiofsayt/45196733' },
   ];
-
+   
   /* ── BAŞLAT ──────────────────────────────────── */
   function init(sb) {
     _sb        = sb;
@@ -265,31 +264,31 @@ const Payment = (() => {
   }
 
   /* ── KREDİ SATIN ALMA AKIŞI ──────────────────── */
+  /* ── KREDİ SATIN ALMA AKIŞI (DİREKT LİNK YÖNLENDİRMESİ) ──────────────────── */
   async function _processCreditPurchase(sessionId, pkg, onClose) {
-    if (!_edgeFnUrl) {
-      _showToast('❌ Ödeme servisi tanımlı değil (PAYMENT_EDGE_URL).');
+    if (!pkg.url) {
+      _showToast('❌ Bu paket için satın alma linki bulunamadı.');
       return;
     }
 
-    _showToast('⏳ Ödeme sayfası hazırlanıyor…');
+    _showToast('⏳ Shopier ödeme sayfasına yönlendiriliyorsunuz…');
 
-    try {
-      /* Edge Function'dan Shopier formu al */
-      const anonKey = (typeof SUPABASE_KEY !== 'undefined' ? SUPABASE_KEY : '') || _sb?.supabaseKey || '';
-      const res = await fetch(_edgeFnUrl, {
-        method:  'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'Authorization': `Bearer ${anonKey}`,
-          'apikey':        anonKey,
-        },
-        body:    JSON.stringify({
-          message_id: `${sessionId}|${pkg.credits}`, // webhook bunu parse eder
-          amount:     pkg.price,
-          currency:   'TRY',
-          tier_label: pkg.label,
-        }),
-      });
+    /* Yeni sekmede direkt Shopier ürün linkini aç */
+    const win = window.open(pkg.url, '_blank');
+    if (!win) {
+      _showToast('❌ Popup engellendi, tarayıcı ayarlarını kontrol edin.');
+      return;
+    }
+
+    _showToast('✅ Ödeme yaptıktan sonra bakiyeniz hesabınıza tanımlanacaktır.');
+    
+    /* DİKKAT: Direkt linke gidildiği için API üzerinden otomatik doğrulama yapılamaz.
+      Eğer arkada kendi yazdığın bir webhook eşleştirme sistemin yoksa, 
+      alttaki otomatik bakiye sorgulama (polling) kodunu kapalı tutmak en doğrusudur.
+    */
+    // const currentBalance = await getBalance(sessionId);
+    // _pollCreditVerification(sessionId, currentBalance + pkg.credits, 120, onClose);
+  }
 
       if (!res.ok) throw new Error(`Edge Function hatası: ${res.status}`);
 
