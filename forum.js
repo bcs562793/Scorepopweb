@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — forum.js  (v3.2 — Kompakt Pin)
+   SCOREPOP — forum.js  (v3.3 — Kart Pin + Arşiv)
 
    DEĞİŞİKLİKLER:
    ✅ Pinned section: Elmas kalıcı, Altın 30s, Gümüş 20s, Bronz 10s
@@ -10,7 +10,8 @@
    ✅ Geri sayım göstergesi pinned mesajlarda
    ✅ KREDİ SİSTEMİ: Bakiye kontrolü, anlık gönderim, Kredi Mağazası yönlendirme
    ✅ Giriş yapınca session_id → user_id bağlantısı
-   ✅ v3.2: Kompakt pin satırları — tıkla aç, chat asla gömülmez
+   ✅ v3.3: TAM KART pin görünümü (kompakt değil)
+   ✅ v3.3: Süresi dolan pinler → chat'e düşer + "sabitlenmiş mesaj" arşivinde kart olarak kalır
 ════════════════════════════════════════════════ */
 'use strict';
 
@@ -34,16 +35,17 @@ const Forum = (() => {
   const TIER_RANK = { diamond: 0, gold: 1, silver: 2, bronze: 3 };
 
   /* ── STATE ────────────────────────────────── */
-  let _sb          = null;
-  let _fixtureId   = null;
-  let _channel     = null;
-  let _pinnedSlots = [];
-  let _chatMsgs    = [];
-  let _lastSent    = 0;
-  let _sessionId   = null;
-  let _nickname    = null;
-  let _isLoading   = false;
-  let _pinTimer    = null;
+  let _sb              = null;
+  let _fixtureId       = null;
+  let _channel         = null;
+  let _pinnedSlots     = [];
+  let _expiredFeatured = [];   // ← v3.3: süresi dolan pinler arşivi
+  let _chatMsgs        = [];
+  let _lastSent        = 0;
+  let _sessionId       = null;
+  let _nickname        = null;
+  let _isLoading       = false;
+  let _pinTimer        = null;
 
   /* ── INIT ─────────────────────────────────── */
   function init(sb) {
@@ -81,9 +83,10 @@ const Forum = (() => {
 
   /* ── OPEN / CLOSE ─────────────────────────── */
   function open(fixtureId) {
-    _fixtureId   = fixtureId;
-    _pinnedSlots = [];
-    _chatMsgs    = [];
+    _fixtureId       = fixtureId;
+    _pinnedSlots     = [];
+    _expiredFeatured = [];
+    _chatMsgs        = [];
     _stopPinTimer();
     _renderAll();
     _loadMessages();
@@ -96,9 +99,10 @@ const Forum = (() => {
       _sb.removeChannel(_channel).catch(() => {});
       _channel = null;
     }
-    _fixtureId   = null;
-    _pinnedSlots = [];
-    _chatMsgs    = [];
+    _fixtureId       = null;
+    _pinnedSlots     = [];
+    _expiredFeatured = [];
+    _chatMsgs        = [];
   }
 
   function scrollToBottom() {
@@ -119,6 +123,7 @@ const Forum = (() => {
   function _tickPins() {
     const now = Date.now();
 
+    /* Geri sayım göstergelerini güncelle */
     document.querySelectorAll('.fr-pin-countdown[data-unpin]').forEach(el => {
       const unpinAt   = Number(el.dataset.unpin);
       const remaining = Math.max(0, Math.ceil((unpinAt - now) / 1000));
@@ -131,9 +136,14 @@ const Forum = (() => {
     expired.forEach(slot => {
       _pinnedSlots = _pinnedSlots.filter(s => s !== slot);
 
+      /* Pin DOM'dan kaldır */
       const pinEl = document.querySelector(`.fr-pin-slot[data-pin-id="${CSS.escape(String(slot.msg.id))}"]`);
       if (pinEl) pinEl.remove();
 
+      /* ── v3.3: Arşive ekle ── */
+      _expiredFeatured.push(slot.msg);
+
+      /* Chat'e kronolojik ekle */
       _insertChronologically(slot.msg);
       _insertChatDOM(slot.msg);
     });
@@ -185,6 +195,8 @@ const Forum = (() => {
           if (now < unpinAt) {
             _pinnedSlots.push({ msg, unpinAt });
           } else {
+            /* ── v3.3: Zaten süresi dolmuş → arşive + chat ── */
+            _expiredFeatured.push(msg);
             _insertChronologically(msg);
           }
         }
@@ -279,8 +291,11 @@ const Forum = (() => {
       _rebuildPinnedDOM();
       if (unpinAt !== Infinity) _startPinTimer();
     } else {
+      /* ── v3.3: Zaten süresi dolmuş → arşive + chat ── */
+      _expiredFeatured.push(msg);
       _insertChronologically(msg);
       _insertChatDOM(msg);
+      _refreshPinnedSection();
       scrollToBottom();
     }
   }
@@ -601,15 +616,15 @@ const Forum = (() => {
   }
 
   /* ══════════════════════════════════════════════
-     KOMPAKT PİN SİSTEMİ
+     v3.3 — TAM KART PİN SİSTEMİ
      ──────────────────────────────────────────────
-     • Her pin tek satırda: BADGE + nick + kırpılmış metin + süre
-     • Tıklayınca tam metin açılır/kapanır
-     • Hepsi görünür — hiçbir mesaj gizlenmez
-     • Chat alanı asla gömülmez
+     AKTİF PİNLER  → Geri sayımlı tam kart (her zaman açık)
+     ARŞİV BÖLÜMÜ  → Süresi dolan tier mesajları kart olarak kalır
   ══════════════════════════════════════════════ */
 
-  /* Kompakt pin satırı — tıkla aç/kapa */
+  /**
+   * Aktif pin için tam kart HTML'i (her zaman açık, toggle yok)
+   */
   function _buildPinnedHTML(msg, unpinAt) {
     const tier = TIERS[msg.feature_tier];
     if (!tier) return '';
@@ -619,52 +634,128 @@ const Forum = (() => {
     const remainMs  = permanent ? 0 : Math.max(0, unpinAt - Date.now());
     const remainS   = Math.ceil(remainMs / 1000);
 
-    const timerHTML = permanent
-      ? '<span style="font-size:10px; margin-left:auto; flex-shrink:0; opacity:.7;">📌</span>'
-      : `<div style="margin-top:2px; margin-left:auto; flex-shrink:0;"><span class="fr-pin-countdown" data-unpin="${unpinAt}" style="font-size:10px; opacity:.7; font-weight:bold;">${remainS}s</span></div>`;
+    const timerBadge = permanent
+      ? `<span style="
+            font-size:10px;padding:2px 7px;border-radius:10px;
+            background:rgba(0,212,255,.15);color:${tier.color};font-weight:600;
+          ">📌 Kalıcı</span>`
+      : `<span class="fr-pin-countdown" data-unpin="${unpinAt}" style="
+            font-size:10px;padding:2px 7px;border-radius:10px;
+            background:rgba(255,255,255,.08);color:var(--color-text-secondary);font-weight:600;
+          ">${remainS}s</span>`;
 
-    // esc() ile metni direkt basıp, min-height vererek kutunun çökmesini imkansızlaştırıyoruz.
     return `
-      <div class="fr-pin-slot ${isOwn ? 'fr-own' : ''}"
+      <div class="fr-pin-slot"
            data-pin-id="${esc(String(msg.id))}"
            style="
-             display:flex; align-items:flex-start; gap:8px;
-             padding:8px 12px; margin:4px 8px; border-radius:6px;
+             padding:10px 14px;margin:4px 8px;border-radius:8px;
              background:${tier.bg};
              border:1px solid ${tier.border};
              border-left:3px solid ${tier.color};
-             min-height:32px;
            ">
-        <span style="font-size:11px; font-weight:700; color:${tier.color}; flex-shrink:0; margin-top:1px;">${tier.emoji} ${tier.label.toUpperCase()}</span>
-        <span style="font-weight:600; font-size:11px; color:var(--color-text-primary); flex-shrink:0; margin-top:1px;">${esc(msg.nickname)}</span>
-        <span class="fr-pin-full" style="flex:1; color:var(--color-text-primary); font-size:12px; line-height:1.4; word-break:break-word;">${esc(msg.message)}</span>
-        <span style="font-size:10px; color:var(--color-text-tertiary); flex-shrink:0; margin-top:2px;">${time}</span>
-        ${timerHTML}
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+          <span style="
+            font-size:11px;font-weight:700;color:${tier.color};
+            letter-spacing:.3px;
+          ">${tier.emoji} ${tier.label.toUpperCase()}</span>
+          <span style="font-size:11px;font-weight:600;color:var(--color-text-primary);">${esc(msg.nickname)}</span>
+          <span style="margin-left:auto;font-size:10px;color:var(--color-text-tertiary);">${time}</span>
+          ${timerBadge}
+        </div>
+        <div class="fr-pin-msg-text" style="
+          font-size:13px;color:var(--color-text-primary);
+          line-height:1.5;word-break:break-word;
+        "></div>
       </div>`;
   }
 
-  /* Pinned section header + tüm kompakt satırlar */
+  /**
+   * Arşiv (süresi dolmuş) kart HTML'i
+   * Aynı kart görünümü, gri kenarlık + hafif soluk
+   */
+  function _buildArchivedCardHTML(msg) {
+    const tier = TIERS[msg.feature_tier];
+    if (!tier) return '';
+    const isOwn = msg.session_id === _sessionId;
+    const time  = _fmtTime(msg.created_at);
+
+    return `
+      <div class="fr-pin-slot fr-pin-archived ${isOwn ? 'fr-own' : ''}"
+           data-pin-id="arch-${esc(String(msg.id))}"
+           style="
+             padding:10px 14px;margin:4px 8px;border-radius:8px;
+             opacity:.72;
+             background:${tier.bg};
+             border:1px solid ${tier.border};
+             border-left:3px solid ${tier.color};
+           ">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+          <span style="
+            font-size:11px;font-weight:700;color:${tier.color};
+            letter-spacing:.3px;
+          ">${tier.emoji} ${tier.label.toUpperCase()}</span>
+          <span style="font-size:11px;font-weight:600;color:var(--color-text-primary);">${esc(msg.nickname)}</span>
+          <span style="margin-left:auto;font-size:10px;color:var(--color-text-tertiary);">${time}</span>
+          <span style="
+            font-size:10px;padding:2px 7px;border-radius:10px;
+            background:rgba(255,255,255,.06);color:var(--color-text-tertiary);
+          ">⌛ Sona erdi</span>
+        </div>
+        <div class="fr-pin-msg-text" style="
+          font-size:13px;color:var(--color-text-secondary);
+          line-height:1.5;word-break:break-word;
+        "></div>
+      </div>`;
+  }
+
+  /**
+   * Pinned section tüm HTML'i:
+   *   Üst kısım → aktif pinler (geri sayımlı kart)
+   *   Alt kısım  → arşivlenmiş kartlar (sabitlenmiş mesaj)
+   */
   function _buildPinnedSectionHTML() {
-    if (_pinnedSlots.length === 0) return '';
+    const hasActive   = _pinnedSlots.length > 0;
+    const hasArchived = _expiredFeatured.length > 0;
+    if (!hasActive && !hasArchived) return '';
 
-    let html = `<div style="
-      display:flex;align-items:center;padding:4px 12px;
-      font-size:11px;color:var(--color-text-secondary);
-    ">📌 ${_pinnedSlots.length} sabitlenmiş mesaj</div>`;
+    let html = '';
 
-    _pinnedSlots.forEach(s => {
-      html += _buildPinnedHTML(s.msg, s.unpinAt);
-    });
+    /* ── Aktif pinler ── */
+    if (hasActive) {
+      html += `<div style="
+        display:flex;align-items:center;padding:5px 14px 2px;
+        font-size:11px;font-weight:600;color:var(--color-text-secondary);
+        letter-spacing:.4px;text-transform:uppercase;
+      ">📌 ${_pinnedSlots.length} sabitlenmiş mesaj</div>`;
+      _pinnedSlots.forEach(s => { html += _buildPinnedHTML(s.msg, s.unpinAt); });
+    }
+
+    /* ── Arşiv (süresi dolmuş) ── */
+    if (hasArchived) {
+      html += `<div style="
+        display:flex;align-items:center;padding:${hasActive ? '8px' : '5px'} 14px 2px;
+        font-size:11px;font-weight:600;color:var(--color-text-secondary);
+        letter-spacing:.4px;text-transform:uppercase;
+        ${hasActive ? 'border-top:1px solid rgba(255,255,255,.06);margin-top:4px;' : ''}
+      ">📋 Öne çıkan mesajlar</div>`;
+      _expiredFeatured.forEach(msg => { html += _buildArchivedCardHTML(msg); });
+    }
 
     return html;
   }
 
-  /* Pinned section güncelle */
+  /**
+   * Pinned section güncelle (DOM diff yapılmaz, tümü yeniden çizilir)
+   * Text'ler güvenli şekilde textContent ile atanır
+   */
   function _refreshPinnedSection() {
     const section = document.getElementById('fr-pinned-section');
     if (!section) return;
 
-    if (_pinnedSlots.length === 0) {
+    const hasActive   = _pinnedSlots.length > 0;
+    const hasArchived = _expiredFeatured.length > 0;
+
+    if (!hasActive && !hasArchived) {
       section.style.display = 'none';
       section.innerHTML = '';
       return;
@@ -673,14 +764,20 @@ const Forum = (() => {
     section.style.display = '';
     section.innerHTML = _buildPinnedSectionHTML();
 
-    /* Mesaj text'lerini güvenli ata */
+    /* Aktif pin text'leri */
     _pinnedSlots.forEach(s => {
       const el = section.querySelector(`.fr-pin-slot[data-pin-id="${String(s.msg.id)}"]`);
       if (!el) return;
-      const trunc = el.querySelector('.fr-pin-trunc');
-      const full  = el.querySelector('.fr-pin-full');
-      if (trunc) trunc.textContent = s.msg.message;
-      if (full)  full.textContent  = s.msg.message;
+      const textEl = el.querySelector('.fr-pin-msg-text');
+      if (textEl) textEl.textContent = s.msg.message;
+    });
+
+    /* Arşiv text'leri */
+    _expiredFeatured.forEach(msg => {
+      const el = section.querySelector(`.fr-pin-slot[data-pin-id="arch-${String(msg.id)}"]`);
+      if (!el) return;
+      const textEl = el.querySelector('.fr-pin-msg-text');
+      if (textEl) textEl.textContent = msg.message;
     });
   }
 
@@ -691,7 +788,7 @@ const Forum = (() => {
 
     const WRAP_STYLE = 'display:flex;flex-direction:column;height:500px;overflow:hidden;';
     const LIST_STYLE = 'flex:1;overflow-y:auto;min-height:0;';
-    const PIN_STYLE  = 'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);';
+    const PIN_STYLE  = 'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);overflow-y:auto;max-height:45%;';
 
     if (_isLoading) {
       panel.innerHTML = `
@@ -715,7 +812,7 @@ const Forum = (() => {
       ? _chatMsgs.map(m => _buildMsgHTML(m)).join('')
       : '<div class="fr-empty">İlk mesajı sen gönder! 🎉</div>';
 
-    const hasPins = _pinnedSlots.length > 0;
+    const hasPins = _pinnedSlots.length > 0 || _expiredFeatured.length > 0;
 
     panel.innerHTML = `
       <div class="fr-wrap" style="${WRAP_STYLE}">
@@ -724,18 +821,26 @@ const Forum = (() => {
         ${_buildInputArea()}
       </div>`;
 
-    /* Text'leri güvenli ata */
+    /* Chat text'leri güvenli ata */
     _chatMsgs.forEach(m => {
       const el = panel.querySelector(`[data-msg-id="${String(m.id)}"]`);
       if (el) _setMsgText(el, m.message);
     });
+
+    /* Aktif pin text'leri */
     _pinnedSlots.forEach(s => {
       const el = panel.querySelector(`.fr-pin-slot[data-pin-id="${String(s.msg.id)}"]`);
       if (!el) return;
-      const trunc = el.querySelector('.fr-pin-trunc');
-      const full  = el.querySelector('.fr-pin-full');
-      if (trunc) trunc.textContent = s.msg.message;
-      if (full)  full.textContent  = s.msg.message;
+      const textEl = el.querySelector('.fr-pin-msg-text');
+      if (textEl) textEl.textContent = s.msg.message;
+    });
+
+    /* Arşiv text'leri */
+    _expiredFeatured.forEach(msg => {
+      const el = panel.querySelector(`.fr-pin-slot[data-pin-id="arch-${String(msg.id)}"]`);
+      if (!el) return;
+      const textEl = el.querySelector('.fr-pin-msg-text');
+      if (textEl) textEl.textContent = msg.message;
     });
 
     _bindInputEvents();
@@ -786,40 +891,34 @@ const Forum = (() => {
     _setMsgText(el, msg.message);
   }
 
-  /* ── CHAT MESAJ HTML (Aşağı düştüğünde de KOMPAKT PİN stili korunur) ───────── */
-  /* ── CHAT MESAJ HTML (Aşağı düştüğünde Elmas Pin ile BİREBİR aynı olacak) ───────── */
+  /* ── CHAT MESAJ HTML (renk korunur) ───────── */
   function _buildMsgHTML(msg) {
     const tier  = msg.is_featured && msg.feature_tier ? TIERS[msg.feature_tier] : null;
     const isOwn = msg.session_id === _sessionId;
     const time  = _fmtTime(msg.created_at);
 
     if (tier) {
+      const boxStyle = `background:${tier.bg};border:1px solid ${tier.border};border-left:3px solid ${tier.color};border-radius:8px;padding:10px 12px;margin:4px 0;`;
       return `
         <div class="fr-msg fr-featured fr-tier-${msg.feature_tier} ${isOwn ? 'fr-own' : ''}"
              data-msg-id="${esc(String(msg.id))}"
-             style="
-               display:flex; align-items:center; gap:8px;
-               padding:8px 12px; margin:4px 0; border-radius:6px;
-               background:${tier.bg};
-               border:1px solid ${tier.border};
-               border-left:3px solid ${tier.color};
-               min-height:36px; /* İçi boş olsa bile asla çökmeyecek */
-             ">
-          <span style="font-size:11px; font-weight:700; color:${tier.color}; flex-shrink:0;">${tier.emoji} ${tier.label.toUpperCase()}</span>
-          <span style="font-weight:600; font-size:11px; color:var(--color-text-primary); flex-shrink:0;">${msg.nickname ? esc(msg.nickname) : ''}</span>
-          <span class="fr-feat-body" style="flex:1; color:var(--color-text-primary); font-size:12px; line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${msg.message ? esc(msg.message) : ''}</span>
-          <span style="font-size:10px; color:var(--color-text-tertiary); flex-shrink:0;">${time}</span>
+             style="${boxStyle}--tc:${tier.color};--tb:${tier.bg};--tbr:${tier.border}">
+          <div class="fr-feat-header">
+            <span class="fr-feat-badge">${tier.emoji} ${tier.label}</span>
+            <span class="fr-msg-time">${time}</span>
+          </div>
+          <div class="fr-feat-nick">${esc(msg.nickname)}</div>
+          <div class="fr-feat-body"></div>
         </div>`;
     }
 
-    // Normal kullanıcı mesajları
     return `
       <div class="fr-msg ${isOwn ? 'fr-own' : ''}" data-msg-id="${esc(String(msg.id))}">
         <div class="fr-msg-meta">
           <span class="fr-msg-nick ${isOwn ? 'fr-own-nick' : ''}">${esc(msg.nickname)}</span>
           <span class="fr-msg-time">${time}</span>
         </div>
-        <div class="fr-msg-body">${msg.message ? esc(msg.message) : ''}</div>
+        <div class="fr-msg-body"></div>
       </div>`;
   }
 
