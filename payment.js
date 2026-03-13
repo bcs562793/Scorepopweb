@@ -275,9 +275,14 @@ const Payment = (() => {
 
     try {
       /* Edge Function'dan Shopier formu al */
+      const anonKey = window.SUPABASE_ANON_KEY || _sb?.supabaseKey || '';
       const res = await fetch(_edgeFnUrl, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${anonKey}`,
+          'apikey':        anonKey,
+        },
         body:    JSON.stringify({
           message_id: `${sessionId}|${pkg.credits}`, // webhook bunu parse eder
           amount:     pkg.price,
