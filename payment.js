@@ -46,18 +46,22 @@ const Payment = (() => {
 
   /* ── BAKİYE SORGULA ──────────────────────────── */
   async function getBalance(sessionId) {
-    if (!_sb || !sessionId) return 0;
-    try {
-      const { data } = await _sb
-        .from('user_credits')
-        .select('balance')
-        .eq('session_id', sessionId)
-        .maybeSingle();
-      return data?.balance ?? 0;
-    } catch {
-      return 0;
+  if (!_sb || !sessionId) return 0;
+  try {
+    // Önce giriş yapmış kullanıcıyı kontrol et
+    const { data: { user } } = await _sb.auth.getUser();
+    
+    let query = _sb.from('user_credits').select('balance');
+    if (user?.id) {
+      query = query.or(`user_id.eq.${user.id},session_id.eq.${sessionId}`);
+    } else {
+      query = query.eq('session_id', sessionId);
     }
-  }
+    
+    const { data } = await query.order('balance', { ascending: false }).limit(1).maybeSingle();
+    return data?.balance ?? 0;
+  } catch { return 0; }
+}
 
   /* ── ANA ÖDEME AKIŞI (geriye dönük uyumlu) ───── */
   async function startPayment({ tierKey, message, fixtureId, sessionId, nickname }) {
@@ -98,6 +102,7 @@ const Payment = (() => {
       p_description: `${tierKey} öne çıkan mesaj`,
       p_fixture_id:  fixtureId,
       p_message_id:  pending.id,
+      p_user_id:     user?.id ?? null,
     });
 
     if (rpcErr || newBalance === -1) {
