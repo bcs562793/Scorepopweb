@@ -41,7 +41,7 @@ const Payment = (() => {
   /* ── BAŞLAT ──────────────────────────────────── */
   function init(sb) {
     _sb = sb;
-    _edgeFnUrl = (typeof PAYMENT_EDGE_URL !== 'undefined') ? PAYMENT_EDGE_URL : null;
+    _edgeFnUrl = window.PAYMENT_EDGE_URL || null;
   }
 
   /* ── BAKİYE SORGULA ──────────────────────────── */
@@ -52,7 +52,7 @@ const Payment = (() => {
     const { data: { user } } = await _sb.auth.getUser();
     
     let query = _sb.from('user_credits').select('balance');
-    if (user?.id) {
+    if (
       query = query.or(`user_id.eq.${user.id},session_id.eq.${sessionId}`);
     } else {
       query = query.eq('session_id', sessionId);
