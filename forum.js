@@ -486,57 +486,66 @@ const Forum = (() => {
 
   /* ── ÖNE ÇIKAN MESAJ İŞLE ────────────────── */
   async function _processFeaturedPayment(tierKey, message) {
-    const tier = TIERS[tierKey];
-    if (!tier) return;
-    if (!_nickname) { _showNickModal(() => _processFeaturedPayment(tierKey, message)); return; }
+  const tier = TIERS[tierKey];
+  if (!tier) return;
+  if (!_nickname) { _showNickModal(() => _processFeaturedPayment(tierKey, message)); return; }
 
-    _showToast(`${tier.emoji} Gönderiliyor…`);
+  /* Kredi kontrolü — yetersizse direkt mağazaya gönder */
+  const balance = (typeof Payment !== 'undefined')
+    ? await Payment.getBalance(_sessionId)
+    : 0;
 
-    if (typeof Payment === 'undefined') {
-      /* Demo mod: Payment modülü yok, doğrudan ekle */
-      const { data, error } = await _sb.from('forum_messages').insert({
-        fixture_id: _fixtureId, session_id: _sessionId, nickname: _nickname,
-        message, is_featured: true, feature_tier: tierKey,
-        feature_amount: tier.amount, payment_status: 'verified', expires_at: null,
-      }).select();
-      if (!error && data?.[0]) {
-        _addFeaturedMessage(data[0]);
-        _showToast(`${tier.emoji} Mesajınız öne çıktı!`);
-      }
-      return;
-    }
-
-    const result = await Payment.startPayment({
-      tierKey,
-      message,
-      fixtureId: _fixtureId,
-      sessionId: _sessionId,
-      nickname:  _nickname,
-    });
-
-    if (result.success) {
-      /* Kredi yeterliydi — anlık yayın */
-      _addFeaturedMessage(result.data);
-      _showToast(`${tier.emoji} Mesajınız öne çıktı! (Kalan: ${result.newBalance ?? '?'} kredi)`);
-
-      const el = document.getElementById('fr-credit-amount');
-      if (el && result.newBalance != null) el.textContent = `${result.newBalance} kredi`;
-      return;
-    }
-
-    if (result.needsCredits) {
-      /* Yetersiz kredi — Kredi Mağazası'na yönlendir */
-      _showToast(`💳 Yeterli krediniz yok (${result.cost - result.balance} eksik).`);
+  if (balance < tier.amount) {
+    if (typeof Payment !== 'undefined') {
       Payment.showCreditStore(_sessionId, (newBalance) => {
-        if (newBalance && newBalance >= result.cost) {
+        if (newBalance && newBalance >= tier.amount) {
           _processFeaturedPayment(tierKey, message);
         }
       });
-      return;
     }
-
-    _showError(result.error || 'İşlem başarısız.');
+    return;
   }
+
+  _showToast(`${tier.emoji} Gönderiliyor…`);
+
+  if (typeof Payment === 'undefined') {
+    const { data, error } = await _sb.from('forum_messages').insert({
+      fixture_id: _fixtureId, session_id: _sessionId, nickname: _nickname,
+      message, is_featured: true, feature_tier: tierKey,
+      feature_amount: tier.amount, payment_status: 'verified', expires_at: null,
+    }).select();
+    if (!error && data?.[0]) {
+      _addFeaturedMessage(data[0]);
+      _showToast(`${tier.emoji} Mesajınız öne çıktı!`);
+    }
+    return;
+  }
+
+  const result = await Payment.startPayment({
+    tierKey,
+    message,
+    fixtureId: _fixtureId,
+    sessionId: _sessionId,
+    nickname:  _nickname,
+  });
+
+  if (result.success) {
+    _addFeaturedMessage(result.data);
+    _showToast(`${tier.emoji} Mesajınız öne çıktı! (Kalan: ${result.newBalance ?? '?'} kredi)`);
+    const el = document.getElementById('fr-credit-amount');
+    if (el && result.newBalance != null) el.textContent = `${result.newBalance} kredi`;
+    return;
+  }
+
+  /* Hata olursa da mağazaya gönder — direkt hata mesajı gösterme */
+  if (typeof Payment !== 'undefined') {
+    Payment.showCreditStore(_sessionId, (newBalance) => {
+      if (newBalance && newBalance >= tier.amount) {
+        _processFeaturedPayment(tierKey, message);
+      }
+    });
+  }
+}
 
   /* ── NICKNAME MODAL ───────────────────────── */
   function _showNickModal(callback) {
