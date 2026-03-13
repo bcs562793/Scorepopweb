@@ -1,23 +1,14 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — forum.js  (v3.3 — Kart Pin + Arşiv)
+   SCOREPOP — forum.js  (v3.4)
 
-   DEĞİŞİKLİKLER:
-   ✅ Pinned section: Elmas kalıcı, Altın 30s, Gümüş 20s, Bronz 10s
-   ✅ Süre dolunca mesaj kronolojik pozisyonuna iner (rengi korunur)
-   ✅ Tier sırası: Elmas > Altın > Gümüş > Bronz
-   ✅ Maç izolasyonu: fixture_id closure kontrolü
-   ✅ Mesaj kayma/üst üste sorunu düzeltildi (cerrahi DOM)
-   ✅ Geri sayım göstergesi pinned mesajlarda
-   ✅ KREDİ SİSTEMİ: Bakiye kontrolü, anlık gönderim, Kredi Mağazası yönlendirme
-   ✅ Giriş yapınca session_id → user_id bağlantısı
-   ✅ v3.3: TAM KART pin görünümü (kompakt değil)
-   ✅ v3.3: Süresi dolan pinler → chat'e düşer + "sabitlenmiş mesaj" arşivinde kart olarak kalır
+   ✅ Elmas → Kalıcı pin (üstte)
+   ✅ Altın 30s, Gümüş 20s, Bronz 10s → Süre dolunca chat'e renkli kart olarak düşer
+   ✅ Üstte SADECE aktif pinler, arşiv bölümü yok
 ════════════════════════════════════════════════ */
 'use strict';
 
 const Forum = (() => {
 
-  /* ── SABİTLER ─────────────────────────────── */
   const RATE_LIMIT_MS    = 5000;
   const MAX_MSG_LEN      = 280;
   const MAX_FEATURED_LEN = 500;
@@ -34,20 +25,17 @@ const Forum = (() => {
 
   const TIER_RANK = { diamond: 0, gold: 1, silver: 2, bronze: 3 };
 
-  /* ── STATE ────────────────────────────────── */
-  let _sb              = null;
-  let _fixtureId       = null;
-  let _channel         = null;
-  let _pinnedSlots     = [];
-  let _expiredFeatured = [];   // ← v3.3: süresi dolan pinler arşivi
-  let _chatMsgs        = [];
-  let _lastSent        = 0;
-  let _sessionId       = null;
-  let _nickname        = null;
-  let _isLoading       = false;
-  let _pinTimer        = null;
+  let _sb          = null;
+  let _fixtureId   = null;
+  let _channel     = null;
+  let _pinnedSlots = [];
+  let _chatMsgs    = [];
+  let _lastSent    = 0;
+  let _sessionId   = null;
+  let _nickname    = null;
+  let _isLoading   = false;
+  let _pinTimer    = null;
 
-  /* ── INIT ─────────────────────────────────── */
   function init(sb) {
     _sb        = sb;
     _sessionId = _getOrCreateSession();
@@ -56,7 +44,6 @@ const Forum = (() => {
     if (typeof Auth !== 'undefined') {
       Auth.onChange(async user => {
         if (!user) return;
-
         const name = Auth.getDisplayName();
         if (name) {
           _nickname = name;
@@ -64,7 +51,6 @@ const Forum = (() => {
           const el = document.querySelector('.fr-nick-lbl strong');
           if (el) el.textContent = name;
         }
-
         if (user.id && _sessionId && _sb) {
           try {
             await _sb.rpc('add_credits', {
@@ -73,20 +59,16 @@ const Forum = (() => {
               p_description: 'session_link',
               p_user_id:     user.id,
             });
-          } catch (e) {
-            console.warn('[Forum] session bağlama hatası:', e);
-          }
+          } catch (e) { console.warn('[Forum] session bağlama hatası:', e); }
         }
       });
     }
   }
 
-  /* ── OPEN / CLOSE ─────────────────────────── */
   function open(fixtureId) {
-    _fixtureId       = fixtureId;
-    _pinnedSlots     = [];
-    _expiredFeatured = [];
-    _chatMsgs        = [];
+    _fixtureId   = fixtureId;
+    _pinnedSlots = [];
+    _chatMsgs    = [];
     _stopPinTimer();
     _renderAll();
     _loadMessages();
@@ -95,14 +77,10 @@ const Forum = (() => {
 
   function close() {
     _stopPinTimer();
-    if (_channel) {
-      _sb.removeChannel(_channel).catch(() => {});
-      _channel = null;
-    }
-    _fixtureId       = null;
-    _pinnedSlots     = [];
-    _expiredFeatured = [];
-    _chatMsgs        = [];
+    if (_channel) { _sb.removeChannel(_channel).catch(() => {}); _channel = null; }
+    _fixtureId   = null;
+    _pinnedSlots = [];
+    _chatMsgs    = [];
   }
 
   function scrollToBottom() {
@@ -110,7 +88,7 @@ const Forum = (() => {
     if (list) list.scrollTop = list.scrollHeight;
   }
 
-  /* ── PIN TIMER ────────────────────────────── */
+  /* ── PIN TIMER ─────────────────────────────── */
   function _startPinTimer() {
     if (_pinTimer) return;
     _pinTimer = setInterval(_tickPins, 500);
@@ -123,7 +101,6 @@ const Forum = (() => {
   function _tickPins() {
     const now = Date.now();
 
-    /* Geri sayım göstergelerini güncelle */
     document.querySelectorAll('.fr-pin-countdown[data-unpin]').forEach(el => {
       const unpinAt   = Number(el.dataset.unpin);
       const remaining = Math.max(0, Math.ceil((unpinAt - now) / 1000));
@@ -135,25 +112,19 @@ const Forum = (() => {
 
     expired.forEach(slot => {
       _pinnedSlots = _pinnedSlots.filter(s => s !== slot);
-
-      /* Pin DOM'dan kaldır */
-      const pinEl = document.querySelector(`.fr-pin-slot[data-pin-id="${CSS.escape(String(slot.msg.id))}"]`);
-      if (pinEl) pinEl.remove();
-
-      /* ── v3.3: Arşive ekle ── */
-      _expiredFeatured.push(slot.msg);
-
-      /* Chat'e kronolojik ekle */
+      document.querySelector(`.fr-pin-slot[data-pin-id="${CSS.escape(String(slot.msg.id))}"]`)?.remove();
+      /* Süresi doldu → chat'e renkli kart olarak düş */
       _insertChronologically(slot.msg);
       _insertChatDOM(slot.msg);
     });
 
     _refreshPinnedSection();
+    scrollToBottom();
 
     if (!_pinnedSlots.some(s => s.unpinAt !== Infinity)) _stopPinTimer();
   }
 
-  /* ── MESAJ YÜKLEME ────────────────────────── */
+  /* ── MESAJ YÜKLEME ──────────────────────────── */
   async function _loadMessages() {
     if (!_fixtureId || !_sb) return;
     const fid = _fixtureId;
@@ -162,21 +133,15 @@ const Forum = (() => {
 
     try {
       const { data: featured } = await _sb
-        .from('forum_messages')
-        .select('*')
-        .eq('fixture_id', fid)
-        .eq('is_featured', true)
-        .eq('payment_status', 'verified')
+        .from('forum_messages').select('*')
+        .eq('fixture_id', fid).eq('is_featured', true).eq('payment_status', 'verified')
         .order('created_at', { ascending: true });
 
       const { data: regular } = await _sb
-        .from('forum_messages')
-        .select('*')
-        .eq('fixture_id', fid)
-        .eq('is_featured', false)
+        .from('forum_messages').select('*')
+        .eq('fixture_id', fid).eq('is_featured', false)
         .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: true })
-        .limit(PAGE_SIZE);
+        .order('created_at', { ascending: true }).limit(PAGE_SIZE);
 
       if (_fixtureId !== fid) return;
 
@@ -191,24 +156,19 @@ const Forum = (() => {
         } else {
           const sentAt  = new Date(msg.created_at).getTime();
           const unpinAt = sentAt + tier.pinDuration;
-
           if (now < unpinAt) {
             _pinnedSlots.push({ msg, unpinAt });
           } else {
-            /* ── v3.3: Zaten süresi dolmuş → arşive + chat ── */
-            _expiredFeatured.push(msg);
+            /* Süresi geçmiş → direkt chat'e renkli kart */
             _insertChronologically(msg);
           }
         }
       });
 
       (regular || []).forEach(msg => _insertChronologically(msg));
-
       _sortPinned();
 
-    } catch (e) {
-      console.error('[Forum] Yükleme hatası:', e);
-    }
+    } catch (e) { console.error('[Forum] Yükleme hatası:', e); }
 
     if (_fixtureId !== fid) return;
     _isLoading = false;
@@ -218,29 +178,25 @@ const Forum = (() => {
     if (_pinnedSlots.some(s => s.unpinAt !== Infinity)) _startPinTimer();
   }
 
-  /* ── REALTIME ─────────────────────────────── */
+  /* ── REALTIME ───────────────────────────────── */
   function _subscribe() {
     if (!_fixtureId || !_sb) return;
     if (_channel) { _sb.removeChannel(_channel).catch(() => {}); }
 
     const fid = _fixtureId;
-    _channel = _sb
-      .channel(`forum:${fid}`)
+    _channel = _sb.channel(`forum:${fid}`)
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'forum_messages',
         filter: `fixture_id=eq.${fid}`,
       }, payload => {
         if (_fixtureId !== fid) return;
         _onNewMessage(payload.new);
-      })
-      .subscribe();
+      }).subscribe();
   }
 
   function _onNewMessage(msg) {
     if (!msg) return;
-
     if (_pinnedSlots.some(s => s.msg.id === msg.id)) return;
-    const chatIdx = _chatMsgs.findIndex(m => m.id === msg.id);
 
     const tempIdx = _chatMsgs.findIndex(
       m => m._optimistic && m.session_id === _sessionId && m.message === msg.message
@@ -249,14 +205,11 @@ const Forum = (() => {
       const tempId = _chatMsgs[tempIdx].id;
       _chatMsgs[tempIdx] = msg;
       const el = document.querySelector(`[data-msg-id="${tempId}"]`);
-      if (el) {
-        el.dataset.msgId = String(msg.id);
-        _setMsgText(el, msg.message);
-      }
+      if (el) { el.dataset.msgId = String(msg.id); _setMsgText(el, msg.message); }
       return;
     }
 
-    if (chatIdx >= 0) return;
+    if (_chatMsgs.findIndex(m => m.id === msg.id) >= 0) return;
 
     if (msg.is_featured && msg.payment_status === 'verified') {
       _addFeaturedMessage(msg);
@@ -276,7 +229,6 @@ const Forum = (() => {
     scrollToBottom();
   }
 
-  /* ── FEATURED MESAJ EKLE ──────────────────── */
   function _addFeaturedMessage(msg) {
     const tier = TIERS[msg.feature_tier];
     if (!tier) return;
@@ -291,16 +243,14 @@ const Forum = (() => {
       _rebuildPinnedDOM();
       if (unpinAt !== Infinity) _startPinTimer();
     } else {
-      /* ── v3.3: Zaten süresi dolmuş → arşive + chat ── */
-      _expiredFeatured.push(msg);
+      /* Süresi geçmiş → chat'e renkli kart */
       _insertChronologically(msg);
       _insertChatDOM(msg);
-      _refreshPinnedSection();
       scrollToBottom();
     }
   }
 
-  /* ── MESAJ GÖNDER ─────────────────────────── */
+  /* ── MESAJ GÖNDER ───────────────────────────── */
   async function _sendMessage() {
     if (!_fixtureId) return;
     const input = document.getElementById('fr-input');
@@ -309,7 +259,6 @@ const Forum = (() => {
 
     const err = _validateMessage(raw, MAX_MSG_LEN);
     if (err) { _showError(err); return; }
-
     if (!_nickname) { _showNickModal(() => _sendMessage()); return; }
 
     const now = Date.now();
@@ -364,14 +313,12 @@ const Forum = (() => {
     }
   }
 
-  /* ── ÖNE ÇIKAN MODAL ──────────────────────── */
+  /* ── ÖNE ÇIKAN MODAL ────────────────────────── */
   async function _showFeaturedModal() {
     if (!_nickname) { _showNickModal(() => _showFeaturedModal()); return; }
     document.getElementById('fr-modal-overlay')?.remove();
 
-    const balance = (typeof Payment !== 'undefined')
-      ? await Payment.getBalance(_sessionId)
-      : 0;
+    const balance = (typeof Payment !== 'undefined') ? await Payment.getBalance(_sessionId) : 0;
 
     const overlay = document.createElement('div');
     overlay.id        = 'fr-modal-overlay';
@@ -384,46 +331,21 @@ const Forum = (() => {
           <div class="fr-modal-title">💎 Öne Çıkan Mesaj</div>
           <button class="fr-modal-close" onclick="document.getElementById('fr-modal-overlay').remove()">✕</button>
         </div>
-
-        <div id="fr-credit-bar" style="
-          display:flex;align-items:center;justify-content:space-between;
-          padding:8px 12px;margin-bottom:14px;
-          background:var(--color-background-secondary);
-          border-radius:8px;font-size:13px;
-        ">
-          <span style="color:var(--color-text-secondary)">
-            💳 Bakiye: <strong id="fr-credit-amount" style="color:var(--color-text-primary)">${balance} kredi</strong>
-          </span>
-          <button id="fr-buy-credits-btn" style="
-            background:none;border:1px solid var(--color-border-secondary);
-            border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;
-            color:var(--color-text-secondary);
-          ">+ Kredi Al</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;margin-bottom:14px;background:var(--color-background-secondary);border-radius:8px;font-size:13px;">
+          <span style="color:var(--color-text-secondary)">💳 Bakiye: <strong id="fr-credit-amount" style="color:var(--color-text-primary)">${balance} kredi</strong></span>
+          <button id="fr-buy-credits-btn" style="background:none;border:1px solid var(--color-border-secondary);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--color-text-secondary);">+ Kredi Al</button>
         </div>
-
         <p class="fr-modal-sub">Tier seç, mesajını yaz — anında yayınla!</p>
         <div class="fr-tier-grid" id="fr-tier-grid"></div>
-
         <div class="fr-modal-input-wrap">
-          <textarea id="fr-feat-msg" class="fr-feat-textarea" maxlength="${MAX_FEATURED_LEN}"
-            placeholder="Öne çıkan mesajınızı yazın…" rows="3"></textarea>
+          <textarea id="fr-feat-msg" class="fr-feat-textarea" maxlength="${MAX_FEATURED_LEN}" placeholder="Öne çıkan mesajınızı yazın…" rows="3"></textarea>
           <div class="fr-feat-count"><span id="fr-feat-cnt">0</span>/${MAX_FEATURED_LEN}</div>
         </div>
-
         <div id="fr-selected-tier" class="fr-selected-tier hidden"></div>
-
-        <div id="fr-credit-warn" style="
-          display:none;padding:8px 12px;margin-bottom:10px;
-          background:var(--color-background-warning,#FAEEDA);
-          border-radius:8px;font-size:12px;color:var(--color-text-warning,#854F0B);
-        ">
+        <div id="fr-credit-warn" style="display:none;padding:8px 12px;margin-bottom:10px;background:var(--color-background-warning,#FAEEDA);border-radius:8px;font-size:12px;color:var(--color-text-warning,#854F0B);">
           ⚠️ Bu tier için yeterli krediniz yok.
-          <button id="fr-warn-buy-btn" style="
-            background:none;border:none;cursor:pointer;
-            text-decoration:underline;color:inherit;padding:0;font-size:12px;
-          ">Kredi satın al →</button>
+          <button id="fr-warn-buy-btn" style="background:none;border:none;cursor:pointer;text-decoration:underline;color:inherit;padding:0;font-size:12px;">Kredi satın al →</button>
         </div>
-
         <button class="fr-pay-btn" id="fr-pay-btn" disabled>Tier seçin</button>
       </div>`;
 
@@ -433,56 +355,38 @@ const Forum = (() => {
     const grid = document.getElementById('fr-tier-grid');
 
     const _refreshUI = (tier) => {
-      const cost    = TIERS[tier].amount;
-      const canSend = balance >= cost;
-      const btn     = document.getElementById('fr-pay-btn');
-      const warn    = document.getElementById('fr-credit-warn');
-      const t       = TIERS[tier];
-
+      const cost = TIERS[tier].amount, canSend = balance >= cost;
+      const btn = document.getElementById('fr-pay-btn'), warn = document.getElementById('fr-credit-warn');
+      const t = TIERS[tier];
       document.getElementById('fr-selected-tier').classList.remove('hidden');
-      document.getElementById('fr-selected-tier').textContent =
-        `Seçilen: ${t.emoji} ${t.label} — ${cost} kredi`;
-
+      document.getElementById('fr-selected-tier').textContent = `Seçilen: ${t.emoji} ${t.label} — ${cost} kredi`;
       if (canSend) {
-        warn.style.display = 'none';
-        btn.disabled        = false;
-        btn.textContent     = `${t.emoji} ${cost} kredi kullan ve gönder`;
-        btn.style.setProperty('--btn-color', t.color);
-        btn.className       = 'fr-pay-btn active';
+        warn.style.display = 'none'; btn.disabled = false;
+        btn.textContent = `${t.emoji} ${cost} kredi kullan ve gönder`;
+        btn.style.setProperty('--btn-color', t.color); btn.className = 'fr-pay-btn active';
       } else {
-        warn.style.display  = '';
-        btn.disabled        = true;
-        btn.textContent     = `Yetersiz kredi (${cost - balance} eksik)`;
-        btn.className       = 'fr-pay-btn';
+        warn.style.display = ''; btn.disabled = true;
+        btn.textContent = `Yetersiz kredi (${cost - balance} eksik)`; btn.className = 'fr-pay-btn';
       }
     };
 
     Object.entries(TIERS).forEach(([key, tier]) => {
-      const cost      = tier.amount;
-      const canAfford = balance >= cost;
-      const pinLabel  = tier.pinDuration === Infinity
-        ? '📌 Kalıcı sabit'
-        : `⏱ ${tier.pinDuration / 1000}s sabit`;
-
+      const cost = tier.amount, canAfford = balance >= cost;
+      const pinLabel = tier.pinDuration === Infinity ? '📌 Kalıcı sabit' : `⏱ ${tier.pinDuration / 1000}s sabit`;
       const card = document.createElement('div');
       card.className = 'fr-tier-card' + (canAfford ? '' : ' fr-tier-disabled');
       card.style.setProperty('--tc', tier.color);
       if (!canAfford) card.style.opacity = '.55';
-
       card.innerHTML = `
         <div class="fr-tier-emoji">${tier.emoji}</div>
         <div class="fr-tier-name">${tier.label}</div>
         <div class="fr-tier-price">${cost} kredi</div>
         <div class="fr-tier-pin">${pinLabel}</div>
         ${!canAfford ? `<div style="font-size:10px;color:var(--color-text-tertiary);margin-top:2px;">Yetersiz bakiye</div>` : ''}`;
-
       card.addEventListener('click', () => {
         grid.querySelectorAll('.fr-tier-card').forEach(c => c.classList.remove('active'));
-        card.classList.add('active');
-        selectedTier = key;
-        _refreshUI(key);
+        card.classList.add('active'); selectedTier = key; _refreshUI(key);
       });
-
       grid.appendChild(card);
     });
 
@@ -492,11 +396,7 @@ const Forum = (() => {
 
     const _openStore = () => {
       overlay.remove();
-      if (typeof Payment !== 'undefined') {
-        Payment.showCreditStore(_sessionId, (newBalance) => {
-          if (newBalance) _showFeaturedModal();
-        });
-      }
+      if (typeof Payment !== 'undefined') Payment.showCreditStore(_sessionId, (nb) => { if (nb) _showFeaturedModal(); });
     };
     document.getElementById('fr-buy-credits-btn').addEventListener('click', _openStore);
     document.getElementById('fr-warn-buy-btn')?.addEventListener('click', _openStore);
@@ -511,25 +411,16 @@ const Forum = (() => {
     });
   }
 
-  /* ── ÖNE ÇIKAN MESAJ İŞLE ────────────────── */
   async function _processFeaturedPayment(tierKey, message) {
     const tier = TIERS[tierKey];
     if (!tier) return;
     if (!_nickname) { _showNickModal(() => _processFeaturedPayment(tierKey, message)); return; }
 
     let balance = 0;
-    if (typeof Payment !== 'undefined') {
-      balance = await Payment.getBalance(_sessionId);
-    }
-
-    console.log('[Forum] bakiye:', balance, 'gereken:', tier.amount);
+    if (typeof Payment !== 'undefined') balance = await Payment.getBalance(_sessionId);
 
     if (balance < tier.amount) {
-      Payment.showCreditStore(_sessionId, (newBalance) => {
-        if (newBalance && newBalance >= tier.amount) {
-          _processFeaturedPayment(tierKey, message);
-        }
-      });
+      Payment.showCreditStore(_sessionId, (nb) => { if (nb && nb >= tier.amount) _processFeaturedPayment(tierKey, message); });
       return;
     }
 
@@ -541,19 +432,12 @@ const Forum = (() => {
         message, is_featured: true, feature_tier: tierKey,
         feature_amount: tier.amount, payment_status: 'verified', expires_at: null,
       }).select();
-      if (!error && data?.[0]) {
-        _addFeaturedMessage(data[0]);
-        _showToast(`${tier.emoji} Mesajınız öne çıktı!`);
-      }
+      if (!error && data?.[0]) { _addFeaturedMessage(data[0]); _showToast(`${tier.emoji} Mesajınız öne çıktı!`); }
       return;
     }
 
     const result = await Payment.startPayment({
-      tierKey,
-      message,
-      fixtureId: _fixtureId,
-      sessionId: _sessionId,
-      nickname:  _nickname,
+      tierKey, message, fixtureId: _fixtureId, sessionId: _sessionId, nickname: _nickname,
     });
 
     if (result.success) {
@@ -565,26 +449,20 @@ const Forum = (() => {
     }
 
     if (typeof Payment !== 'undefined') {
-      Payment.showCreditStore(_sessionId, (newBalance) => {
-        if (newBalance && newBalance >= tier.amount) {
-          _processFeaturedPayment(tierKey, message);
-        }
-      });
+      Payment.showCreditStore(_sessionId, (nb) => { if (nb && nb >= tier.amount) _processFeaturedPayment(tierKey, message); });
     }
   }
 
-  /* ── NICKNAME MODAL ───────────────────────── */
+  /* ── NICKNAME MODAL ─────────────────────────── */
   function _showNickModal(callback) {
     document.getElementById('fr-nick-overlay')?.remove();
     const overlay = document.createElement('div');
-    overlay.id        = 'fr-nick-overlay';
-    overlay.className = 'fr-modal-overlay';
+    overlay.id = 'fr-nick-overlay'; overlay.className = 'fr-modal-overlay';
     overlay.innerHTML = `
       <div class="fr-modal fr-nick-modal" role="dialog" aria-modal="true">
         <div class="fr-modal-hdr"><div class="fr-modal-title">👤 Kullanıcı Adı Seç</div></div>
         <p class="fr-modal-sub">Forum'u kullanmak için bir takma ad belirle.</p>
-        <input type="text" id="fr-nick-input" class="fr-nick-input" maxlength="${MAX_NICK_LEN}"
-          placeholder="Takma adın…" autocomplete="off" spellcheck="false"/>
+        <input type="text" id="fr-nick-input" class="fr-nick-input" maxlength="${MAX_NICK_LEN}" placeholder="Takma adın…" autocomplete="off" spellcheck="false"/>
         <div id="fr-nick-err" class="fr-err hidden"></div>
         <button class="fr-pay-btn active" id="fr-nick-save" style="--btn-color:var(--or)">Kaydet</button>
       </div>`;
@@ -597,165 +475,53 @@ const Forum = (() => {
 
     function _save() {
       const nick = _sanitizeText(input.value.trim());
-      if (!nick || nick.length < 2) {
-        errEl.textContent = 'En az 2 karakter gir.';
-        errEl.classList.remove('hidden');
-        return;
-      }
-      if (nick.length > MAX_NICK_LEN) {
-        errEl.textContent = `En fazla ${MAX_NICK_LEN} karakter.`;
-        errEl.classList.remove('hidden');
-        return;
-      }
-      _saveNickname(nick);
-      overlay.remove();
-      if (callback) callback();
+      if (!nick || nick.length < 2) { errEl.textContent = 'En az 2 karakter gir.'; errEl.classList.remove('hidden'); return; }
+      if (nick.length > MAX_NICK_LEN) { errEl.textContent = `En fazla ${MAX_NICK_LEN} karakter.`; errEl.classList.remove('hidden'); return; }
+      _saveNickname(nick); overlay.remove(); if (callback) callback();
     }
     document.getElementById('fr-nick-save').addEventListener('click', _save);
     input.addEventListener('keydown', e => { if (e.key === 'Enter') _save(); });
   }
 
-  /* ══════════════════════════════════════════════
-     v3.3 — TAM KART PİN SİSTEMİ
-     ──────────────────────────────────────────────
-     AKTİF PİNLER  → Geri sayımlı tam kart (her zaman açık)
-     ARŞİV BÖLÜMÜ  → Süresi dolan tier mesajları kart olarak kalır
-  ══════════════════════════════════════════════ */
-
-  /**
-   * Aktif pin için tam kart HTML'i (her zaman açık, toggle yok)
-   */
+  /* ── PIN BÖLÜMÜ ─────────────────────────────── */
   function _buildPinnedHTML(msg, unpinAt) {
-    const tier = TIERS[msg.feature_tier];
-    if (!tier) return '';
-    const isOwn     = msg.session_id === _sessionId;
-    const time      = _fmtTime(msg.created_at);
-    const permanent = unpinAt === Infinity;
-    const remainMs  = permanent ? 0 : Math.max(0, unpinAt - Date.now());
-    const remainS   = Math.ceil(remainMs / 1000);
-
-    const timerBadge = permanent
-      ? `<span style="
-            font-size:10px;padding:2px 7px;border-radius:10px;
-            background:rgba(0,212,255,.15);color:${tier.color};font-weight:600;
-          ">📌 Kalıcı</span>`
-      : `<span class="fr-pin-countdown" data-unpin="${unpinAt}" style="
-            font-size:10px;padding:2px 7px;border-radius:10px;
-            background:rgba(255,255,255,.08);color:var(--color-text-secondary);font-weight:600;
-          ">${remainS}s</span>`;
-
-    return `
-      <div class="fr-pin-slot"
-           data-pin-id="${esc(String(msg.id))}"
-           style="
-             padding:10px 14px;margin:4px 8px;border-radius:8px;
-             background:${tier.bg};
-             border:1px solid ${tier.border};
-             border-left:3px solid ${tier.color};
-           ">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
-          <span style="
-            font-size:11px;font-weight:700;color:${tier.color};
-            letter-spacing:.3px;
-          ">${tier.emoji} ${tier.label.toUpperCase()}</span>
-          <span style="font-size:11px;font-weight:600;color:var(--color-text-primary);">${esc(msg.nickname)}</span>
-          <span style="margin-left:auto;font-size:10px;color:var(--color-text-tertiary);">${time}</span>
-          ${timerBadge}
-        </div>
-        <div class="fr-pin-msg-text" style="
-          font-size:13px;color:var(--color-text-primary);
-          line-height:1.5;word-break:break-word;
-        "></div>
-      </div>`;
-  }
-
-  /**
-   * Arşiv (süresi dolmuş) kart HTML'i
-   * Aynı kart görünümü, gri kenarlık + hafif soluk
-   */
-  function _buildArchivedCardHTML(msg) {
     const tier = TIERS[msg.feature_tier];
     if (!tier) return '';
     const isOwn = msg.session_id === _sessionId;
     const time  = _fmtTime(msg.created_at);
+    const perm  = unpinAt === Infinity;
+    const remainS = perm ? 0 : Math.max(0, Math.ceil((unpinAt - Date.now()) / 1000));
+
+    const timerBadge = perm
+      ? `<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(0,212,255,.15);color:${tier.color};font-weight:600;">📌 Kalıcı</span>`
+      : `<span class="fr-pin-countdown" data-unpin="${unpinAt}" style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.08);color:var(--color-text-secondary);font-weight:600;">${remainS}s</span>`;
 
     return `
-      <div class="fr-pin-slot fr-pin-archived ${isOwn ? 'fr-own' : ''}"
-           data-pin-id="arch-${esc(String(msg.id))}"
-           style="
-             padding:10px 14px;margin:4px 8px;border-radius:8px;
-             opacity:.72;
-             background:${tier.bg};
-             border:1px solid ${tier.border};
-             border-left:3px solid ${tier.color};
-           ">
+      <div class="fr-pin-slot ${isOwn ? 'fr-own' : ''}" data-pin-id="${esc(String(msg.id))}"
+           style="padding:10px 14px;margin:4px 8px;border-radius:8px;
+                  background:${tier.bg};border:1px solid ${tier.border};border-left:3px solid ${tier.color};">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
-          <span style="
-            font-size:11px;font-weight:700;color:${tier.color};
-            letter-spacing:.3px;
-          ">${tier.emoji} ${tier.label.toUpperCase()}</span>
+          <span style="font-size:11px;font-weight:700;color:${tier.color};letter-spacing:.3px;">${tier.emoji} ${tier.label.toUpperCase()}</span>
           <span style="font-size:11px;font-weight:600;color:var(--color-text-primary);">${esc(msg.nickname)}</span>
           <span style="margin-left:auto;font-size:10px;color:var(--color-text-tertiary);">${time}</span>
-          <span style="
-            font-size:10px;padding:2px 7px;border-radius:10px;
-            background:rgba(255,255,255,.06);color:var(--color-text-tertiary);
-          ">⌛ Sona erdi</span>
+          ${timerBadge}
         </div>
-        <div class="fr-pin-msg-text" style="
-          font-size:13px;color:var(--color-text-secondary);
-          line-height:1.5;word-break:break-word;
-        "></div>
+        <div class="fr-pin-msg-text" style="font-size:13px;color:var(--color-text-primary);line-height:1.5;word-break:break-word;"></div>
       </div>`;
   }
 
-  /**
-   * Pinned section tüm HTML'i:
-   *   Üst kısım → aktif pinler (geri sayımlı kart)
-   *   Alt kısım  → arşivlenmiş kartlar (sabitlenmiş mesaj)
-   */
   function _buildPinnedSectionHTML() {
-    const hasActive   = _pinnedSlots.length > 0;
-    const hasArchived = _expiredFeatured.length > 0;
-    if (!hasActive && !hasArchived) return '';
-
-    let html = '';
-
-    /* ── Aktif pinler ── */
-    if (hasActive) {
-      html += `<div style="
-        display:flex;align-items:center;padding:5px 14px 2px;
-        font-size:11px;font-weight:600;color:var(--color-text-secondary);
-        letter-spacing:.4px;text-transform:uppercase;
-      ">📌 ${_pinnedSlots.length} sabitlenmiş mesaj</div>`;
-      _pinnedSlots.forEach(s => { html += _buildPinnedHTML(s.msg, s.unpinAt); });
-    }
-
-    /* ── Arşiv (süresi dolmuş) ── */
-    if (hasArchived) {
-      html += `<div style="
-        display:flex;align-items:center;padding:${hasActive ? '8px' : '5px'} 14px 2px;
-        font-size:11px;font-weight:600;color:var(--color-text-secondary);
-        letter-spacing:.4px;text-transform:uppercase;
-        ${hasActive ? 'border-top:1px solid rgba(255,255,255,.06);margin-top:4px;' : ''}
-      ">📋 Öne çıkan mesajlar</div>`;
-      _expiredFeatured.forEach(msg => { html += _buildArchivedCardHTML(msg); });
-    }
-
+    if (_pinnedSlots.length === 0) return '';
+    let html = `<div style="display:flex;align-items:center;padding:5px 14px 2px;font-size:11px;font-weight:600;color:var(--color-text-secondary);letter-spacing:.4px;text-transform:uppercase;">📌 ${_pinnedSlots.length} sabitlenmiş mesaj</div>`;
+    _pinnedSlots.forEach(s => { html += _buildPinnedHTML(s.msg, s.unpinAt); });
     return html;
   }
 
-  /**
-   * Pinned section güncelle (DOM diff yapılmaz, tümü yeniden çizilir)
-   * Text'ler güvenli şekilde textContent ile atanır
-   */
   function _refreshPinnedSection() {
     const section = document.getElementById('fr-pinned-section');
     if (!section) return;
 
-    const hasActive   = _pinnedSlots.length > 0;
-    const hasArchived = _expiredFeatured.length > 0;
-
-    if (!hasActive && !hasArchived) {
+    if (_pinnedSlots.length === 0) {
       section.style.display = 'none';
       section.innerHTML = '';
       return;
@@ -764,42 +530,29 @@ const Forum = (() => {
     section.style.display = '';
     section.innerHTML = _buildPinnedSectionHTML();
 
-    /* Aktif pin text'leri */
     _pinnedSlots.forEach(s => {
       const el = section.querySelector(`.fr-pin-slot[data-pin-id="${String(s.msg.id)}"]`);
       if (!el) return;
       const textEl = el.querySelector('.fr-pin-msg-text');
       if (textEl) textEl.textContent = s.msg.message;
     });
-
-    /* Arşiv text'leri */
-    _expiredFeatured.forEach(msg => {
-      const el = section.querySelector(`.fr-pin-slot[data-pin-id="arch-${String(msg.id)}"]`);
-      if (!el) return;
-      const textEl = el.querySelector('.fr-pin-msg-text');
-      if (textEl) textEl.textContent = msg.message;
-    });
   }
 
-  /* ── TAM RENDER ───────────────────────────── */
+  /* ── TAM RENDER ─────────────────────────────── */
   function _renderAll() {
     const panel = document.getElementById('d-fr');
     if (!panel) return;
 
     const WRAP_STYLE = 'display:flex;flex-direction:column;height:500px;overflow:hidden;';
     const LIST_STYLE = 'flex:1;overflow-y:auto;min-height:0;';
-    const PIN_STYLE  = 'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);overflow-y:auto;max-height:45%;';
+    const PIN_STYLE  = 'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);';
 
     if (_isLoading) {
       panel.innerHTML = `
         <div class="fr-wrap" style="${WRAP_STYLE}">
           <div class="fr-pinned-section" id="fr-pinned-section" style="${PIN_STYLE}display:none;"></div>
           <div class="fr-msg-list" id="fr-msg-list" style="${LIST_STYLE}">
-            <div class="fr-loading">
-              <div class="fr-loading-dot"></div>
-              <div class="fr-loading-dot"></div>
-              <div class="fr-loading-dot"></div>
-            </div>
+            <div class="fr-loading"><div class="fr-loading-dot"></div><div class="fr-loading-dot"></div><div class="fr-loading-dot"></div></div>
           </div>
           ${_buildInputArea()}
         </div>`;
@@ -811,8 +564,7 @@ const Forum = (() => {
     const chatHTML   = _chatMsgs.length
       ? _chatMsgs.map(m => _buildMsgHTML(m)).join('')
       : '<div class="fr-empty">İlk mesajı sen gönder! 🎉</div>';
-
-    const hasPins = _pinnedSlots.length > 0 || _expiredFeatured.length > 0;
+    const hasPins = _pinnedSlots.length > 0;
 
     panel.innerHTML = `
       <div class="fr-wrap" style="${WRAP_STYLE}">
@@ -821,13 +573,10 @@ const Forum = (() => {
         ${_buildInputArea()}
       </div>`;
 
-    /* Chat text'leri güvenli ata */
     _chatMsgs.forEach(m => {
       const el = panel.querySelector(`[data-msg-id="${String(m.id)}"]`);
       if (el) _setMsgText(el, m.message);
     });
-
-    /* Aktif pin text'leri */
     _pinnedSlots.forEach(s => {
       const el = panel.querySelector(`.fr-pin-slot[data-pin-id="${String(s.msg.id)}"]`);
       if (!el) return;
@@ -835,23 +584,11 @@ const Forum = (() => {
       if (textEl) textEl.textContent = s.msg.message;
     });
 
-    /* Arşiv text'leri */
-    _expiredFeatured.forEach(msg => {
-      const el = panel.querySelector(`.fr-pin-slot[data-pin-id="arch-${String(msg.id)}"]`);
-      if (!el) return;
-      const textEl = el.querySelector('.fr-pin-msg-text');
-      if (textEl) textEl.textContent = msg.message;
-    });
-
     _bindInputEvents();
   }
 
-  /* ── PINNED BÖLME YENİDEN İNŞA ───────────── */
-  function _rebuildPinnedDOM() {
-    _refreshPinnedSection();
-  }
+  function _rebuildPinnedDOM() { _refreshPinnedSection(); }
 
-  /* ── CHAT DOM: SONUNA EKLE ────────────────── */
   function _appendChatDOM(msg) {
     const list = document.getElementById('fr-msg-list');
     if (!list) return;
@@ -863,7 +600,6 @@ const Forum = (() => {
     _setMsgText(el, msg.message);
   }
 
-  /* ── CHAT DOM: KRONOLOJİK KONUMA EKLE ───── */
   function _insertChatDOM(msg) {
     const list = document.getElementById('fr-msg-list');
     if (!list) return;
@@ -875,10 +611,7 @@ const Forum = (() => {
 
     for (const item of items) {
       const found = _chatMsgs.find(m => String(m.id) === item.dataset.msgId);
-      if (found && new Date(found.created_at).getTime() > msgTime) {
-        insertBefore = item;
-        break;
-      }
+      if (found && new Date(found.created_at).getTime() > msgTime) { insertBefore = item; break; }
     }
 
     const tmp = document.createElement('div');
@@ -887,12 +620,10 @@ const Forum = (() => {
 
     if (insertBefore) list.insertBefore(el, insertBefore);
     else              list.appendChild(el);
-
     _setMsgText(el, msg.message);
   }
 
-  /* ── CHAT MESAJ HTML (renk korunur) ───────── */
-  /* ── CHAT MESAJ HTML (Aşağı düştüğünde Elmas Pin ile BİREBİR aynı olacak) ───────── */
+  /* ── MESAJ HTML ─────────────────────────────── */
   function _buildMsgHTML(msg) {
     const tier  = msg.is_featured && msg.feature_tier ? TIERS[msg.feature_tier] : null;
     const isOwn = msg.session_id === _sessionId;
@@ -902,30 +633,26 @@ const Forum = (() => {
       return `
         <div class="fr-msg fr-featured fr-tier-${msg.feature_tier} ${isOwn ? 'fr-own' : ''}"
              data-msg-id="${esc(String(msg.id))}"
-             style="
-               display:flex; align-items:center; gap:8px;
-               padding:6px 12px; margin:4px 8px; border-radius:6px;
-               background:${tier.bg};
-               border:1px solid ${tier.border};
-               border-left:3px solid ${tier.color};
-             ">
-          <span style="font-size:11px; font-weight:700; color:${tier.color}; flex-shrink:0; white-space:nowrap;">${tier.emoji} ${tier.label.toUpperCase()}</span>
-          <span style="font-weight:600; font-size:11px; color:var(--color-text-primary); flex-shrink:0; white-space:nowrap;">${msg.nickname ? esc(msg.nickname) : 'Anonim'}</span>
-          <span class="fr-feat-body" style="flex:1; color:var(--color-text-primary); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${msg.message ? esc(msg.message) : '...'}</span>
-          <span style="font-size:10px; color:var(--color-text-tertiary); flex-shrink:0; white-space:nowrap;">${time}</span>
+             style="background:${tier.bg};border:1px solid ${tier.border};border-left:3px solid ${tier.color};border-radius:8px;padding:10px 12px;margin:4px 0;">
+          <div class="fr-feat-header">
+            <span class="fr-feat-badge" style="color:${tier.color};">${tier.emoji} ${tier.label}</span>
+            <span class="fr-msg-time">${time}</span>
+          </div>
+          <div class="fr-feat-nick">${esc(msg.nickname)}</div>
+          <div class="fr-feat-body"></div>
         </div>`;
     }
 
-    // Normal kullanıcı mesajları
     return `
       <div class="fr-msg ${isOwn ? 'fr-own' : ''}" data-msg-id="${esc(String(msg.id))}">
         <div class="fr-msg-meta">
-          <span class="fr-msg-nick ${isOwn ? 'fr-own-nick' : ''}">${msg.nickname ? esc(msg.nickname) : 'Anonim'}</span>
+          <span class="fr-msg-nick ${isOwn ? 'fr-own-nick' : ''}">${esc(msg.nickname)}</span>
           <span class="fr-msg-time">${time}</span>
         </div>
-        <div class="fr-msg-body">${msg.message ? esc(msg.message) : ''}</div>
+        <div class="fr-msg-body"></div>
       </div>`;
   }
+
   function _buildInputArea() {
     const nick = _nickname || 'Anonim';
     return `
@@ -935,16 +662,11 @@ const Forum = (() => {
           <button class="fr-nick-change" id="fr-nick-btn" title="Adı değiştir">✎ Değiştir</button>
         </div>
         <div class="fr-input-row">
-          <textarea id="fr-input" class="fr-textarea" maxlength="${MAX_MSG_LEN}"
-            placeholder="Mesajınızı yazın…" rows="2" aria-label="Mesaj"></textarea>
+          <textarea id="fr-input" class="fr-textarea" maxlength="${MAX_MSG_LEN}" placeholder="Mesajınızı yazın…" rows="2" aria-label="Mesaj"></textarea>
           <div class="fr-actions">
-            <button class="fr-feat-btn" id="fr-feat-btn" title="Öne Çıkan Mesaj Gönder">
-              💎 Öne Çık
-            </button>
+            <button class="fr-feat-btn" id="fr-feat-btn" title="Öne Çıkan Mesaj Gönder">💎 Öne Çık</button>
             <button class="fr-send-btn" id="fr-send-btn" aria-label="Gönder">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M14 8L2 2l2 6-2 6 12-6z" fill="currentColor"/>
-              </svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M14 8L2 2l2 6-2 6 12-6z" fill="currentColor"/></svg>
             </button>
           </div>
         </div>
@@ -960,9 +682,7 @@ const Forum = (() => {
     document.getElementById('fr-feat-btn')?.addEventListener('click', _showFeaturedModal);
     document.getElementById('fr-nick-btn')?.addEventListener('click', () => _showNickModal());
     const input = document.getElementById('fr-input');
-    input?.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); _sendMessage(); }
-    });
+    input?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); _sendMessage(); } });
     input?.addEventListener('input', () => {
       const cnt = document.getElementById('fr-char-cnt');
       if (cnt) cnt.textContent = `${input.value.length}/${MAX_MSG_LEN}`;
@@ -974,11 +694,9 @@ const Forum = (() => {
     if (bodyEl) bodyEl.textContent = message;
   }
 
-  /* ── YARDIMCILAR ──────────────────────────── */
+  /* ── YARDIMCILAR ────────────────────────────── */
   function _sortPinned() {
-    _pinnedSlots.sort((a, b) =>
-      (TIER_RANK[a.msg.feature_tier] ?? 99) - (TIER_RANK[b.msg.feature_tier] ?? 99)
-    );
+    _pinnedSlots.sort((a, b) => (TIER_RANK[a.msg.feature_tier] ?? 99) - (TIER_RANK[b.msg.feature_tier] ?? 99));
   }
 
   function _insertChronologically(msg) {
@@ -1029,17 +747,12 @@ const Forum = (() => {
 
   function _showError(msg) {
     const el = document.getElementById('fr-inline-err');
-    if (el) {
-      el.textContent = msg;
-      el.classList.remove('hidden');
-      setTimeout(() => el.classList.add('hidden'), 4000);
-    }
+    if (el) { el.textContent = msg; el.classList.remove('hidden'); setTimeout(() => el.classList.add('hidden'), 4000); }
   }
 
   function _showToast(msg) {
     const t = document.createElement('div');
-    t.className = 'fr-toast';
-    t.textContent = msg;
+    t.className = 'fr-toast'; t.textContent = msg;
     document.body.appendChild(t);
     requestAnimationFrame(() => t.classList.add('show'));
     setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3000);
@@ -1059,13 +772,9 @@ const Forum = (() => {
   }
 
   function esc(s) {
-    return String(s)
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-      .replace(/'/g,'&#39;');
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
-  /* ── PUBLIC API ───────────────────────────── */
   return { init, open, close, scrollToBottom };
 
 })();
