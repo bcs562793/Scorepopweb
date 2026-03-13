@@ -9,6 +9,7 @@
    ✅ Mesaj kayma/üst üste sorunu düzeltildi (cerrahi DOM)
    ✅ Geri sayım göstergesi pinned mesajlarda
    ✅ KREDİ SİSTEMİ: Bakiye kontrolü, anlık gönderim, Kredi Mağazası yönlendirme
+   ✅ Giriş yapınca session_id → user_id bağlantısı
 ════════════════════════════════════════════════ */
 'use strict';
 
@@ -50,29 +51,34 @@ const Forum = (() => {
     _nickname  = _getStoredNickname();
 
     if (typeof Auth !== 'undefined') {
-  Auth.onChange(async user => {
-    if (!user) return;
-    const name = Auth.getDisplayName();
-    if (name) {
-      _nickname = name;
-      try { localStorage.setItem('sp_nick', name); } catch {}
-      const el = document.querySelector('.fr-nick-lbl strong');
-      if (el) el.textContent = name;
-    }
+      Auth.onChange(async user => {
+        if (!user) return;
 
-    // Giriş yapınca session_id'yi user'a bağla
-    if (user.id && _sessionId) {
-      try {
-        await _sb.rpc('add_credits', {
-          p_session_id:  _sessionId,
-          p_amount:      0,
-          p_description: 'session link',
-          p_user_id:     user.id,
-        });
-      } catch {}
+        // Nickname güncelle
+        const name = Auth.getDisplayName();
+        if (name) {
+          _nickname = name;
+          try { localStorage.setItem('sp_nick', name); } catch {}
+          const el = document.querySelector('.fr-nick-lbl strong');
+          if (el) el.textContent = name;
+        }
+
+        // Session_id'yi user_id'ye bağla — bakiye bu kullanıcıya görünsün
+        if (user.id && _sessionId && _sb) {
+          try {
+            await _sb.rpc('add_credits', {
+              p_session_id:  _sessionId,
+              p_amount:      0,
+              p_description: 'session_link',
+              p_user_id:     user.id,
+            });
+          } catch (e) {
+            console.warn('[Forum] session bağlama hatası:', e);
+          }
+        }
+      });
     }
-  });
-}
+  }
 
   /* ── OPEN / CLOSE ─────────────────────────── */
   function open(fixtureId) {
@@ -496,69 +502,66 @@ const Forum = (() => {
   }
 
   /* ── ÖNE ÇIKAN MESAJ İŞLE ────────────────── */
-async function _processFeaturedPayment(tierKey, message) {
-  const tier = TIERS[tierKey];
-  if (!tier) return;
-  if (!_nickname) { _showNickModal(() => _processFeaturedPayment(tierKey, message)); return; }
+  async function _processFeaturedPayment(tierKey, message) {
+    const tier = TIERS[tierKey];
+    if (!tier) return;
+    if (!_nickname) { _showNickModal(() => _processFeaturedPayment(tierKey, message)); return; }
 
-  /* Kredi kontrolü — doğrudan Supabase'e sor */
-  let balance = 0;
-  if (typeof Payment !== 'undefined') {
-    balance = await Payment.getBalance(_sessionId);
-  }
-
-  console.log('[Forum] bakiye:', balance, 'gereken:', tier.amount); // debug
-
-  if (balance < tier.amount) {
-    Payment.showCreditStore(_sessionId, (newBalance) => {
-      if (newBalance && newBalance >= tier.amount) {
-        _processFeaturedPayment(tierKey, message);
-      }
-    });
-    return;
-  }
-  
-
-  _showToast(`${tier.emoji} Gönderiliyor…`);
-
-  if (typeof Payment === 'undefined') {
-    const { data, error } = await _sb.from('forum_messages').insert({
-      fixture_id: _fixtureId, session_id: _sessionId, nickname: _nickname,
-      message, is_featured: true, feature_tier: tierKey,
-      feature_amount: tier.amount, payment_status: 'verified', expires_at: null,
-    }).select();
-    if (!error && data?.[0]) {
-      _addFeaturedMessage(data[0]);
-      _showToast(`${tier.emoji} Mesajınız öne çıktı!`);
+    let balance = 0;
+    if (typeof Payment !== 'undefined') {
+      balance = await Payment.getBalance(_sessionId);
     }
-    return;
-  }
 
-  const result = await Payment.startPayment({
-    tierKey,
-    message,
-    fixtureId: _fixtureId,
-    sessionId: _sessionId,
-    nickname:  _nickname,
-  });
+    console.log('[Forum] bakiye:', balance, 'gereken:', tier.amount);
 
-  if (result.success) {
-    _addFeaturedMessage(result.data);
-    _showToast(`${tier.emoji} Mesajınız öne çıktı! (Kalan: ${result.newBalance ?? '?'} kredi)`);
-    const el = document.getElementById('fr-credit-amount');
-    if (el && result.newBalance != null) el.textContent = `${result.newBalance} kredi`;
-    return;
-  }
+    if (balance < tier.amount) {
+      Payment.showCreditStore(_sessionId, (newBalance) => {
+        if (newBalance && newBalance >= tier.amount) {
+          _processFeaturedPayment(tierKey, message);
+        }
+      });
+      return;
+    }
 
-  /* Hata olursa da mağazaya gönder — direkt hata mesajı gösterme */
-  if (typeof Payment !== 'undefined') {
-    Payment.showCreditStore(_sessionId, (newBalance) => {
-      if (newBalance && newBalance >= tier.amount) {
-        _processFeaturedPayment(tierKey, message);
+    _showToast(`${tier.emoji} Gönderiliyor…`);
+
+    if (typeof Payment === 'undefined') {
+      const { data, error } = await _sb.from('forum_messages').insert({
+        fixture_id: _fixtureId, session_id: _sessionId, nickname: _nickname,
+        message, is_featured: true, feature_tier: tierKey,
+        feature_amount: tier.amount, payment_status: 'verified', expires_at: null,
+      }).select();
+      if (!error && data?.[0]) {
+        _addFeaturedMessage(data[0]);
+        _showToast(`${tier.emoji} Mesajınız öne çıktı!`);
       }
+      return;
+    }
+
+    const result = await Payment.startPayment({
+      tierKey,
+      message,
+      fixtureId: _fixtureId,
+      sessionId: _sessionId,
+      nickname:  _nickname,
     });
+
+    if (result.success) {
+      _addFeaturedMessage(result.data);
+      _showToast(`${tier.emoji} Mesajınız öne çıktı! (Kalan: ${result.newBalance ?? '?'} kredi)`);
+      const el = document.getElementById('fr-credit-amount');
+      if (el && result.newBalance != null) el.textContent = `${result.newBalance} kredi`;
+      return;
+    }
+
+    if (typeof Payment !== 'undefined') {
+      Payment.showCreditStore(_sessionId, (newBalance) => {
+        if (newBalance && newBalance >= tier.amount) {
+          _processFeaturedPayment(tierKey, message);
+        }
+      });
+    }
   }
-}
 
   /* ── NICKNAME MODAL ───────────────────────── */
   function _showNickModal(callback) {
