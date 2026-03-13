@@ -30,14 +30,19 @@ const Payment = (() => {
     diamond: 100,
   };
 
-  /* Kredi paketleri */
+  /* ─── Kredi paketleri ────────────────────────────
+     Shopier ürün linklerini buradan değiştirin:
+     Her paketin `url` alanını kendi Shopier ürün
+     sayfanızın adresiyle güncelleyin.
+  ──────────────────────────────────────────────── */
   const CREDIT_PACKAGES = [
-    { key: 'starter', credits: 100,  price: 29,  label: 'Başlangıç', popular: false, bonus: null,         url: 'https://www.shopier.com/bizedemiofsayt/45196611' },
-    { key: 'popular', credits: 300,  price: 79,  label: 'Popüler',   popular: true,  bonus: null,         url: 'https://www.shopier.com/bizedemiofsayt/45196663' },
-    { key: 'pro',     credits: 750,  price: 179, label: 'Pro',       popular: false, bonus: null,         url: 'https://www.shopier.com/bizedemiofsayt/45196703' },
-    { key: 'ultra',   credits: 2000, price: 399, label: 'Ultra',     popular: false, bonus: null,         url: 'https://www.shopier.com/bizedemiofsayt/45196733' },
+    { key: 'test',    credits: 100,  price: 1,   label: '🧪 Test',   popular: false, bonus: 'Test paketi', url: 'https://www.shopier.com/bizedemiofsayt/45196611' },
+    { key: 'starter', credits: 100,  price: 29,  label: 'Başlangıç', popular: false, bonus: null,          url: 'https://www.shopier.com/bizedemiofsayt/45196611' },
+    { key: 'popular', credits: 300,  price: 79,  label: 'Popüler',   popular: true,  bonus: '+ 20 bonus',  url: 'https://www.shopier.com/bizedemiofsayt/45196663' },
+    { key: 'pro',     credits: 750,  price: 179, label: 'Pro',       popular: false, bonus: '+ 75 bonus',  url: 'https://www.shopier.com/bizedemiofsayt/45196703' },
+    { key: 'ultra',   credits: 2000, price: 399, label: 'Ultra',     popular: false, bonus: '+ 300 bonus', url: 'https://www.shopier.com/bizedemiofsayt/45196733' },
   ];
-   
+
   /* ── BAŞLAT ──────────────────────────────────── */
   function init(sb) {
     _sb        = sb;
@@ -46,20 +51,53 @@ const Payment = (() => {
 
   /* ── BAKİYE SORGULA ──────────────────────────── */
   async function getBalance(sessionId) {
-    if (!_sb || !sessionId) return 0;
-    try {
-      const { data: { user } } = await _sb.auth.getUser();
+    if (!_sb || !sessionId) {
+      console.warn('[Payment] getBalance: _sb veya sessionId eksik', { _sb: !!_sb, sessionId });
+      return 0;
+    }
 
+    try {
+      /* Auth kullanıcısını güvenli şekilde al — hata fırlatırsa yakalayıp devam et */
+      let userId = null;
+      try {
+        const { data, error: authErr } = await _sb.auth.getUser();
+        if (authErr) {
+          console.warn('[Payment] auth.getUser hatası:', authErr.message);
+        } else {
+          userId = data?.user?.id ?? null;
+        }
+      } catch (authEx) {
+        console.warn('[Payment] auth.getUser exception:', authEx);
+      }
+
+      console.log('[Payment] getBalance → userId:', userId, '| sessionId:', sessionId);
+
+      /* Sorguyu oluştur */
       let query = _sb.from('user_credits').select('balance');
-      if (user?.id) {
-        query = query.or(`user_id.eq.${user.id},session_id.eq.${sessionId}`);
+
+      if (userId) {
+        query = query.or(`user_id.eq.${userId},session_id.eq.${sessionId}`);
       } else {
         query = query.eq('session_id', sessionId);
       }
 
-      const { data } = await query.order('balance', { ascending: false }).limit(1).maybeSingle();
+      const { data, error: queryErr } = await query
+        .order('balance', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (queryErr) {
+        console.error('[Payment] getBalance sorgu hatası:', queryErr.message, queryErr);
+        return 0;
+      }
+
+      console.log('[Payment] getBalance sonuç:', data);
       return data?.balance ?? 0;
-    } catch { return 0; }
+
+    } catch (ex) {
+      console.error('[Payment] getBalance beklenmeyen hata:', ex);
+      return 0;
+    }
   }
 
   /* ── ANA ÖDEME AKIŞI ─────────────────────────── */
@@ -95,7 +133,11 @@ const Payment = (() => {
     if (!pending) return { success: false, error: 'Kayıt oluşturulamadı.' };
 
     /* 3. Atomik kredi düşme (RPC) */
-    const { data: { user } } = await _sb.auth.getUser();
+    let userId = null;
+    try {
+      const { data } = await _sb.auth.getUser();
+      userId = data?.user?.id ?? null;
+    } catch {}
 
     const { data: newBalance, error: rpcErr } = await _sb.rpc('deduct_credits', {
       p_session_id:  sessionId,
@@ -103,7 +145,7 @@ const Payment = (() => {
       p_description: `${tierKey} öne çıkan mesaj`,
       p_fixture_id:  fixtureId,
       p_message_id:  pending.id,
-      p_user_id:     user?.id ?? null,
+      p_user_id:     userId,
     });
 
     if (rpcErr || newBalance === -1) {
