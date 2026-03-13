@@ -263,7 +263,6 @@ const Payment = (() => {
     });
   }
 
-  /* ── KREDİ SATIN ALMA AKIŞI ──────────────────── */
   /* ── KREDİ SATIN ALMA AKIŞI (DİREKT LİNK YÖNLENDİRMESİ) ──────────────────── */
   async function _processCreditPurchase(sessionId, pkg, onClose) {
     if (!pkg.url) {
@@ -281,39 +280,6 @@ const Payment = (() => {
     }
 
     _showToast('✅ Ödeme yaptıktan sonra bakiyeniz hesabınıza tanımlanacaktır.');
-    
-    /* DİKKAT: Direkt linke gidildiği için API üzerinden otomatik doğrulama yapılamaz.
-      Eğer arkada kendi yazdığın bir webhook eşleştirme sistemin yoksa, 
-      alttaki otomatik bakiye sorgulama (polling) kodunu kapalı tutmak en doğrusudur.
-    */
-    // const currentBalance = await getBalance(sessionId);
-    // _pollCreditVerification(sessionId, currentBalance + pkg.credits, 120, onClose);
-  }
-
-      if (!res.ok) throw new Error(`Edge Function hatası: ${res.status}`);
-
-      const { shopierHTML } = await res.json();
-      if (!shopierHTML) throw new Error('Shopier formu alınamadı.');
-
-      /* Yeni sekmede aç ve formu otomatik submit et */
-      const win = window.open('', '_blank');
-      if (!win) {
-        _showToast('❌ Popup engellendi, tarayıcı ayarlarını kontrol edin.');
-        return;
-      }
-      win.document.write(shopierHTML);
-      win.document.close();
-
-      _showToast('⏳ Ödeme tamamlandığında krediniz otomatik yüklenecek.');
-
-      /* Arka planda bakiye artışını bekle */
-      const currentBalance = await getBalance(sessionId);
-      _pollCreditVerification(sessionId, currentBalance + pkg.credits, 120, onClose);
-
-    } catch (err) {
-      console.error('[Payment] _processCreditPurchase hatası:', err);
-      _showToast('❌ Ödeme başlatılamadı: ' + err.message);
-    }
   }
 
   /* ── KREDİ YÜKLEME POLLING ───────────────────── */
