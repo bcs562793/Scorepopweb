@@ -32,10 +32,11 @@ const Payment = (() => {
 
   /* Kredi paketleri */
   const CREDIT_PACKAGES = [
-    { key: 'starter', credits: 100,  price: 29,  label: 'Başlangıç', popular: false, bonus: null,          shopierUrl: 'https://www.shopier.com/bizedemiofsayt/45175740' },
-    { key: 'popular', credits: 300,  price: 79,  label: 'Popüler',   popular: true,  bonus: '+ 20 bonus',  shopierUrl: 'https://www.shopier.com/bizedemiofsayt/45175740' },
-    { key: 'pro',     credits: 750,  price: 179, label: 'Pro',       popular: false, bonus: '+ 75 bonus',  shopierUrl: 'https://www.shopier.com/bizedemiofsayt/45175740' },
-    { key: 'ultra',   credits: 2000, price: 399, label: 'Ultra',     popular: false, bonus: '+ 300 bonus', shopierUrl: 'https://www.shopier.com/bizedemiofsayt/45175740' },
+    { key: 'test',    credits: 100,  price: 1,   label: '🧪 Test',   popular: false, bonus: 'Test paketi', },
+    { key: 'starter', credits: 100,  price: 29,  label: 'Başlangıç', popular: false, bonus: null,          },
+    { key: 'popular', credits: 300,  price: 79,  label: 'Popüler',   popular: true,  bonus: '+ 20 bonus',  },
+    { key: 'pro',     credits: 750,  price: 179, label: 'Pro',       popular: false, bonus: '+ 75 bonus',  },
+    { key: 'ultra',   credits: 2000, price: 399, label: 'Ultra',     popular: false, bonus: '+ 300 bonus', },
   ];
 
   /* ── BAŞLAT ──────────────────────────────────── */
@@ -265,32 +266,62 @@ const Payment = (() => {
 
   /* ── KREDİ SATIN ALMA AKIŞI ──────────────────── */
   async function _processCreditPurchase(sessionId, pkg, onClose) {
-    if (!pkg.shopierUrl) {
-      _showToast('❌ Ödeme linki tanımlı değil.');
+    if (!_edgeFnUrl) {
+      _showToast('❌ Ödeme servisi tanımlı değil (PAYMENT_EDGE_URL).');
       return;
     }
 
-    /* Session ID ve kredi miktarını Shopier note alanına geçir */
-    const url = `${pkg.shopierUrl}?note=${encodeURIComponent(sessionId + '|' + pkg.credits)}`;
+    _showToast('⏳ Ödeme sayfası hazırlanıyor…');
 
-    window.open(url, '_blank');
+    try {
+      /* Edge Function'dan Shopier formu al */
+      const res = await fetch(_edgeFnUrl, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          message_id: `${sessionId}|${pkg.credits}`, // webhook bunu parse eder
+          amount:     pkg.price,
+          currency:   'TRY',
+          tier_label: pkg.label,
+        }),
+      });
 
-    _showToast('⏳ Ödeme tamamlandığında krediniz otomatik yüklenecek.');
+      if (!res.ok) throw new Error(`Edge Function hatası: ${res.status}`);
 
-    /* Arka planda bakiyeyi kontrol et */
-    _pollCreditVerification(sessionId, pkg.credits, 120, onClose);
+      const { shopierHTML } = await res.json();
+      if (!shopierHTML) throw new Error('Shopier formu alınamadı.');
+
+      /* Yeni sekmede aç ve formu otomatik submit et */
+      const win = window.open('', '_blank');
+      if (!win) {
+        _showToast('❌ Popup engellendi, tarayıcı ayarlarını kontrol edin.');
+        return;
+      }
+      win.document.write(shopierHTML);
+      win.document.close();
+
+      _showToast('⏳ Ödeme tamamlandığında krediniz otomatik yüklenecek.');
+
+      /* Arka planda bakiye artışını bekle */
+      const currentBalance = await getBalance(sessionId);
+      _pollCreditVerification(sessionId, currentBalance + pkg.credits, 120, onClose);
+
+    } catch (err) {
+      console.error('[Payment] _processCreditPurchase hatası:', err);
+      _showToast('❌ Ödeme başlatılamadı: ' + err.message);
+    }
   }
 
   /* ── KREDİ YÜKLEME POLLING ───────────────────── */
-  async function _pollCreditVerification(sessionId, expectedCredits, retries, onClose) {
+  async function _pollCreditVerification(sessionId, expectedBalance, retries, onClose) {
     if (retries <= 0) { _showToast('❌ Ödeme doğrulanamadı.'); return; }
     await _sleep(2000);
     const bal = await getBalance(sessionId);
-    if (bal >= expectedCredits) {
+    if (bal >= expectedBalance) {
       _showToast(`✅ ${bal} krediniz yüklendi!`);
       if (onClose) onClose(bal);
     } else {
-      _pollCreditVerification(sessionId, expectedCredits, retries - 1, onClose);
+      _pollCreditVerification(sessionId, expectedBalance, retries - 1, onClose);
     }
   }
 
