@@ -787,28 +787,28 @@ const Forum = (() => {
   }
 
   /* ── CHAT MESAJ HTML (Aşağı düştüğünde de KOMPAKT PİN stili korunur) ───────── */
+  /* ── CHAT MESAJ HTML (Aşağı düştüğünde Elmas Pin ile BİREBİR aynı olacak) ───────── */
   function _buildMsgHTML(msg) {
     const tier  = msg.is_featured && msg.feature_tier ? TIERS[msg.feature_tier] : null;
     const isOwn = msg.session_id === _sessionId;
     const time  = _fmtTime(msg.created_at);
 
-    // Üstteki pin tasarımının birebir aynısı (sadece saniye sayacı yok)
     if (tier) {
       return `
         <div class="fr-msg fr-featured fr-tier-${msg.feature_tier} ${isOwn ? 'fr-own' : ''}"
              data-msg-id="${esc(String(msg.id))}"
              style="
-               display:flex; align-items:flex-start; gap:8px;
+               display:flex; align-items:center; gap:8px;
                padding:8px 12px; margin:4px 0; border-radius:6px;
                background:${tier.bg};
                border:1px solid ${tier.border};
                border-left:3px solid ${tier.color};
-               min-height:32px;
+               min-height:36px; /* İçi boş olsa bile asla çökmeyecek */
              ">
-          <span style="font-size:11px; font-weight:700; color:${tier.color}; flex-shrink:0; margin-top:1px;">${tier.emoji} ${tier.label.toUpperCase()}</span>
-          <span style="font-weight:600; font-size:11px; color:var(--color-text-primary); flex-shrink:0; margin-top:1px;">${esc(msg.nickname)}</span>
-          <span class="fr-feat-body" style="flex:1; color:var(--color-text-primary); font-size:12px; line-height:1.4; word-break:break-word;">${esc(msg.message)}</span>
-          <span style="font-size:10px; color:var(--color-text-tertiary); flex-shrink:0; margin-top:2px;">${time}</span>
+          <span style="font-size:11px; font-weight:700; color:${tier.color}; flex-shrink:0;">${tier.emoji} ${tier.label.toUpperCase()}</span>
+          <span style="font-weight:600; font-size:11px; color:var(--color-text-primary); flex-shrink:0;">${msg.nickname ? esc(msg.nickname) : ''}</span>
+          <span class="fr-feat-body" style="flex:1; color:var(--color-text-primary); font-size:12px; line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${msg.message ? esc(msg.message) : ''}</span>
+          <span style="font-size:10px; color:var(--color-text-tertiary); flex-shrink:0;">${time}</span>
         </div>`;
     }
 
@@ -819,7 +819,7 @@ const Forum = (() => {
           <span class="fr-msg-nick ${isOwn ? 'fr-own-nick' : ''}">${esc(msg.nickname)}</span>
           <span class="fr-msg-time">${time}</span>
         </div>
-        <div class="fr-msg-body">${esc(msg.message)}</div>
+        <div class="fr-msg-body">${msg.message ? esc(msg.message) : ''}</div>
       </div>`;
   }
 
