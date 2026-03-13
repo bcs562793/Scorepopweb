@@ -620,27 +620,25 @@ const Forum = (() => {
     const remainS   = Math.ceil(remainMs / 1000);
 
     const timerHTML = permanent
-      ? '<span style="font-size:10px;margin-left:auto;flex-shrink:0;opacity:.7;">📌</span>'
-      : `<span class="fr-pin-countdown" data-unpin="${unpinAt}" style="font-size:10px;margin-left:auto;flex-shrink:0;opacity:.7;">${remainS}s</span>`;
+      ? '<span style="font-size:10px; margin-left:auto; flex-shrink:0; opacity:.7;">📌</span>'
+      : `<div style="margin-top:2px; margin-left:auto; flex-shrink:0;"><span class="fr-pin-countdown" data-unpin="${unpinAt}" style="font-size:10px; opacity:.7; font-weight:bold;">${remainS}s</span></div>`;
 
+    // esc() ile metni direkt basıp, min-height vererek kutunun çökmesini imkansızlaştırıyoruz.
     return `
       <div class="fr-pin-slot ${isOwn ? 'fr-own' : ''}"
            data-pin-id="${esc(String(msg.id))}"
            style="
-             display:flex;align-items:center;gap:8px;
-             padding:6px 12px;margin:2px 8px;border-radius:6px;
-             cursor:pointer;font-size:12px;
+             display:flex; align-items:flex-start; gap:8px;
+             padding:8px 12px; margin:4px 8px; border-radius:6px;
              background:${tier.bg};
              border:1px solid ${tier.border};
              border-left:3px solid ${tier.color};
-             transition:all .15s;
-           "
-           onclick="this.classList.toggle('fr-pin-open');var b=this.querySelector('.fr-pin-full');if(b)b.style.display=b.style.display==='block'?'none':'block';var t=this.querySelector('.fr-pin-trunc');if(t)t.style.display=t.style.display==='none'?'':'none'">
-        <span style="font-size:11px;font-weight:500;color:${tier.color};flex-shrink:0;white-space:nowrap;">${tier.emoji} ${tier.label.toUpperCase()}</span>
-        <span style="font-weight:500;font-size:11px;color:var(--color-text-primary);flex-shrink:0;">${esc(msg.nickname)}</span>
-        <span class="fr-pin-trunc" style="display:none;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--color-text-secondary);font-size:11px;"></span>
-<span class="fr-pin-full" style="flex:1;color:var(--color-text-primary);font-size:12px;line-height:1.4;word-break:break-word;"></span>
-        <span style="font-size:10px;color:var(--color-text-tertiary);flex-shrink:0;white-space:nowrap;">${time}</span>
+             min-height:32px;
+           ">
+        <span style="font-size:11px; font-weight:700; color:${tier.color}; flex-shrink:0; margin-top:1px;">${tier.emoji} ${tier.label.toUpperCase()}</span>
+        <span style="font-weight:600; font-size:11px; color:var(--color-text-primary); flex-shrink:0; margin-top:1px;">${esc(msg.nickname)}</span>
+        <span class="fr-pin-full" style="flex:1; color:var(--color-text-primary); font-size:12px; line-height:1.4; word-break:break-word;">${esc(msg.message)}</span>
+        <span style="font-size:10px; color:var(--color-text-tertiary); flex-shrink:0; margin-top:2px;">${time}</span>
         ${timerHTML}
       </div>`;
   }
@@ -794,22 +792,23 @@ const Forum = (() => {
     const isOwn = msg.session_id === _sessionId;
     const time  = _fmtTime(msg.created_at);
 
+    // Üstteki pin tasarımının birebir aynısı (sadece saniye sayacı yok)
     if (tier) {
-      // Yukarıdaki kompakt pin stilinin birebir aynısı (sadece saniye sayacı yerine saat yazıyor)
       return `
         <div class="fr-msg fr-featured fr-tier-${msg.feature_tier} ${isOwn ? 'fr-own' : ''}"
              data-msg-id="${esc(String(msg.id))}"
              style="
-               display:flex; align-items:center; gap:8px;
-               padding:6px 12px; margin:4px 0; border-radius:6px;
+               display:flex; align-items:flex-start; gap:8px;
+               padding:8px 12px; margin:4px 0; border-radius:6px;
                background:${tier.bg};
                border:1px solid ${tier.border};
                border-left:3px solid ${tier.color};
+               min-height:32px;
              ">
-          <span style="font-size:11px; font-weight:500; color:${tier.color}; flex-shrink:0; white-space:nowrap;">${tier.emoji} ${tier.label.toUpperCase()}</span>
-          <span style="font-weight:500; font-size:11px; color:var(--color-text-primary); flex-shrink:0;">${esc(msg.nickname)}</span>
-          <span class="fr-feat-body" style="flex:1; color:var(--color-text-primary); font-size:12px; line-height:1.4; word-break:break-word;"></span>
-          <span style="font-size:10px; color:var(--color-text-tertiary); flex-shrink:0; white-space:nowrap;">${time}</span>
+          <span style="font-size:11px; font-weight:700; color:${tier.color}; flex-shrink:0; margin-top:1px;">${tier.emoji} ${tier.label.toUpperCase()}</span>
+          <span style="font-weight:600; font-size:11px; color:var(--color-text-primary); flex-shrink:0; margin-top:1px;">${esc(msg.nickname)}</span>
+          <span class="fr-feat-body" style="flex:1; color:var(--color-text-primary); font-size:12px; line-height:1.4; word-break:break-word;">${esc(msg.message)}</span>
+          <span style="font-size:10px; color:var(--color-text-tertiary); flex-shrink:0; margin-top:2px;">${time}</span>
         </div>`;
     }
 
@@ -820,7 +819,7 @@ const Forum = (() => {
           <span class="fr-msg-nick ${isOwn ? 'fr-own-nick' : ''}">${esc(msg.nickname)}</span>
           <span class="fr-msg-time">${time}</span>
         </div>
-        <div class="fr-msg-body"></div>
+        <div class="fr-msg-body">${esc(msg.message)}</div>
       </div>`;
   }
 
