@@ -1,23 +1,28 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — payment.js
-   Ödeme sistemi — Shopier Entegrasyonu
+   SCOREPOP — payment.js  (v4 — Kredi Sistemi)
 
-   AKIŞ:
-   1. Kullanıcı tier seçer
-   2. Supabase'e "pending" (bekliyor) kayıt oluşturulur
-   3. Tarayıcıda yeni bir sekme açılır (Pop-up blokerı aşmak için senkron açılır)
-   4. Edge Function'dan Shopier HTML formu istenir ve yeni sekmeye basılır
-   5. Ana sekme arka planda Supabase'i dinlemeye (poll) başlar
-   6. Shopier Webhook işlemi onaylayınca, ana sekme mesajı öne çıkarır.
+   ESKİ AKIŞ: Her mesaj → ödeme ekranı → geri dön
+   YENİ AKIŞ: Kredi bakiyesi → anlık gönder
+              Yetersizse → Kredi Mağazası modal
+
+   PUBLIC API (geriye dönük uyumlu):
+     Payment.init(sb)
+     Payment.startPayment({ tierKey, message, fixtureId, sessionId, nickname })
+       → { success, data }         — kredi yeterliydi
+       → { success:false, needsCredits:true, tierKey } — yetersiz
+       → { success:false, error }  — başka hata
+     Payment.getBalance(sessionId) → number
+     Payment.showCreditStore(onClose?) — Kredi Mağazası'nı aç
+     Payment.TIER_PRICES            — { bronze:10, silver:25, ... }
 ════════════════════════════════════════════════ */
 'use strict';
 
 const Payment = (() => {
 
-  let _sb         = null;
-  let _edgeFnUrl  = null;    // config.js'den gelecek: PAYMENT_EDGE_URL
+  let _sb        = null;
+  let _edgeFnUrl = null;
 
-  /* Tier fiyatları BURADA tanımlı — Edge Function'da da aynı liste doğrulanır */
+  /* Tier'ların kredi maliyeti — miktarlar migration ile eşleşmeli */
   const TIER_PRICES = {
     bronze:  10,
     silver:  25,
@@ -25,21 +30,47 @@ const Payment = (() => {
     diamond: 100,
   };
 
-  /* ── BAŞLAT ────────────────────────────────── */
+  /* Kredi paketleri */
+  const CREDIT_PACKAGES = [
+    { key: 'starter', credits: 100,  price: 29,  label: 'Başlangıç',  popular: false, bonus: null },
+    { key: 'popular', credits: 300,  price: 79,  label: 'Popüler',    popular: true,  bonus: '+ 20 bonus' },
+    { key: 'pro',     credits: 750,  price: 179, label: 'Pro',        popular: false, bonus: '+ 75 bonus' },
+    { key: 'ultra',   credits: 2000, price: 399, label: 'Ultra',      popular: false, bonus: '+ 300 bonus' },
+  ];
+
+  /* ── BAŞLAT ──────────────────────────────────── */
   function init(sb) {
     _sb = sb;
-    /* config.js'de tanımlıysa Edge Function URL'ini al */
-    _edgeFnUrl = (typeof PAYMENT_EDGE_URL !== 'undefined')
-      ? PAYMENT_EDGE_URL
-      : null;
+    _edgeFnUrl = (typeof PAYMENT_EDGE_URL !== 'undefined') ? PAYMENT_EDGE_URL : null;
   }
 
-  /* ── ANA ÖDEME AKIŞI ─────────────────────── */
-  async function startPayment({ tierKey, message, fixtureId, sessionId, nickname }) {
-    const amount = TIER_PRICES[tierKey];
-    if (!amount) return { success: false, error: 'Geçersiz tier.' };
+  /* ── BAKİYE SORGULA ──────────────────────────── */
+  async function getBalance(sessionId) {
+    if (!_sb || !sessionId) return 0;
+    try {
+      const { data } = await _sb
+        .from('user_credits')
+        .select('balance')
+        .eq('session_id', sessionId)
+        .maybeSingle();
+      return data?.balance ?? 0;
+    } catch {
+      return 0;
+    }
+  }
 
-    /* 1. Supabase'e pending kayıt oluştur */
+  /* ── ANA ÖDEME AKIŞI (geriye dönük uyumlu) ───── */
+  async function startPayment({ tierKey, message, fixtureId, sessionId, nickname }) {
+    const cost = TIER_PRICES[tierKey];
+    if (!cost) return { success: false, error: 'Geçersiz tier.' };
+
+    /* 1. Bakiye kontrolü */
+    const balance = await getBalance(sessionId);
+    if (balance < cost) {
+      return { success: false, needsCredits: true, tierKey, balance, cost };
+    }
+
+    /* 2. Önce DB'ye pending kayıt oluştur */
     const { data: insertData, error: insertErr } = await _sb
       .from('forum_messages')
       .insert({
@@ -47,151 +78,267 @@ const Payment = (() => {
         session_id:     sessionId,
         nickname,
         message,
-        is_featured:    false,           // ödeme onaylanınca true olacak
+        is_featured:    false,
         feature_tier:   tierKey,
-        feature_amount: amount,
+        feature_amount: cost,
         payment_status: 'pending',
-        expires_at:     null,            // öne çıkan mesajlar kalıcı
+        expires_at:     null,
       })
       .select();
 
     if (insertErr) return { success: false, error: insertErr.message };
 
-    const pending = insertData && insertData.length > 0 ? insertData[0] : null;
+    const pending = insertData?.[0];
     if (!pending) return { success: false, error: 'Kayıt oluşturulamadı.' };
 
-    /* 2. Demo mod mu yoksa gerçek ödeme mi? */
-    if (!_edgeFnUrl) {
-      return _demoPayment(pending);
+    /* 3. Atomik kredi düşme (RPC) */
+    const { data: newBalance, error: rpcErr } = await _sb.rpc('deduct_credits', {
+      p_session_id:  sessionId,
+      p_amount:      cost,
+      p_description: `${tierKey} öne çıkan mesaj`,
+      p_fixture_id:  fixtureId,
+      p_message_id:  pending.id,
+    });
+
+    if (rpcErr || newBalance === -1) {
+      /* Bakiye yetersizse (başka sekme harcamış olabilir) — kaydı temizle */
+      await _sb.from('forum_messages').delete().eq('id', pending.id).catch(() => {});
+      return { success: false, needsCredits: true, tierKey, balance, cost };
     }
 
-    /* 3. Gerçek ödeme akışı (Shopier) */
-    return _realPayment(pending, amount);
-  }
-
-  /* ── DEMO MOD ─────────────────────────────── */
-  async function _demoPayment(pending) {
-    console.warn('[Payment] ⚠️ DEMO MOD — Gerçek ödeme yapılmıyor!');
-
-    const { data: updateData, error } = await _sb
+    /* 4. Mesajı verified olarak işaretle */
+    const { data: verifiedData, error: updErr } = await _sb
       .from('forum_messages')
       .update({ is_featured: true, payment_status: 'verified' })
       .eq('id', pending.id)
       .select();
 
-    if (error) {
-      console.warn('[Payment] UPDATE hatası (muhtemelen RLS):', error.message);
+    if (updErr) {
+      /* Güncelleme hata verdi — ama kredi düşüldü. RLS sorunu olabilir.
+         Güvenli fallback: veriyi elle birleştir. */
+      console.warn('[Payment] UPDATE hatası (muhtemelen RLS):', updErr.message);
       return {
         success: true,
         data: { ...pending, is_featured: true, payment_status: 'verified' },
+        newBalance,
       };
     }
 
-    const data = (updateData && updateData.length > 0)
-      ? updateData[0]
-      : { ...pending, is_featured: true, payment_status: 'verified' };
-
-    return { success: true, data };
+    return {
+      success:    true,
+      data:       verifiedData?.[0] ?? { ...pending, is_featured: true, payment_status: 'verified' },
+      newBalance,
+    };
   }
 
-  /* ── GERÇEK ÖDEME (Shopier Yeni Sekme) ─────── */
-  async function _realPayment(pending, amount) {
-    try {
-      /* Kritik UX Adımı: Tarayıcıların "Pop-up Engelleyicisini" aşmak için, 
-         fetch (asenkron) işleminden HEMEN ÖNCE senkron olarak boş bir sekme açmalıyız. 
-      */
-      const payWindow = window.open('', '_blank');
-      if (!payWindow) {
-        return { success: false, error: 'Lütfen tarayıcınızın açılır pencere (pop-up) engelleyicisine izin verin.' };
-      }
-      
-      // Kullanıcıya yeni sekmede geçici bir yükleniyor ekranı göster
-      payWindow.document.write(`
-        <div style="font-family:sans-serif; text-align:center; padding-top:50px;">
-          <h2>Güvenli Ödeme Sayfasına Yönlendiriliyorsunuz...</h2>
-          <p>Lütfen bekleyin.</p>
-        </div>
-      `);
+  /* ── KREDİ MAĞAZASI MODAL ────────────────────── */
+  function showCreditStore(sessionId, onClose) {
+    document.getElementById('sp-credit-store-overlay')?.remove();
 
-      /* Edge Function'dan Shopier HTML formu (post) isteği yap */
-      const resp = await fetch(_edgeFnUrl + '/create-shopier-payment', {
+    const overlay = document.createElement('div');
+    overlay.id = 'sp-credit-store-overlay';
+    overlay.style.cssText = `
+      position:fixed;inset:0;z-index:9999;
+      background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
+      display:flex;align-items:center;justify-content:center;padding:16px;
+    `;
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) { overlay.remove(); if (onClose) onClose(); }
+    });
+
+    overlay.innerHTML = `
+      <div id="sp-credit-modal" style="
+        background:var(--color-background-primary);
+        border:1px solid var(--color-border-tertiary);
+        border-radius:16px;width:100%;max-width:480px;
+        max-height:90vh;overflow-y:auto;padding:24px;
+        box-sizing:border-box;
+      ">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:18px;font-weight:500;color:var(--color-text-primary)">💎 Kredi Yükle</div>
+          <button id="sp-store-close" style="
+            background:none;border:none;cursor:pointer;
+            font-size:18px;color:var(--color-text-secondary);padding:4px;
+          ">✕</button>
+        </div>
+        <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 20px;">
+          Kredilerle öne çıkan mesajları anında gönder — ödeme ekranı beklemeden.
+        </p>
+
+        <div id="sp-balance-bar" style="
+          display:flex;align-items:center;gap:8px;padding:10px 14px;
+          background:var(--color-background-secondary);border-radius:10px;
+          margin-bottom:20px;font-size:13px;
+        ">
+          <span style="color:var(--color-text-secondary)">Mevcut bakiye:</span>
+          <span id="sp-store-balance" style="font-weight:500;color:var(--color-text-primary)">Yükleniyor…</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
+          ${CREDIT_PACKAGES.map(pkg => `
+            <div class="sp-pkg-card" data-pkg="${pkg.key}" style="
+              border:1.5px solid ${pkg.popular ? 'var(--color-border-secondary)' : 'var(--color-border-tertiary)'};
+              border-radius:12px;padding:14px 12px;cursor:pointer;position:relative;
+              transition:border-color .15s,background .15s;
+              background:${pkg.popular ? 'var(--color-background-secondary)' : 'transparent'};
+            ">
+              ${pkg.popular ? `<div style="
+                position:absolute;top:-10px;left:50%;transform:translateX(-50%);
+                background:var(--color-text-primary);color:var(--color-background-primary);
+                font-size:10px;font-weight:500;padding:2px 8px;border-radius:10px;white-space:nowrap;
+              ">EN POPÜLER</div>` : ''}
+              <div style="font-weight:500;font-size:15px;color:var(--color-text-primary);margin-bottom:4px;">
+                ${pkg.label}
+              </div>
+              <div style="font-size:22px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px;">
+                ${pkg.credits}<span style="font-size:13px;color:var(--color-text-secondary);"> kredi</span>
+              </div>
+              ${pkg.bonus ? `<div style="font-size:11px;color:var(--color-text-success,#3B6D11);margin-bottom:6px;">${pkg.bonus}</div>` : '<div style="margin-bottom:6px;height:16px;"></div>'}
+              <div style="font-size:18px;font-weight:500;color:var(--color-text-primary);">₺${pkg.price}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Tier referans tablosu -->
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:16px;padding:10px 12px;background:var(--color-background-secondary);border-radius:8px;">
+          <div style="font-weight:500;margin-bottom:6px;">Kredi maliyetleri:</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <span>🥉 Bronz — 10 kredi</span>
+            <span>🥈 Gümüş — 25 kredi</span>
+            <span>🥇 Altın — 50 kredi</span>
+            <span>💎 Elmas — 100 kredi</span>
+          </div>
+        </div>
+
+        <button id="sp-store-pay-btn" disabled style="
+          width:100%;padding:13px;border:none;border-radius:10px;
+          background:var(--color-border-secondary);color:var(--color-text-secondary);
+          font-size:15px;font-weight:500;cursor:not-allowed;transition:all .15s;
+        ">Paket seçin</button>
+
+        <p style="font-size:11px;color:var(--color-text-tertiary);text-align:center;margin:10px 0 0;">
+          ⚠️ Demo mod — Shopier entegrasyonu ile aktifleşir.
+        </p>
+      </div>`;
+
+    document.body.appendChild(overlay);
+
+    /* Bakiyeyi yükle */
+    getBalance(sessionId).then(bal => {
+      const el = document.getElementById('sp-store-balance');
+      if (el) el.textContent = `${bal} kredi`;
+    });
+
+    /* Kapat butonu */
+    document.getElementById('sp-store-close').addEventListener('click', () => {
+      overlay.remove();
+      if (onClose) onClose();
+    });
+
+    /* Paket seçimi */
+    let selectedPkg = null;
+    overlay.querySelectorAll('.sp-pkg-card').forEach(card => {
+      card.addEventListener('click', () => {
+        overlay.querySelectorAll('.sp-pkg-card').forEach(c => {
+          c.style.borderColor = 'var(--color-border-tertiary)';
+          c.style.background  = 'transparent';
+        });
+        card.style.borderColor = 'var(--color-text-info,#185FA5)';
+        card.style.background  = 'var(--color-background-info,#E6F1FB)';
+        selectedPkg = CREDIT_PACKAGES.find(p => p.key === card.dataset.pkg);
+        const btn = document.getElementById('sp-store-pay-btn');
+        if (btn && selectedPkg) {
+          btn.disabled = false;
+          btn.style.cssText += `;
+            background:var(--color-text-primary);color:var(--color-background-primary);
+            cursor:pointer;
+          `;
+          btn.textContent = `${selectedPkg.credits} kredi satın al — ₺${selectedPkg.price}`;
+        }
+      });
+    });
+
+    /* Ödeme başlat */
+    document.getElementById('sp-store-pay-btn').addEventListener('click', async () => {
+      if (!selectedPkg) return;
+      overlay.remove();
+      await _processCreditPurchase(sessionId, selectedPkg, onClose);
+    });
+  }
+
+  /* ── KREDİ SATIN ALMA AKIŞI ──────────────────── */
+  async function _processCreditPurchase(sessionId, pkg, onClose) {
+    if (!_edgeFnUrl) {
+      /* Demo mod: doğrudan ekle */
+      console.warn('[Payment] Demo mod — kredi ekleniyor:', pkg.credits);
+      const { data: newBal } = await _sb.rpc('add_credits', {
+        p_session_id:  sessionId,
+        p_amount:      pkg.credits,
+        p_description: `${pkg.label} paketi (demo)`,
+      });
+      _showToast(`✅ ${newBal ?? pkg.credits} krediniz yüklendi!`);
+      if (onClose) onClose(newBal ?? pkg.credits);
+      return;
+    }
+
+    /* Gerçek ödeme — Shopier, yeni sekme */
+    const payWindow = window.open('', '_blank');
+    if (!payWindow) {
+      _showToast('❌ Pop-up engelleyicisine izin verin.');
+      return;
+    }
+    payWindow.document.write(`
+      <div style="font-family:sans-serif;text-align:center;padding:60px 20px;">
+        <h2>Güvenli ödeme sayfasına yönlendiriliyorsunuz…</h2>
+      </div>`);
+
+    try {
+      const resp = await fetch(_edgeFnUrl + '/create-credit-purchase', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message_id:  pending.id,
-          amount,
+          session_id: sessionId,
+          package_key: pkg.key,
+          credits:     pkg.credits,
+          amount:      pkg.price,
           currency:    'TRY',
-          tier_label:  pending.feature_tier
         }),
       });
 
-      if (!resp.ok) {
-        payWindow.close(); // Hata olursa sekmeyi kapat
-        const err = await resp.text();
-        return { success: false, error: err || 'Ödeme başlatılamadı.' };
-      }
+      if (!resp.ok) { payWindow.close(); _showToast('❌ Ödeme başlatılamadı.'); return; }
 
       const result = await resp.json();
-
-      /* Shopier'den gelen form HTML'ini yeni sekmeye bas ve otomatik submit et */
       if (result.shopierHTML) {
-        // 1. Yeni sekmenin içeriğini sıfırdan yazmak için aç
-        payWindow.document.open(); 
-        
-        // 2. Shopier HTML formunu içine bas
-        payWindow.document.write(result.shopierHTML); 
-        
-        // 3. Tarayıcının itiraz edemeyeceği şekilde, sayfanın en altına submit (gönder) kodunu zorla ekle
-        payWindow.document.write("<script>document.getElementById('shopier_form').submit();</script>");
-        
-        // 4. Yazma işlemini bitir ki tarayıcı kodu çalıştırmaya başlasın
-        payWindow.document.close(); 
-        
-        // Ana sekmede kullanıcıyı bilgilendir ve arka planda kontrol etmeye başla
-        _showToast('⏳ Ödeme sayfası yeni sekmede açıldı. Bekleniyor...');
-        _pollVerification(pending.id, 60); // 60 defa (yaklaşık 2 dk) kontrol et
-        
-        return { success: true, data: pending, pending: true };
-    } else {
+        payWindow.document.open();
+        payWindow.document.write(result.shopierHTML);
+        payWindow.document.write("<script>document.getElementById('shopier_form').submit();<\/script>");
+        payWindow.document.close();
+        _showToast('⏳ Ödeme tamamlandığında krediniz otomatik yüklenecek.');
+        _pollCreditVerification(sessionId, pkg.credits, 60, onClose);
+      } else {
+        payWindow.close();
+        _showToast('❌ Sunucudan geçersiz yanıt.');
+      }
+    } catch (err) {
       payWindow.close();
-      return { success: false, error: 'Sunucudan geçersiz yanıt geldi.' };
+      _showToast('❌ Bağlantı hatası: ' + err.message);
     }
-
-  } catch (err) {
-    console.error('[Payment] Kritik hata:', err);
-    return { success: false, error: 'Ödeme başlatılırken bir hata oluştu: ' + err.message };
   }
-} // _realPayment fonksiyonunu kapatan parantez
 
-  /* ── ÖDEME SONUÇ KONTROLÜ (Polling) ──────────── */
-  async function _pollVerification(messageId, retries) {
-    if (retries <= 0) {
-      _showToast('❌ Ödeme süresi doldu veya onaylanmadı.');
-      return;
-    }
-    
-    // 2 saniyede bir Supabase'i kontrol et
+  /* ── KREDİ YÜKLEME POLLING ───────────────────── */
+  async function _pollCreditVerification(sessionId, expectedCredits, retries, onClose) {
+    if (retries <= 0) { _showToast('❌ Ödeme doğrulanamadı.'); return; }
     await _sleep(2000);
-    
-    const { data: rows } = await _sb
-      .from('forum_messages')
-      .select('payment_status')
-      .eq('id', messageId);
-
-    const data = rows && rows.length > 0 ? rows[0] : null;
-
-    if (data?.payment_status === 'verified') {
-      _showToast('✅ Ödeme başarılı! Mesajın anında öne çıktı.');
-      // Not: forum.js realtime dinlediği için mesajı DOM'a otomatik ekleyecektir.
-    } else if (data?.payment_status === 'failed') {
-       _showToast('❌ Ödeme başarısız oldu.');
+    const bal = await getBalance(sessionId);
+    if (bal >= expectedCredits) {
+      _showToast(`✅ ${bal} krediniz yüklendi!`);
+      if (onClose) onClose(bal);
     } else {
-      // Hala pending, tekrar dene
-      _pollVerification(messageId, retries - 1);
+      _pollCreditVerification(sessionId, expectedCredits, retries - 1, onClose);
     }
   }
 
-  /* ── YARDIMCILAR ──────────────────────────── */
+  /* ── YARDIMCILAR ─────────────────────────────── */
   function _showToast(msg) {
     const t = document.createElement('div');
     t.className = 'fr-toast';
@@ -203,7 +350,7 @@ const Payment = (() => {
 
   function _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  /* ── PUBLIC ────────────────────────────────── */
-  return { init, startPayment, TIER_PRICES };
+  /* ── PUBLIC API ──────────────────────────────── */
+  return { init, startPayment, getBalance, showCreditStore, TIER_PRICES, CREDIT_PACKAGES };
 
 })();
