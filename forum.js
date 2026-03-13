@@ -610,7 +610,7 @@ const Forum = (() => {
     const panel = document.getElementById('d-fr');
     if (!panel) return;
 
-    const WRAP_STYLE        = 'display:flex;flex-direction:column;height:100%;overflow:hidden;';
+    const WRAP_STYLE        = 'display:flex;flex-direction:column;height:500px;overflow:hidden;';
     const LIST_STYLE        = 'flex:1;overflow-y:auto;min-height:0;';
     const PIN_STYLE_HIDDEN  = 'flex-shrink:0;display:none;border-bottom:1px solid rgba(255,255,255,.08);';
     const PIN_STYLE_VISIBLE = 'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);';
