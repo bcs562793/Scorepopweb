@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — forum.js  (v2)
+   SCOREPOP — forum.js  (v3 — Kredi Sistemi)
 
    DEĞİŞİKLİKLER:
    ✅ Pinned section: Elmas kalıcı, Altın 30s, Gümüş 20s, Bronz 10s
@@ -8,6 +8,7 @@
    ✅ Maç izolasyonu: fixture_id closure kontrolü
    ✅ Mesaj kayma/üst üste sorunu düzeltildi (cerrahi DOM)
    ✅ Geri sayım göstergesi pinned mesajlarda
+   ✅ KREDİ SİSTEMİ: Bakiye kontrolü, anlık gönderim, Kredi Mağazası yönlendirme
 ════════════════════════════════════════════════ */
 'use strict';
 
@@ -21,13 +22,6 @@ const Forum = (() => {
   const PAGE_SIZE        = 60;
   const RECENT_LIMIT     = 100;
 
-  /*
-   * pinDuration: ms cinsinden pinned bölmede kalma süresi
-   *   Infinity → elmas, kalıcı sabit
-   *   30000    → altın,  30 saniye
-   *   20000    → gümüş,  20 saniye
-   *   10000    → bronz,  10 saniye
-   */
   const TIERS = {
     bronze:  { label: 'Bronz',  emoji: '🥉', amount: 10,  color: '#cd7f32', bg: 'rgba(205,127,50,.12)', border: 'rgba(205,127,50,.35)', pinDuration: 10000    },
     silver:  { label: 'Gümüş', emoji: '🥈', amount: 25,  color: '#9aa4b2', bg: 'rgba(154,164,178,.10)', border: 'rgba(154,164,178,.4)',  pinDuration: 20000    },
@@ -35,20 +29,19 @@ const Forum = (() => {
     diamond: { label: 'Elmas',  emoji: '💎', amount: 100, color: '#00d4ff', bg: 'rgba(0,212,255,.10)',  border: 'rgba(0,212,255,.5)',   pinDuration: Infinity },
   };
 
-  /* Pinned bölmede üstten alta sıralama (küçük = yukarıda) */
   const TIER_RANK = { diamond: 0, gold: 1, silver: 2, bronze: 3 };
 
   /* ── STATE ────────────────────────────────── */
   let _sb          = null;
-  let _fixtureId   = null;   // aktif maç
+  let _fixtureId   = null;
   let _channel     = null;
-  let _pinnedSlots = [];     // [{ msg, unpinAt: timestamp|Infinity }]  — tier sıralı
-  let _chatMsgs    = [];     // kronolojik: normal + süresi dolmuş featured
+  let _pinnedSlots = [];
+  let _chatMsgs    = [];
   let _lastSent    = 0;
   let _sessionId   = null;
   let _nickname    = null;
   let _isLoading   = false;
-  let _pinTimer    = null;   // setInterval — geri sayım & unpin
+  let _pinTimer    = null;
 
   /* ── INIT ─────────────────────────────────── */
   function init(sb) {
@@ -72,7 +65,6 @@ const Forum = (() => {
 
   /* ── OPEN / CLOSE ─────────────────────────── */
   function open(fixtureId) {
-    /* Tamamen sıfırla — önceki maçın verileri kalmasın */
     _fixtureId   = fixtureId;
     _pinnedSlots = [];
     _chatMsgs    = [];
@@ -100,7 +92,7 @@ const Forum = (() => {
 
   /* ── PIN TIMER ────────────────────────────── */
   function _startPinTimer() {
-    if (_pinTimer) return;           // zaten çalışıyor
+    if (_pinTimer) return;
     _pinTimer = setInterval(_tickPins, 500);
   }
 
@@ -111,47 +103,41 @@ const Forum = (() => {
   function _tickPins() {
     const now = Date.now();
 
-    /* Geri sayımları güncelle */
     document.querySelectorAll('.fr-pin-countdown[data-unpin]').forEach(el => {
-      const unpinAt  = Number(el.dataset.unpin);
+      const unpinAt   = Number(el.dataset.unpin);
       const remaining = Math.max(0, Math.ceil((unpinAt - now) / 1000));
-      el.textContent = `${remaining}s`;
+      el.textContent  = `${remaining}s`;
     });
 
-    /* Süresi dolan slotları işle */
     const expired = _pinnedSlots.filter(s => s.unpinAt !== Infinity && now >= s.unpinAt);
     if (!expired.length) return;
 
     expired.forEach(slot => {
-      /* Pinned listesinden çıkar */
       _pinnedSlots = _pinnedSlots.filter(s => s !== slot);
 
-      /* Pinned DOM'dan sil */
       const pinEl = document.querySelector(`.fr-pin-slot[data-pin-id="${CSS.escape(String(slot.msg.id))}"]`);
       if (pinEl) pinEl.remove();
 
-      /* Chat'e kronolojik pozisyona ekle */
       _insertChronologically(slot.msg);
       _insertChatDOM(slot.msg);
     });
 
-    /* Pinned bölmesi boşsa gizle */
     const section = document.getElementById('fr-pinned-section');
-    if (section && _pinnedSlots.length === 0) section.style.cssText = 'flex-shrink:0;display:none;border-bottom:1px solid rgba(255,255,255,.08);';
+    if (section && _pinnedSlots.length === 0) {
+      section.style.cssText = 'flex-shrink:0;display:none;border-bottom:1px solid rgba(255,255,255,.08);';
+    }
 
-    /* Zamanlı pin kalmadıysa timer'ı durdur */
     if (!_pinnedSlots.some(s => s.unpinAt !== Infinity)) _stopPinTimer();
   }
 
   /* ── MESAJ YÜKLEME ────────────────────────── */
   async function _loadMessages() {
     if (!_fixtureId || !_sb) return;
-    const fid = _fixtureId;   // closure'a yakala — async biterken maç değişmiş olabilir
+    const fid = _fixtureId;
     _isLoading = true;
     _renderAll();
 
     try {
-      /* Öne çıkan (kalıcı) */
       const { data: featured } = await _sb
         .from('forum_messages')
         .select('*')
@@ -160,7 +146,6 @@ const Forum = (() => {
         .eq('payment_status', 'verified')
         .order('created_at', { ascending: true });
 
-      /* Normal (son 24 saat) */
       const { data: regular } = await _sb
         .from('forum_messages')
         .select('*')
@@ -170,7 +155,6 @@ const Forum = (() => {
         .order('created_at', { ascending: true })
         .limit(PAGE_SIZE);
 
-      /* Maç değişmişse sonuçları uygulama */
       if (_fixtureId !== fid) return;
 
       const now = Date.now();
@@ -180,17 +164,14 @@ const Forum = (() => {
         if (!tier) return;
 
         if (tier.pinDuration === Infinity) {
-          /* Elmas: kalıcı */
           _pinnedSlots.push({ msg, unpinAt: Infinity });
         } else {
           const sentAt  = new Date(msg.created_at).getTime();
           const unpinAt = sentAt + tier.pinDuration;
 
           if (now < unpinAt) {
-            /* Hâlâ pinned süresinde */
             _pinnedSlots.push({ msg, unpinAt });
           } else {
-            /* Süresi geçmiş → doğrudan chat */
             _insertChronologically(msg);
           }
         }
@@ -198,7 +179,6 @@ const Forum = (() => {
 
       (regular || []).forEach(msg => _insertChronologically(msg));
 
-      /* Pinned bölmeyi tier sırasına göre sırala */
       _sortPinned();
 
     } catch (e) {
@@ -210,7 +190,6 @@ const Forum = (() => {
     _renderAll();
     scrollToBottom();
 
-    /* Zamanlı pin varsa timer'ı başlat */
     if (_pinnedSlots.some(s => s.unpinAt !== Infinity)) _startPinTimer();
   }
 
@@ -219,14 +198,13 @@ const Forum = (() => {
     if (!_fixtureId || !_sb) return;
     if (_channel) { _sb.removeChannel(_channel).catch(() => {}); }
 
-    const fid = _fixtureId;   // closure — kanal süresi boyunca sabit kalır
+    const fid = _fixtureId;
     _channel = _sb
       .channel(`forum:${fid}`)
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'forum_messages',
         filter: `fixture_id=eq.${fid}`,
       }, payload => {
-        /* Maç değişmişse bu kanalın mesajlarını işleme */
         if (_fixtureId !== fid) return;
         _onNewMessage(payload.new);
       })
@@ -236,11 +214,9 @@ const Forum = (() => {
   function _onNewMessage(msg) {
     if (!msg) return;
 
-    /* Mükerrer kontrol */
     if (_pinnedSlots.some(s => s.msg.id === msg.id)) return;
     const chatIdx = _chatMsgs.findIndex(m => m.id === msg.id);
 
-    /* Optimistik mesajla eşleştir */
     const tempIdx = _chatMsgs.findIndex(
       m => m._optimistic && m.session_id === _sessionId && m.message === msg.message
     );
@@ -255,17 +231,15 @@ const Forum = (() => {
       return;
     }
 
-    if (chatIdx >= 0) return;   // zaten var
+    if (chatIdx >= 0) return;
 
     if (msg.is_featured && msg.payment_status === 'verified') {
       _addFeaturedMessage(msg);
       return;
     }
 
-    /* Normal mesaj */
     const regularCount = _chatMsgs.filter(m => !m.is_featured).length;
     if (regularCount >= RECENT_LIMIT) {
-      /* En eski normal mesajı sil */
       const firstRegIdx = _chatMsgs.findIndex(m => !m.is_featured);
       if (firstRegIdx >= 0) {
         const removed = _chatMsgs.splice(firstRegIdx, 1)[0];
@@ -363,12 +337,17 @@ const Forum = (() => {
   }
 
   /* ── ÖNE ÇIKAN MODAL ──────────────────────── */
-  function _showFeaturedModal() {
+  async function _showFeaturedModal() {
     if (!_nickname) { _showNickModal(() => _showFeaturedModal()); return; }
     document.getElementById('fr-modal-overlay')?.remove();
 
+    /* Bakiyeyi önceden çek — modal açılmadan önce */
+    const balance = (typeof Payment !== 'undefined')
+      ? await Payment.getBalance(_sessionId)
+      : 0;
+
     const overlay = document.createElement('div');
-    overlay.id    = 'fr-modal-overlay';
+    overlay.id        = 'fr-modal-overlay';
     overlay.className = 'fr-modal-overlay';
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 
@@ -378,57 +357,122 @@ const Forum = (() => {
           <div class="fr-modal-title">💎 Öne Çıkan Mesaj</div>
           <button class="fr-modal-close" onclick="document.getElementById('fr-modal-overlay').remove()">✕</button>
         </div>
-        <p class="fr-modal-sub">Mesajın öne çıksın, sohbet geçmişinde renkli kalsın!</p>
+
+        <div id="fr-credit-bar" style="
+          display:flex;align-items:center;justify-content:space-between;
+          padding:8px 12px;margin-bottom:14px;
+          background:var(--color-background-secondary);
+          border-radius:8px;font-size:13px;
+        ">
+          <span style="color:var(--color-text-secondary)">
+            💳 Bakiye: <strong id="fr-credit-amount" style="color:var(--color-text-primary)">${balance} kredi</strong>
+          </span>
+          <button id="fr-buy-credits-btn" style="
+            background:none;border:1px solid var(--color-border-secondary);
+            border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;
+            color:var(--color-text-secondary);
+          ">+ Kredi Al</button>
+        </div>
+
+        <p class="fr-modal-sub">Tier seç, mesajını yaz — anında yayınla!</p>
         <div class="fr-tier-grid" id="fr-tier-grid"></div>
+
         <div class="fr-modal-input-wrap">
           <textarea id="fr-feat-msg" class="fr-feat-textarea" maxlength="${MAX_FEATURED_LEN}"
             placeholder="Öne çıkan mesajınızı yazın…" rows="3"></textarea>
           <div class="fr-feat-count"><span id="fr-feat-cnt">0</span>/${MAX_FEATURED_LEN}</div>
         </div>
+
         <div id="fr-selected-tier" class="fr-selected-tier hidden"></div>
+
+        <div id="fr-credit-warn" style="
+          display:none;padding:8px 12px;margin-bottom:10px;
+          background:var(--color-background-warning,#FAEEDA);
+          border-radius:8px;font-size:12px;color:var(--color-text-warning,#854F0B);
+        ">
+          ⚠️ Bu tier için yeterli krediniz yok.
+          <button id="fr-warn-buy-btn" style="
+            background:none;border:none;cursor:pointer;
+            text-decoration:underline;color:inherit;padding:0;font-size:12px;
+          ">Kredi satın al →</button>
+        </div>
+
         <button class="fr-pay-btn" id="fr-pay-btn" disabled>Tier seçin</button>
-        <p class="fr-modal-disclaimer">
-          ⚠️ Demo mod: Ödeme simüle edilmektedir.
-          Prodüksiyonda Supabase Edge Function + ödeme sağlayıcısı entegrasyonu gereklidir.
-        </p>
       </div>`;
 
     document.body.appendChild(overlay);
 
-    const grid = document.getElementById('fr-tier-grid');
     let selectedTier = null;
+    const grid = document.getElementById('fr-tier-grid');
+
+    const _refreshUI = (tier) => {
+      const cost    = TIERS[tier].amount;
+      const canSend = balance >= cost;
+      const btn     = document.getElementById('fr-pay-btn');
+      const warn    = document.getElementById('fr-credit-warn');
+      const t       = TIERS[tier];
+
+      document.getElementById('fr-selected-tier').classList.remove('hidden');
+      document.getElementById('fr-selected-tier').textContent =
+        `Seçilen: ${t.emoji} ${t.label} — ${cost} kredi`;
+
+      if (canSend) {
+        warn.style.display = 'none';
+        btn.disabled        = false;
+        btn.textContent     = `${t.emoji} ${cost} kredi kullan ve gönder`;
+        btn.style.setProperty('--btn-color', t.color);
+        btn.className       = 'fr-pay-btn active';
+      } else {
+        warn.style.display  = '';
+        btn.disabled        = true;
+        btn.textContent     = `Yetersiz kredi (${cost - balance} eksik)`;
+        btn.className       = 'fr-pay-btn';
+      }
+    };
 
     Object.entries(TIERS).forEach(([key, tier]) => {
-      const pinLabel = tier.pinDuration === Infinity
+      const cost      = tier.amount;
+      const canAfford = balance >= cost;
+      const pinLabel  = tier.pinDuration === Infinity
         ? '📌 Kalıcı sabit'
-        : `⏱ ${tier.pinDuration / 1000}s sabit, sonra sohbette`;
+        : `⏱ ${tier.pinDuration / 1000}s sabit`;
+
       const card = document.createElement('div');
-      card.className = 'fr-tier-card';
+      card.className = 'fr-tier-card' + (canAfford ? '' : ' fr-tier-disabled');
+      card.style.setProperty('--tc', tier.color);
+      if (!canAfford) card.style.opacity = '.55';
+
       card.innerHTML = `
         <div class="fr-tier-emoji">${tier.emoji}</div>
         <div class="fr-tier-name">${tier.label}</div>
-        <div class="fr-tier-price">₺${tier.amount}</div>
-        <div class="fr-tier-pin">${pinLabel}</div>`;
-      card.style.setProperty('--tc', tier.color);
+        <div class="fr-tier-price">${cost} kredi</div>
+        <div class="fr-tier-pin">${pinLabel}</div>
+        ${!canAfford ? `<div style="font-size:10px;color:var(--color-text-tertiary);margin-top:2px;">Yetersiz bakiye</div>` : ''}`;
+
       card.addEventListener('click', () => {
         grid.querySelectorAll('.fr-tier-card').forEach(c => c.classList.remove('active'));
         card.classList.add('active');
         selectedTier = key;
-        const btn = document.getElementById('fr-pay-btn');
-        btn.disabled  = false;
-        btn.textContent = `${tier.emoji} ₺${tier.amount} öde ve gönder`;
-        btn.style.setProperty('--btn-color', tier.color);
-        btn.className = 'fr-pay-btn active';
-        const st = document.getElementById('fr-selected-tier');
-        st.classList.remove('hidden');
-        st.textContent = `Seçilen: ${tier.emoji} ${tier.label} — ₺${tier.amount} (${pinLabel})`;
+        _refreshUI(key);
       });
+
       grid.appendChild(card);
     });
 
-    document.getElementById('fr-feat-msg').addEventListener('input', function() {
+    document.getElementById('fr-feat-msg').addEventListener('input', function () {
       document.getElementById('fr-feat-cnt').textContent = this.value.length;
     });
+
+    const _openStore = () => {
+      overlay.remove();
+      if (typeof Payment !== 'undefined') {
+        Payment.showCreditStore(_sessionId, (newBalance) => {
+          if (newBalance) _showFeaturedModal();
+        });
+      }
+    };
+    document.getElementById('fr-buy-credits-btn').addEventListener('click', _openStore);
+    document.getElementById('fr-warn-buy-btn')?.addEventListener('click', _openStore);
 
     document.getElementById('fr-pay-btn').addEventListener('click', async () => {
       if (!selectedTier) return;
@@ -440,55 +484,65 @@ const Forum = (() => {
     });
   }
 
+  /* ── ÖNE ÇIKAN MESAJ İŞLE ────────────────── */
   async function _processFeaturedPayment(tierKey, message) {
     const tier = TIERS[tierKey];
     if (!tier) return;
     if (!_nickname) { _showNickModal(() => _processFeaturedPayment(tierKey, message)); return; }
-    _showToast(`${tier.emoji} Mesajınız gönderiliyor…`);
 
-    try {
-      if (typeof Payment !== 'undefined') {
-        const result = await Payment.startPayment({
-          tierKey, message, fixtureId: _fixtureId, sessionId: _sessionId, nickname: _nickname,
-        });
-        if (!result.success) { _showError(result.error || 'Ödeme başarısız.'); return; }
-        if (result.pending)  return;
-        _addFeaturedMessage(result.data);
-        _showToast(`${tier.emoji} Mesajınız öne çıktı!`);
-        return;
-      }
+    _showToast(`${tier.emoji} Gönderiliyor…`);
 
-      /* Demo: Payment modülü yok, doğrudan ekle */
+    if (typeof Payment === 'undefined') {
+      /* Demo mod: Payment modülü yok, doğrudan ekle */
       const { data, error } = await _sb.from('forum_messages').insert({
-        fixture_id:     _fixtureId,
-        session_id:     _sessionId,
-        nickname:       _nickname,
-        message,
-        is_featured:    true,
-        feature_tier:   tierKey,
-        feature_amount: tier.amount,
-        payment_status: 'verified',
-        expires_at:     null,
+        fixture_id: _fixtureId, session_id: _sessionId, nickname: _nickname,
+        message, is_featured: true, feature_tier: tierKey,
+        feature_amount: tier.amount, payment_status: 'verified', expires_at: null,
       }).select();
-
-      if (error) throw error;
-
-      const inserted = data?.[0] ?? null;
-      if (inserted) {
-        _addFeaturedMessage(inserted);
+      if (!error && data?.[0]) {
+        _addFeaturedMessage(data[0]);
         _showToast(`${tier.emoji} Mesajınız öne çıktı!`);
       }
-    } catch (e) {
-      console.error('[Forum] Öne çıkan mesaj hatası:', e);
-      _showError('İşlem başarısız. Lütfen tekrar deneyin.');
+      return;
     }
+
+    const result = await Payment.startPayment({
+      tierKey,
+      message,
+      fixtureId: _fixtureId,
+      sessionId: _sessionId,
+      nickname:  _nickname,
+    });
+
+    if (result.success) {
+      /* Kredi yeterliydi — anlık yayın */
+      _addFeaturedMessage(result.data);
+      _showToast(`${tier.emoji} Mesajınız öne çıktı! (Kalan: ${result.newBalance ?? '?'} kredi)`);
+
+      const el = document.getElementById('fr-credit-amount');
+      if (el && result.newBalance != null) el.textContent = `${result.newBalance} kredi`;
+      return;
+    }
+
+    if (result.needsCredits) {
+      /* Yetersiz kredi — Kredi Mağazası'na yönlendir */
+      _showToast(`💳 Yeterli krediniz yok (${result.cost - result.balance} eksik).`);
+      Payment.showCreditStore(_sessionId, (newBalance) => {
+        if (newBalance && newBalance >= result.cost) {
+          _processFeaturedPayment(tierKey, message);
+        }
+      });
+      return;
+    }
+
+    _showError(result.error || 'İşlem başarısız.');
   }
 
   /* ── NICKNAME MODAL ───────────────────────── */
   function _showNickModal(callback) {
     document.getElementById('fr-nick-overlay')?.remove();
     const overlay = document.createElement('div');
-    overlay.id    = 'fr-nick-overlay';
+    overlay.id        = 'fr-nick-overlay';
     overlay.className = 'fr-modal-overlay';
     overlay.innerHTML = `
       <div class="fr-modal fr-nick-modal" role="dialog" aria-modal="true">
@@ -500,14 +554,24 @@ const Forum = (() => {
         <button class="fr-pay-btn active" id="fr-nick-save" style="--btn-color:var(--or)">Kaydet</button>
       </div>`;
     document.body.appendChild(overlay);
+
     const input = document.getElementById('fr-nick-input');
     const errEl = document.getElementById('fr-nick-err');
     if (_nickname) input.value = _nickname;
     input.focus();
+
     function _save() {
       const nick = _sanitizeText(input.value.trim());
-      if (!nick || nick.length < 2) { errEl.textContent = 'En az 2 karakter gir.'; errEl.classList.remove('hidden'); return; }
-      if (nick.length > MAX_NICK_LEN) { errEl.textContent = `En fazla ${MAX_NICK_LEN} karakter.`; errEl.classList.remove('hidden'); return; }
+      if (!nick || nick.length < 2) {
+        errEl.textContent = 'En az 2 karakter gir.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      if (nick.length > MAX_NICK_LEN) {
+        errEl.textContent = `En fazla ${MAX_NICK_LEN} karakter.`;
+        errEl.classList.remove('hidden');
+        return;
+      }
       _saveNickname(nick);
       overlay.remove();
       if (callback) callback();
@@ -516,14 +580,13 @@ const Forum = (() => {
     input.addEventListener('keydown', e => { if (e.key === 'Enter') _save(); });
   }
 
-  /* ── TAM RENDER (sadece ilk yükleme / loading) */
+  /* ── TAM RENDER ───────────────────────────── */
   function _renderAll() {
     const panel = document.getElementById('d-fr');
     if (!panel) return;
 
-    /* fr-wrap her zaman flex-column, mesaj listesi scroll alır */
-    const WRAP_STYLE  = 'display:flex;flex-direction:column;height:100%;overflow:hidden;';
-    const LIST_STYLE  = 'flex:1;overflow-y:auto;min-height:0;';
+    const WRAP_STYLE        = 'display:flex;flex-direction:column;height:100%;overflow:hidden;';
+    const LIST_STYLE        = 'flex:1;overflow-y:auto;min-height:0;';
     const PIN_STYLE_HIDDEN  = 'flex-shrink:0;display:none;border-bottom:1px solid rgba(255,255,255,.08);';
     const PIN_STYLE_VISIBLE = 'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);';
 
@@ -556,7 +619,6 @@ const Forum = (() => {
         ${_buildInputArea()}
       </div>`;
 
-    /* XSS-safe metin atama */
     _chatMsgs.forEach(m => {
       const el = panel.querySelector(`[data-msg-id="${String(m.id)}"]`);
       if (el) _setMsgText(el, m.message);
@@ -614,7 +676,6 @@ const Forum = (() => {
     let insertBefore = null;
 
     for (const item of items) {
-      /* DOM'daki her elementin zamanını _chatMsgs'ten bul */
       const found = _chatMsgs.find(m => String(m.id) === item.dataset.msgId);
       if (found && new Date(found.created_at).getTime() > msgTime) {
         insertBefore = item;
@@ -732,7 +793,6 @@ const Forum = (() => {
     });
   }
 
-  /* XSS-safe metin atama */
   function _setMsgText(el, message) {
     const bodyEl = el.querySelector('.fr-msg-body, .fr-feat-body');
     if (bodyEl) bodyEl.textContent = message;
