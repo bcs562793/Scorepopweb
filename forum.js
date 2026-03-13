@@ -50,18 +50,29 @@ const Forum = (() => {
     _nickname  = _getStoredNickname();
 
     if (typeof Auth !== 'undefined') {
-      Auth.onChange(user => {
-        if (!user) return;
-        const name = Auth.getDisplayName();
-        if (name) {
-          _nickname = name;
-          try { localStorage.setItem('sp_nick', name); } catch {}
-          const el = document.querySelector('.fr-nick-lbl strong');
-          if (el) el.textContent = name;
-        }
-      });
+  Auth.onChange(async user => {
+    if (!user) return;
+    const name = Auth.getDisplayName();
+    if (name) {
+      _nickname = name;
+      try { localStorage.setItem('sp_nick', name); } catch {}
+      const el = document.querySelector('.fr-nick-lbl strong');
+      if (el) el.textContent = name;
     }
-  }
+
+    // Giriş yapınca session_id'yi user'a bağla
+    if (user.id && _sessionId) {
+      try {
+        await _sb.rpc('add_credits', {
+          p_session_id:  _sessionId,
+          p_amount:      0,
+          p_description: 'session link',
+          p_user_id:     user.id,
+        });
+      } catch {}
+    }
+  });
+}
 
   /* ── OPEN / CLOSE ─────────────────────────── */
   function open(fixtureId) {
