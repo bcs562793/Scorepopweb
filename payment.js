@@ -107,7 +107,7 @@ const Payment = (() => {
     });
 
     if (rpcErr || newBalance === -1) {
-      await _sb.from('forum_messages').delete().eq('id', pending.id).catch(() => {});
+      try { await _sb.from('forum_messages').delete().eq('id', pending.id); } catch {}
       return { success: false, needsCredits: true, tierKey, balance, cost };
     }
 
