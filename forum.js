@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — forum.js  (v3.3 — Tam Kart Pin)
+   SCOREPOP — forum.js  (v3.2 — Kompakt Pin)
 
    DEĞİŞİKLİKLER:
    ✅ Pinned section: Elmas kalıcı, Altın 30s, Gümüş 20s, Bronz 10s
@@ -10,7 +10,7 @@
    ✅ Geri sayım göstergesi pinned mesajlarda
    ✅ KREDİ SİSTEMİ: Bakiye kontrolü, anlık gönderim, Kredi Mağazası yönlendirme
    ✅ Giriş yapınca session_id → user_id bağlantısı
-   ✅ v3.3: Pin satırları tam kart — her zaman açık, toggle yok
+   ✅ v3.2: Kompakt pin satırları — tıkla aç, chat asla gömülmez
 ════════════════════════════════════════════════ */
 'use strict';
 
@@ -131,7 +131,7 @@ const Forum = (() => {
     expired.forEach(slot => {
       _pinnedSlots = _pinnedSlots.filter(s => s !== slot);
 
-      const pinEl = document.querySelector(`[data-pin-id="${CSS.escape(String(slot.msg.id))}"]`);
+      const pinEl = document.querySelector(`.fr-pin-slot[data-pin-id="${CSS.escape(String(slot.msg.id))}"]`);
       if (pinEl) pinEl.remove();
 
       _insertChronologically(slot.msg);
@@ -601,14 +601,15 @@ const Forum = (() => {
   }
 
   /* ══════════════════════════════════════════════
-     PİN SİSTEMİ — Tam Kart Görünümü
+     KOMPAKT PİN SİSTEMİ
      ──────────────────────────────────────────────
-     • Her pin tam kart: her zaman açık, toggle yok
-     • Geri sayım badge olarak köşede
-     • Süre dolunca chat'e renkli kart olarak iner
+     • Her pin tek satırda: BADGE + nick + kırpılmış metin + süre
+     • Tıklayınca tam metin açılır/kapanır
+     • Hepsi görünür — hiçbir mesaj gizlenmez
+     • Chat alanı asla gömülmez
   ══════════════════════════════════════════════ */
 
-  /* ── v3.3: Tam kart pin — her zaman açık ── */
+  /* Kompakt pin satırı — tıkla aç/kapa */
   function _buildPinnedHTML(msg, unpinAt) {
     const tier = TIERS[msg.feature_tier];
     if (!tier) return '';
@@ -618,33 +619,39 @@ const Forum = (() => {
     const remainMs  = permanent ? 0 : Math.max(0, unpinAt - Date.now());
     const remainS   = Math.ceil(remainMs / 1000);
 
-    const timerBadge = permanent
-      ? `<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(0,212,255,.15);color:${tier.color};font-weight:600;">📌 Kalıcı</span>`
-      : `<span class="fr-pin-countdown" data-unpin="${unpinAt}" style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.08);color:var(--color-text-secondary);font-weight:600;">${remainS}s</span>`;
+    const timerHTML = permanent
+      ? '<span style="font-size:10px;margin-left:auto;flex-shrink:0;opacity:.7;">📌</span>'
+      : `<span class="fr-pin-countdown" data-unpin="${unpinAt}" style="font-size:10px;margin-left:auto;flex-shrink:0;opacity:.7;">${remainS}s</span>`;
 
     return `
-      <div data-pin-id="${esc(String(msg.id))}"
-           style="padding:10px 14px;margin:4px 8px;border-radius:8px;
-                  background:${tier.bg};border:1px solid ${tier.border};
-                  border-left:3px solid ${tier.color};box-sizing:border-box;">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-          <span style="font-size:11px;font-weight:700;color:${tier.color};letter-spacing:.3px;flex-shrink:0;">${tier.emoji} ${tier.label.toUpperCase()}</span>
-          <span style="font-size:11px;font-weight:600;color:var(--color-text-primary);flex-shrink:0;">${esc(msg.nickname)}</span>
-          <span style="margin-left:auto;font-size:10px;color:var(--color-text-tertiary);flex-shrink:0;">${time}</span>
-          ${timerBadge}
-        </div>
-        <div class="fr-pin-msg-text" style="font-size:13px;color:var(--color-text-primary);line-height:1.5;word-break:break-word;white-space:normal;overflow:visible;"></div>
+      <div class="fr-pin-slot ${isOwn ? 'fr-own' : ''}"
+           data-pin-id="${esc(String(msg.id))}"
+           style="
+             display:flex;align-items:center;gap:8px;
+             padding:6px 12px;margin:2px 8px;border-radius:6px;
+             cursor:pointer;font-size:12px;
+             background:${tier.bg};
+             border:1px solid ${tier.border};
+             border-left:3px solid ${tier.color};
+             transition:all .15s;
+           "
+           onclick="this.classList.toggle('fr-pin-open');var b=this.querySelector('.fr-pin-full');if(b)b.style.display=b.style.display==='block'?'none':'block';var t=this.querySelector('.fr-pin-trunc');if(t)t.style.display=t.style.display==='none'?'':'none'">
+        <span style="font-size:11px;font-weight:500;color:${tier.color};flex-shrink:0;white-space:nowrap;">${tier.emoji} ${tier.label.toUpperCase()}</span>
+        <span style="font-weight:500;font-size:11px;color:var(--color-text-primary);flex-shrink:0;">${esc(msg.nickname)}</span>
+        <span class="fr-pin-trunc" style="display:none;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--color-text-secondary);font-size:11px;"></span>
+<span class="fr-pin-full" style="flex:1;color:var(--color-text-primary);font-size:12px;line-height:1.4;word-break:break-word;"></span>
+        <span style="font-size:10px;color:var(--color-text-tertiary);flex-shrink:0;white-space:nowrap;">${time}</span>
+        ${timerHTML}
       </div>`;
   }
 
-  /* ── Pinned section header + tüm kartlar ── */
+  /* Pinned section header + tüm kompakt satırlar */
   function _buildPinnedSectionHTML() {
     if (_pinnedSlots.length === 0) return '';
 
     let html = `<div style="
-      display:flex;align-items:center;padding:5px 14px 2px;
-      font-size:11px;font-weight:600;color:var(--color-text-secondary);
-      letter-spacing:.4px;text-transform:uppercase;
+      display:flex;align-items:center;padding:4px 12px;
+      font-size:11px;color:var(--color-text-secondary);
     ">📌 ${_pinnedSlots.length} sabitlenmiş mesaj</div>`;
 
     _pinnedSlots.forEach(s => {
@@ -670,10 +677,12 @@ const Forum = (() => {
 
     /* Mesaj text'lerini güvenli ata */
     _pinnedSlots.forEach(s => {
-      const el = section.querySelector(`[data-pin-id="${String(s.msg.id)}"]`);
+      const el = section.querySelector(`.fr-pin-slot[data-pin-id="${String(s.msg.id)}"]`);
       if (!el) return;
-      const textEl = el.querySelector('.fr-pin-msg-text');
-      if (textEl) textEl.textContent = s.msg.message;
+      const trunc = el.querySelector('.fr-pin-trunc');
+      const full  = el.querySelector('.fr-pin-full');
+      if (trunc) trunc.textContent = s.msg.message;
+      if (full)  full.textContent  = s.msg.message;
     });
   }
 
@@ -723,10 +732,12 @@ const Forum = (() => {
       if (el) _setMsgText(el, m.message);
     });
     _pinnedSlots.forEach(s => {
-      const el = panel.querySelector(`[data-pin-id="${String(s.msg.id)}"]`);
+      const el = panel.querySelector(`.fr-pin-slot[data-pin-id="${String(s.msg.id)}"]`);
       if (!el) return;
-      const textEl = el.querySelector('.fr-pin-msg-text');
-      if (textEl) textEl.textContent = s.msg.message;
+      const trunc = el.querySelector('.fr-pin-trunc');
+      const full  = el.querySelector('.fr-pin-full');
+      if (trunc) trunc.textContent = s.msg.message;
+      if (full)  full.textContent  = s.msg.message;
     });
 
     _bindInputEvents();
@@ -784,18 +795,17 @@ const Forum = (() => {
     const time  = _fmtTime(msg.created_at);
 
     if (tier) {
-      /* Pin kartıyla birebir aynı yapı — sadece timer badge yok */
+      const boxStyle = `background:${tier.bg};border:1px solid ${tier.border};border-left:3px solid ${tier.color};border-radius:8px;padding:10px 12px;margin:4px 0;`;
       return `
         <div class="fr-msg fr-featured fr-tier-${msg.feature_tier} ${isOwn ? 'fr-own' : ''}"
              data-msg-id="${esc(String(msg.id))}"
-             style="padding:10px 14px;margin:4px 8px;border-radius:8px;
-                    background:${tier.bg};border:1px solid ${tier.border};border-left:3px solid ${tier.color};">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
-            <span style="font-size:11px;font-weight:700;color:${tier.color};letter-spacing:.3px;">${tier.emoji} ${tier.label.toUpperCase()}</span>
-            <span style="font-size:11px;font-weight:600;color:var(--color-text-primary);">${esc(msg.nickname)}</span>
-            <span style="margin-left:auto;font-size:10px;color:var(--color-text-tertiary);">${time}</span>
+             style="${boxStyle}--tc:${tier.color};--tb:${tier.bg};--tbr:${tier.border}">
+          <div class="fr-feat-header">
+            <span class="fr-feat-badge">${tier.emoji} ${tier.label}</span>
+            <span class="fr-msg-time">${time}</span>
           </div>
-          <div class="fr-feat-body" style="font-size:13px;color:var(--color-text-primary);line-height:1.5;word-break:break-word;"></div>
+          <div class="fr-feat-nick">${esc(msg.nickname)}</div>
+          <div class="fr-feat-body"></div>
         </div>`;
     }
 
