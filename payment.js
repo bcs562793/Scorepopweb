@@ -22,7 +22,7 @@ const Payment = (() => {
   let _sb        = null;
   let _edgeFnUrl = null;
 
-  /* Tier'ların kredi maliyeti — miktarlar migration ile eşleşmeli */
+  /* Tier'ların kredi maliyeti */
   const TIER_PRICES = {
     bronze:  10,
     silver:  25,
@@ -32,38 +32,37 @@ const Payment = (() => {
 
   /* Kredi paketleri */
   const CREDIT_PACKAGES = [
-    { key: 'starter', credits: 100,  price: 29,  label: 'Başlangıç',  popular: false, bonus: null },
-    { key: 'popular', credits: 300,  price: 79,  label: 'Popüler',    popular: true,  bonus: '+ 20 bonus' },
-    { key: 'pro',     credits: 750,  price: 179, label: 'Pro',        popular: false, bonus: '+ 75 bonus' },
-    { key: 'ultra',   credits: 2000, price: 399, label: 'Ultra',      popular: false, bonus: '+ 300 bonus' },
+    { key: 'starter', credits: 100,  price: 29,  label: 'Başlangıç', popular: false, bonus: null,          shopierUrl: 'https://www.shopier.com/bizedemiofsayt/45175740' },
+    { key: 'popular', credits: 300,  price: 79,  label: 'Popüler',   popular: true,  bonus: '+ 20 bonus',  shopierUrl: 'https://www.shopier.com/bizedemiofsayt/45175740' },
+    { key: 'pro',     credits: 750,  price: 179, label: 'Pro',       popular: false, bonus: '+ 75 bonus',  shopierUrl: 'https://www.shopier.com/bizedemiofsayt/45175740' },
+    { key: 'ultra',   credits: 2000, price: 399, label: 'Ultra',     popular: false, bonus: '+ 300 bonus', shopierUrl: 'https://www.shopier.com/bizedemiofsayt/45175740' },
   ];
 
   /* ── BAŞLAT ──────────────────────────────────── */
   function init(sb) {
-    _sb = sb;
+    _sb        = sb;
     _edgeFnUrl = window.PAYMENT_EDGE_URL || null;
   }
 
   /* ── BAKİYE SORGULA ──────────────────────────── */
   async function getBalance(sessionId) {
-  if (!_sb || !sessionId) return 0;
-  try {
-    // Önce giriş yapmış kullanıcıyı kontrol et
-    const { data: { user } } = await _sb.auth.getUser();
-    
-    let query = _sb.from('user_credits').select('balance');
-    if (
-      query = query.or(`user_id.eq.${user.id},session_id.eq.${sessionId}`);
-    } else {
-      query = query.eq('session_id', sessionId);
-    }
-    
-    const { data } = await query.order('balance', { ascending: false }).limit(1).maybeSingle();
-    return data?.balance ?? 0;
-  } catch { return 0; }
-}
+    if (!_sb || !sessionId) return 0;
+    try {
+      const { data: { user } } = await _sb.auth.getUser();
 
-  /* ── ANA ÖDEME AKIŞI (geriye dönük uyumlu) ───── */
+      let query = _sb.from('user_credits').select('balance');
+      if (user?.id) {
+        query = query.or(`user_id.eq.${user.id},session_id.eq.${sessionId}`);
+      } else {
+        query = query.eq('session_id', sessionId);
+      }
+
+      const { data } = await query.order('balance', { ascending: false }).limit(1).maybeSingle();
+      return data?.balance ?? 0;
+    } catch { return 0; }
+  }
+
+  /* ── ANA ÖDEME AKIŞI ─────────────────────────── */
   async function startPayment({ tierKey, message, fixtureId, sessionId, nickname }) {
     const cost = TIER_PRICES[tierKey];
     if (!cost) return { success: false, error: 'Geçersiz tier.' };
@@ -74,7 +73,7 @@ const Payment = (() => {
       return { success: false, needsCredits: true, tierKey, balance, cost };
     }
 
-    /* 2. Önce DB'ye pending kayıt oluştur */
+    /* 2. DB'ye pending kayıt oluştur */
     const { data: insertData, error: insertErr } = await _sb
       .from('forum_messages')
       .insert({
@@ -96,6 +95,8 @@ const Payment = (() => {
     if (!pending) return { success: false, error: 'Kayıt oluşturulamadı.' };
 
     /* 3. Atomik kredi düşme (RPC) */
+    const { data: { user } } = await _sb.auth.getUser();
+
     const { data: newBalance, error: rpcErr } = await _sb.rpc('deduct_credits', {
       p_session_id:  sessionId,
       p_amount:      cost,
@@ -106,7 +107,6 @@ const Payment = (() => {
     });
 
     if (rpcErr || newBalance === -1) {
-      /* Bakiye yetersizse (başka sekme harcamış olabilir) — kaydı temizle */
       await _sb.from('forum_messages').delete().eq('id', pending.id).catch(() => {});
       return { success: false, needsCredits: true, tierKey, balance, cost };
     }
@@ -119,12 +119,10 @@ const Payment = (() => {
       .select();
 
     if (updErr) {
-      /* Güncelleme hata verdi — ama kredi düşüldü. RLS sorunu olabilir.
-         Güvenli fallback: veriyi elle birleştir. */
       console.warn('[Payment] UPDATE hatası (muhtemelen RLS):', updErr.message);
       return {
-        success: true,
-        data: { ...pending, is_featured: true, payment_status: 'verified' },
+        success:    true,
+        data:       { ...pending, is_featured: true, payment_status: 'verified' },
         newBalance,
       };
     }
@@ -198,13 +196,14 @@ const Payment = (() => {
               <div style="font-size:22px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px;">
                 ${pkg.credits}<span style="font-size:13px;color:var(--color-text-secondary);"> kredi</span>
               </div>
-              ${pkg.bonus ? `<div style="font-size:11px;color:var(--color-text-success,#3B6D11);margin-bottom:6px;">${pkg.bonus}</div>` : '<div style="margin-bottom:6px;height:16px;"></div>'}
+              ${pkg.bonus
+                ? `<div style="font-size:11px;color:#3B6D11;margin-bottom:6px;">${pkg.bonus}</div>`
+                : '<div style="margin-bottom:6px;height:16px;"></div>'}
               <div style="font-size:18px;font-weight:500;color:var(--color-text-primary);">₺${pkg.price}</div>
             </div>
           `).join('')}
         </div>
 
-        <!-- Tier referans tablosu -->
         <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:16px;padding:10px 12px;background:var(--color-background-secondary);border-radius:8px;">
           <div style="font-weight:500;margin-bottom:6px;">Kredi maliyetleri:</div>
           <div style="display:flex;gap:12px;flex-wrap:wrap;">
@@ -220,10 +219,6 @@ const Payment = (() => {
           background:var(--color-border-secondary);color:var(--color-text-secondary);
           font-size:15px;font-weight:500;cursor:not-allowed;transition:all .15s;
         ">Paket seçin</button>
-
-        <p style="font-size:11px;color:var(--color-text-tertiary);text-align:center;margin:10px 0 0;">
-          ⚠️ Demo mod — Shopier entegrasyonu ile aktifleşir.
-        </p>
       </div>`;
 
     document.body.appendChild(overlay);
@@ -248,17 +243,14 @@ const Payment = (() => {
           c.style.borderColor = 'var(--color-border-tertiary)';
           c.style.background  = 'transparent';
         });
-        card.style.borderColor = 'var(--color-text-info,#185FA5)';
-        card.style.background  = 'var(--color-background-info,#E6F1FB)';
+        card.style.borderColor = '#185FA5';
+        card.style.background  = '#E6F1FB';
         selectedPkg = CREDIT_PACKAGES.find(p => p.key === card.dataset.pkg);
         const btn = document.getElementById('sp-store-pay-btn');
         if (btn && selectedPkg) {
-          btn.disabled = false;
-          btn.style.cssText += `;
-            background:var(--color-text-primary);color:var(--color-background-primary);
-            cursor:pointer;
-          `;
-          btn.textContent = `${selectedPkg.credits} kredi satın al — ₺${selectedPkg.price}`;
+          btn.disabled       = false;
+          btn.style.cssText += ';background:var(--color-text-primary);color:var(--color-background-primary);cursor:pointer;';
+          btn.textContent    = `${selectedPkg.credits} kredi satın al — ₺${selectedPkg.price}`;
         }
       });
     });
@@ -273,61 +265,20 @@ const Payment = (() => {
 
   /* ── KREDİ SATIN ALMA AKIŞI ──────────────────── */
   async function _processCreditPurchase(sessionId, pkg, onClose) {
-    if (!_edgeFnUrl) {
-      /* Demo mod: doğrudan ekle */
-      console.warn('[Payment] Demo mod — kredi ekleniyor:', pkg.credits);
-      const { data: newBal } = await _sb.rpc('add_credits', {
-        p_session_id:  sessionId,
-        p_amount:      pkg.credits,
-        p_description: `${pkg.label} paketi (demo)`,
-      });
-      _showToast(`✅ ${newBal ?? pkg.credits} krediniz yüklendi!`);
-      if (onClose) onClose(newBal ?? pkg.credits);
+    if (!pkg.shopierUrl) {
+      _showToast('❌ Ödeme linki tanımlı değil.');
       return;
     }
 
-    /* Gerçek ödeme — Shopier, yeni sekme */
-    const payWindow = window.open('', '_blank');
-    if (!payWindow) {
-      _showToast('❌ Pop-up engelleyicisine izin verin.');
-      return;
-    }
-    payWindow.document.write(`
-      <div style="font-family:sans-serif;text-align:center;padding:60px 20px;">
-        <h2>Güvenli ödeme sayfasına yönlendiriliyorsunuz…</h2>
-      </div>`);
+    /* Session ID ve kredi miktarını Shopier note alanına geçir */
+    const url = `${pkg.shopierUrl}?note=${encodeURIComponent(sessionId + '|' + pkg.credits)}`;
 
-    try {
-      const resp = await fetch(_edgeFnUrl + '/create-credit-purchase', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: sessionId,
-          package_key: pkg.key,
-          credits:     pkg.credits,
-          amount:      pkg.price,
-          currency:    'TRY',
-        }),
-      });
+    window.open(url, '_blank');
 
-      if (!resp.ok) { payWindow.close(); _showToast('❌ Ödeme başlatılamadı.'); return; }
+    _showToast('⏳ Ödeme tamamlandığında krediniz otomatik yüklenecek.');
 
-      const result = await resp.json();
-      if (result.shopierHTML) {
-        payWindow.document.open();
-        payWindow.document.write(result.shopierHTML);
-        payWindow.document.write("<script>document.getElementById('shopier_form').submit();<\/script>");
-        payWindow.document.close();
-        _showToast('⏳ Ödeme tamamlandığında krediniz otomatik yüklenecek.');
-        _pollCreditVerification(sessionId, pkg.credits, 60, onClose);
-      } else {
-        payWindow.close();
-        _showToast('❌ Sunucudan geçersiz yanıt.');
-      }
-    } catch (err) {
-      payWindow.close();
-      _showToast('❌ Bağlantı hatası: ' + err.message);
-    }
+    /* Arka planda bakiyeyi kontrol et */
+    _pollCreditVerification(sessionId, pkg.credits, 120, onClose);
   }
 
   /* ── KREDİ YÜKLEME POLLING ───────────────────── */
@@ -346,7 +297,7 @@ const Payment = (() => {
   /* ── YARDIMCILAR ─────────────────────────────── */
   function _showToast(msg) {
     const t = document.createElement('div');
-    t.className = 'fr-toast';
+    t.className   = 'fr-toast';
     t.textContent = msg;
     document.body.appendChild(t);
     requestAnimationFrame(() => t.classList.add('show'));
