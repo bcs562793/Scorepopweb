@@ -34,16 +34,21 @@ const Forum = (() => {
   const TIER_RANK = { diamond: 0, gold: 1, silver: 2, bronze: 3 };
 
   /* ── STATE ────────────────────────────────── */
-  let _sb          = null;
-  let _fixtureId   = null;
-  let _channel     = null;
-  let _pinnedSlots = [];
-  let _chatMsgs    = [];
-  let _lastSent    = 0;
-  let _sessionId   = null;
-  let _nickname    = null;
-  let _isLoading   = false;
-  let _pinTimer    = null;
+  let _sb              = null;
+  let _fixtureId       = null;
+  let _channel         = null;
+  let _pinnedSlots     = [];
+  let _chatMsgs        = [];
+  let _lastSent        = 0;
+  let _sessionId       = null;
+  let _nickname        = null;
+  let _isLoading       = false;
+  let _pinTimer        = null;
+  let _pollTimer       = null;   /* polling fallback zamanlayici */
+  let _realtimeOk      = false;  /* gercek zamanli baglanti saglikli mi? */
+  let _lastMsgId       = 0;      /* polling: son gorulen mesaj id */
+  let _reconnectTimer  = null;   /* yeniden baglanma zamanlayici */
+  let _reconnectDelay  = 3000;   /* ms - her denemede 2x artar, max 30s */
 
   /* ── INIT ─────────────────────────────────── */
   function init(sb) {
@@ -81,17 +86,25 @@ const Forum = (() => {
 
   /* ── OPEN / CLOSE ─────────────────────────── */
   function open(fixtureId) {
-    _fixtureId   = fixtureId;
-    _pinnedSlots = [];
-    _chatMsgs    = [];
+    _fixtureId      = fixtureId;
+    _pinnedSlots    = [];
+    _chatMsgs       = [];
+    _lastMsgId      = 0;
+    _realtimeOk     = false;
+    _reconnectDelay = 3000;
+    if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
     _stopPinTimer();
+    _stopPolling();
     _renderAll();
     _loadMessages();
     _subscribe();
+    _startPolling();
   }
 
   function close() {
     _stopPinTimer();
+    _stopPolling();
+    if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
     if (_channel) {
       _sb.removeChannel(_channel).catch(() => {});
       _channel = null;
@@ -194,8 +207,12 @@ const Forum = (() => {
 
       _sortPinned();
 
+      /* polling icin son gorülen id'yi güncelle */
+      const allLoaded = [...(featured || []), ...(regular || [])];
+      allLoaded.forEach(msg => { if (msg.id > _lastMsgId) _lastMsgId = msg.id; });
+
     } catch (e) {
-      console.error('[Forum] Yükleme hatası:', e);
+      console.error('[Forum] Yükleme hatasi:', e);
     }
 
     if (_fixtureId !== fid) return;
@@ -210,6 +227,7 @@ const Forum = (() => {
   function _subscribe() {
     if (!_fixtureId || !_sb) return;
     if (_channel) { _sb.removeChannel(_channel).catch(() => {}); }
+    if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
 
     const fid = _fixtureId;
     _channel = _sb
@@ -219,13 +237,77 @@ const Forum = (() => {
         filter: `fixture_id=eq.${fid}`,
       }, payload => {
         if (_fixtureId !== fid) return;
+        _realtimeOk = true;
+        _reconnectDelay = 3000;   /* basarili mesaj alindi, delay sifirla */
         _onNewMessage(payload.new);
       })
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') {
+          _realtimeOk = true;
+          _reconnectDelay = 3000;
+          console.log('[Forum] Realtime baglandi.');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          _realtimeOk = false;
+          console.warn('[Forum] Realtime koptu:', status, err?.message || '');
+          _scheduleReconnect(fid);
+        }
+      });
+  }
+
+  function _scheduleReconnect(fid) {
+    if (_reconnectTimer) return;  /* zaten bekliyor */
+    if (_fixtureId !== fid) return;  /* fixture degisti, gerek yok */
+    _reconnectTimer = setTimeout(() => {
+      _reconnectTimer = null;
+      if (_fixtureId !== fid) return;
+      console.log('[Forum] Yeniden baglaniliyor... (delay:', _reconnectDelay, 'ms)');
+      _subscribe();
+      _reconnectDelay = Math.min(_reconnectDelay * 2, 30000);
+    }, _reconnectDelay);
+  }
+
+  /* ── POLLING FALLBACK ─────────────────────── */
+  /* Realtime calismiyor veya tab arka plandaysa 15sn'de bir yeni mesaj cek */
+  function _startPolling() {
+    if (_pollTimer) return;
+    _pollTimer = setInterval(_pollNewMessages, 15000);
+  }
+
+  function _stopPolling() {
+    if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+  }
+
+  async function _pollNewMessages() {
+    if (!_fixtureId || !_sb || _isLoading) return;
+    /* Realtime sagliksa sadece dogrulama amacli daha seyrek calis */
+    if (_realtimeOk && _lastMsgId === 0) return;
+
+    try {
+      const query = _sb
+        .from('forum_messages')
+        .select('*')
+        .eq('fixture_id', _fixtureId)
+        .order('id', { ascending: true });
+
+      if (_lastMsgId > 0) query.gt('id', _lastMsgId);
+
+      const { data, error } = await query.limit(50);
+      if (error || !data?.length) return;
+
+      data.forEach(msg => {
+        _onNewMessage(msg);
+        if (msg.id > _lastMsgId) _lastMsgId = msg.id;
+      });
+    } catch (e) {
+      console.warn('[Forum] Poll hatasi:', e.message);
+    }
   }
 
   function _onNewMessage(msg) {
     if (!msg) return;
+
+    /* polling icin son gorülen id'yi takip et */
+    if (msg.id && msg.id > _lastMsgId) _lastMsgId = msg.id;
 
     if (_pinnedSlots.some(s => s.msg.id === msg.id)) return;
     const chatIdx = _chatMsgs.findIndex(m => m.id === msg.id);
