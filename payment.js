@@ -290,7 +290,9 @@ const Payment = (() => {
     _showToast('⏳ Shopier ödeme sayfasına yönlendiriliyorsunuz…');
 
     /* Yeni sekmede direkt Shopier ürün linkini aç */
-    const win = window.open(pkg.url, '_blank');
+    const noteParam = encodeURIComponent(sessionId + '|' + pkg.credits);
+    const shopierUrl = pkg.url + '?note=' + noteParam;
+    const win = window.open(shopierUrl, '_blank');
     if (!win) {
       _showToast('❌ Popup engellendi, tarayıcı ayarlarını kontrol edin.');
       return;
