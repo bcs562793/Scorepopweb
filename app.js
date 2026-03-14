@@ -268,6 +268,7 @@ async function loadLive(silent = false) {
 }
 
 async function loadToday() {
+  _fetchLiveCount();   /* sayaç her zaman güncel kalsın */
   const { data, error } = await S.sb.from('live_matches')
     .select('*')
     .order('league_name');
@@ -301,6 +302,7 @@ async function loadToday() {
 }
 
 async function loadUpcoming() {
+  _fetchLiveCount();   /* sayaç her zaman güncel kalsın */
   const { data, error } = await S.sb
     .from('future_matches')
     .select('*')
@@ -1019,9 +1021,8 @@ function startRealtime() {
         silentUpdate([m]);
       }
 
-      /* Canlı maç sayısını güncelle */
-      const liveRows = document.querySelectorAll('.mr.is-live');
-      updLiveCt(liveRows.length);
+      /* Canlı maç sayısını güncelle — DOM'a bağımlı değil */
+      _fetchLiveCount();
     })
     .subscribe(status => {
       const el = document.getElementById('sb-cd');
@@ -1071,6 +1072,19 @@ function updateRing(frac) {
   const c = 50.3;
   const el = document.getElementById('sb-ring');
   if (el) el.style.strokeDashoffset = c * (1 - frac);
+}
+
+/* Canlı maç sayısını her zaman Supabase'den çek — hangi sayfada olursa olsun */
+async function _fetchLiveCount() {
+  try {
+    const { count } = await S.sb
+      .from('live_matches')
+      .select('*', { count: 'exact', head: true })
+      .in('status_short', ['1H','2H','HT','ET','BT','P','LIVE']);
+    updLiveCt(count ?? 0);
+  } catch (e) {
+    console.warn('[LiveCount] hata:', e.message);
+  }
 }
 
 function updLiveCt(n) {
