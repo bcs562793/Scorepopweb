@@ -211,7 +211,7 @@ const Auth = (() => {
         </div>
 
         <div style="
-          display:grid;grid-template-columns:1fr 1fr;
+          display:grid;grid-template-columns:1fr 1fr 1fr;
           gap:1px;margin-top:20px;
           background:rgba(255,255,255,.06);border-radius:8px;overflow:hidden;
         ">
@@ -222,6 +222,10 @@ const Auth = (() => {
           <div style="background:rgba(255,255,255,.04);padding:10px 14px;">
             <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Hesap</div>
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--green);">Aktif ✓</div>
+          </div>
+          <div style="background:rgba(255,255,255,.04);padding:10px 14px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">💳 Bakiye</div>
+            <div id="sp-profile-credit" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--or);">…</div>
           </div>
         </div>
       </div>
@@ -265,6 +269,22 @@ const Auth = (() => {
     </div>`;
 
   document.body.appendChild(ov);
+
+  /* ── KREDİ BAKİYESİ ─────────────────────────── */
+  (async () => {
+    const el = document.getElementById('sp-profile-credit');
+    if (!el) return;
+    try {
+      let sid = null;
+      try { sid = sessionStorage.getItem('sp_session'); } catch {}
+      if (typeof Payment !== 'undefined' && sid) {
+        const bal = await Payment.getBalance(sid);
+        el.textContent = bal + ' kredi';
+      } else {
+        el.textContent = '—';
+      }
+    } catch { el.textContent = '—'; }
+  })();
 
   document.getElementById('sp-profile-save').onclick = async () => {
     const n = document.getElementById('sp-profile-nick').value.trim();
