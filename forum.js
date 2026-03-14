@@ -877,12 +877,13 @@ const Forum = (() => {
     const time  = _fmtTime(msg.created_at);
 
     if (tier) {
+      const tierClass = `fr-chat-${msg.feature_tier}`;
   return `
-    <div class="fr-msg ${isOwn ? 'fr-own' : ''}" data-msg-id="${esc(String(msg.id))}"
-         style="border-left:2px solid ${tier.color};">
-      <div class="fr-msg-meta">
-        <span style="font-size:10px;color:${tier.color};font-weight:700;letter-spacing:.5px;">${tier.emoji}</span>
-        <span class="fr-msg-nick ${isOwn ? 'fr-own-nick' : ''}">${esc(msg.nickname)}</span>
+    <div class="fr-msg ${isOwn ? 'fr-own' : ''} ${tierClass}" data-msg-id="${esc(String(msg.id))}"
+         style="background:${tier.bg};border-radius:8px;padding:8px 12px;">
+      <div class="fr-msg-meta" style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:13px;">${tier.emoji}</span>
+        <span class="fr-msg-nick ${isOwn ? 'fr-own-nick' : ''}" style="color:${tier.color};">${esc(msg.nickname)}</span>
         <span class="fr-msg-time">${time}</span>
       </div>
       <div class="fr-msg-body"></div>
