@@ -991,13 +991,61 @@ img { display: block; }
   pointer-events: none;
 }
 
+/* ── CHAT'E DÜŞEN ÖĞÜN MESAJ ÇERÇEVE ANİMASYONLARI ── */
+
+/* Bronz — turuncu-kahve titreme */
+.fr-chat-bronze {
+  border: 1.5px solid #cd7f32 !important;
+  border-left: 3px solid #cd7f32 !important;
+  animation: fr-shake-bronze 4s ease-in-out infinite;
+}
+@keyframes fr-shake-bronze {
+  0%,100% { box-shadow: 0 0 0 0 rgba(205,127,50,0); border-color: rgba(205,127,50,.5); }
+  20%     { box-shadow: 0 0 8px 1px rgba(205,127,50,.35); border-color: #cd7f32; }
+  40%     { box-shadow: 0 0 14px 2px rgba(205,127,50,.5); border-color: rgba(205,127,50,.9); }
+  60%     { box-shadow: 0 0 8px 1px rgba(205,127,50,.35); border-color: #cd7f32; }
+  80%     { box-shadow: 0 0 4px 0 rgba(205,127,50,.2); border-color: rgba(205,127,50,.6); }
+}
+
+/* Gümüş — soğuk gümüş titreme */
+.fr-chat-silver {
+  border: 1.5px solid #9aa4b2 !important;
+  border-left: 3px solid #9aa4b2 !important;
+  animation: fr-shake-silver 3.5s ease-in-out infinite;
+}
+@keyframes fr-shake-silver {
+  0%,100% { box-shadow: 0 0 0 0 rgba(154,164,178,0); border-color: rgba(154,164,178,.5); }
+  25%     { box-shadow: 0 0 10px 2px rgba(154,164,178,.4); border-color: #9aa4b2; }
+  50%     { box-shadow: 0 0 18px 3px rgba(154,164,178,.55); border-color: rgba(200,210,220,.95); }
+  75%     { box-shadow: 0 0 10px 2px rgba(154,164,178,.4); border-color: #9aa4b2; }
+}
+
+/* Altın — sıcak altın parlaması */
+.fr-chat-gold {
+  border: 1.5px solid #f5c518 !important;
+  border-left: 3px solid #f5c518 !important;
+  animation: fr-shake-gold 3s ease-in-out infinite;
+}
+@keyframes fr-shake-gold {
+  0%,100% { box-shadow: 0 0 0 0 rgba(245,197,24,0); border-color: rgba(245,197,24,.5); }
+  20%     { box-shadow: 0 0 10px 2px rgba(245,197,24,.4); border-color: #f5c518; }
+  40%     { box-shadow: 0 0 20px 4px rgba(245,197,24,.6); border-color: rgba(255,220,60,1); }
+  60%     { box-shadow: 0 0 12px 3px rgba(245,197,24,.45); border-color: #f5c518; }
+  80%     { box-shadow: 0 0 6px 1px rgba(245,197,24,.25); border-color: rgba(245,197,24,.7); }
+}
+
 /* Diamond — animasyonlu çerçeve */
 .fr-tier-diamond {
   animation: fr-diamond-glow 2.5s ease-in-out infinite;
 }
+.fr-chat-diamond {
+  border: 1.5px solid #00d4ff !important;
+  border-left: 3px solid #00d4ff !important;
+  animation: fr-diamond-glow 2.5s ease-in-out infinite;
+}
 @keyframes fr-diamond-glow {
-  0%,100% { box-shadow: 0 0 8px rgba(0,212,255,.2); }
-  50%      { box-shadow: 0 0 22px rgba(0,212,255,.45); }
+  0%,100% { box-shadow: 0 0 8px rgba(0,212,255,.2); border-color: rgba(0,212,255,.6); }
+  50%      { box-shadow: 0 0 22px rgba(0,212,255,.55), 0 0 40px rgba(0,212,255,.2); border-color: #00d4ff; }
 }
 
 .fr-feat-header {
