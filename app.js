@@ -33,33 +33,33 @@ const S = {
 */
 const LEAGUE_TIERS = [
   /* ─── TIER 1: ÜST LİGLER ─── */
-  { tier: 1, order: 1,  keywords: ['süper lig', 'super lig', 'trendyol süper'] },
-  { tier: 1, order: 2,  keywords: ['premier league'] },
-  { tier: 1, order: 3,  keywords: ['la liga'] },
-  { tier: 1, order: 4,  keywords: ['serie a'] },
-  { tier: 1, order: 5,  keywords: ['bundesliga'] },
-  { tier: 1, order: 6,  keywords: ['ligue 1'] },
-  { tier: 1, order: 7,  keywords: ['primeira liga', 'liga portugal'] },
-  { tier: 1, order: 8,  keywords: ['eredivisie'] },
+  { tier: 1, order: 1,  keywords: ['süper lig', 'super lig', 'trendyol süper'], country: 'turkey' },
+  { tier: 1, order: 2,  keywords: ['premier league'], country: 'england' },
+  { tier: 1, order: 3,  keywords: ['la liga'], country: 'spain' },
+  { tier: 1, order: 4,  keywords: ['serie a'], country: 'italy' },
+  { tier: 1, order: 5,  keywords: ['bundesliga'], country: 'germany' },
+  { tier: 1, order: 6,  keywords: ['ligue 1'], country: 'france' },
+  { tier: 1, order: 7,  keywords: ['primeira liga', 'liga portugal'], country: 'portugal' },
+  { tier: 1, order: 8,  keywords: ['eredivisie'], country: 'netherlands' },
   { tier: 1, order: 9,  keywords: ['champions league', 'şampiyonlar ligi'] },
   { tier: 1, order: 10, keywords: ['europa league', 'avrupa ligi'] },
   { tier: 1, order: 11, keywords: ['conference league', 'konferans ligi'] },
 
   /* ─── TIER 2: ALT LİGLER ─── */
-  { tier: 2, order: 1,  keywords: ['1. lig', 'tff 1'] },
-  { tier: 2, order: 2,  keywords: ['championship'] },
-  { tier: 2, order: 3,  keywords: ['la liga 2', 'segunda', 'laliga2'] },
-  { tier: 2, order: 4,  keywords: ['serie b'] },
-  { tier: 2, order: 5,  keywords: ['2. bundesliga'] },
-  { tier: 2, order: 6,  keywords: ['ligue 2'] },
-  { tier: 2, order: 7,  keywords: ['league one', 'efl league one'] },
-  { tier: 2, order: 8,  keywords: ['league two', 'efl league two'] },
-  { tier: 2, order: 9,  keywords: ['2. lig', 'tff 2'] },
-  { tier: 2, order: 10, keywords: ['3. lig', 'tff 3'] },
-  { tier: 2, order: 11, keywords: ['jupiler', 'pro league'] },
-  { tier: 2, order: 12, keywords: ['super league', 'swiss super'] },
-  { tier: 2, order: 13, keywords: ['scottish premiership'] },
-  { tier: 2, order: 14, keywords: ['ekstraklasa'] },
+  { tier: 2, order: 1,  keywords: ['1. lig', 'tff 1'], country: 'turkey' },
+  { tier: 2, order: 2,  keywords: ['championship'], country: 'england' },
+  { tier: 2, order: 3,  keywords: ['la liga 2', 'segunda', 'laliga2'], country: 'spain' },
+  { tier: 2, order: 4,  keywords: ['serie b'], country: 'italy' },
+  { tier: 2, order: 5,  keywords: ['2. bundesliga'], country: 'germany' },
+  { tier: 2, order: 6,  keywords: ['ligue 2'], country: 'france' },
+  { tier: 2, order: 7,  keywords: ['league one', 'efl league one'], country: 'england' },
+  { tier: 2, order: 8,  keywords: ['league two', 'efl league two'], country: 'england' },
+  { tier: 2, order: 9,  keywords: ['2. lig', 'tff 2'], country: 'turkey' },
+  { tier: 2, order: 10, keywords: ['3. lig', 'tff 3'], country: 'turkey' },
+  { tier: 2, order: 11, keywords: ['jupiler', 'pro league'], country: 'belgium' },
+  { tier: 2, order: 12, keywords: ['super league', 'swiss super'], country: 'switzerland' },
+  { tier: 2, order: 13, keywords: ['scottish premiership'], country: 'scotland' },
+  { tier: 2, order: 14, keywords: ['ekstraklasa'], country: 'poland' },
   { tier: 2, order: 15, keywords: ['süper kupa', 'super cup'] },
 ];
 
@@ -88,12 +88,17 @@ function isFavLeague(name) {
   return getFavLeagues().includes(name);
 }
 
-/*  Lig adından { tier, order } döndür  */
-function _matchLeagueTier(leagueName) {
+/*  Lig adından { tier, order } döndür — ülke filtresi destekler  */
+function _matchLeagueTier(leagueName, country) {
   const lower = (leagueName || '').toLowerCase().trim();
+  const lowerCountry = (country || '').toLowerCase().trim();
   for (const entry of LEAGUE_TIERS) {
     for (const kw of entry.keywords) {
-      if (lower.includes(kw)) return { tier: entry.tier, order: entry.order };
+      if (lower.includes(kw)) {
+        /* Eğer entry'de country kısıtı varsa, ülke eşleşmeli */
+        if (entry.country && !lowerCountry.includes(entry.country)) continue;
+        return { tier: entry.tier, order: entry.order };
+      }
     }
   }
   return { tier: 3, order: 999 };  /* Tanımsız → en sona */
@@ -102,7 +107,7 @@ function _matchLeagueTier(leagueName) {
 /*  Grup sıralama anahtarı: favori(0/1) → tier → order → alfabe  */
 function _leagueSortKey(group) {
   const fav = isFavLeague(group.name) ? 0 : 1;
-  const { tier, order } = _matchLeagueTier(group.name);
+  const { tier, order } = _matchLeagueTier(group.name, group.country);
   return { fav, tier, order, name: (group.name || '').toLowerCase() };
 }
 
