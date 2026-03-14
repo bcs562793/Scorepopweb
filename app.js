@@ -95,8 +95,8 @@ function _matchLeagueTier(leagueName, country) {
   for (const entry of LEAGUE_TIERS) {
     for (const kw of entry.keywords) {
       if (lower.includes(kw)) {
-        /* Eğer entry'de country kısıtı varsa, ülke eşleşmeli */
-        if (entry.country && !lowerCountry.includes(entry.country)) continue;
+        /* Eğer entry'de country kısıtı varsa ve ülke verisi doluysa, ülke eşleşmeli */
+        if (entry.country && lowerCountry && !lowerCountry.includes(entry.country)) continue;
         return { tier: entry.tier, order: entry.order };
       }
     }
