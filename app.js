@@ -409,9 +409,12 @@ function render(rows, isLive) {
   }
   const groups = {};
   rows.forEach(m => {
-    const k = m.league_name || 'Diğer';
+    /* league_id varsa en güvenli anahtar o, yoksa ülke+isim kombinasyonu */
+    const k = m.league_id
+      ? String(m.league_id)
+      : `${(m.league_country || '').toLowerCase()}__${(m.league_name || 'Diğer').toLowerCase()}`;
     if (!groups[k]) groups[k] = {
-      name:    k,
+      name:    m.league_name  || 'Diğer',
       logo:    m.league_logo    || '',
       country: m.league_country || '',
       flag:    m.league_flag    || '',
