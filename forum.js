@@ -795,19 +795,17 @@ const Forum = (() => {
     const time  = _fmtTime(msg.created_at);
 
     if (tier) {
-      const boxStyle = `background:${tier.bg};border:1px solid ${tier.border};border-left:3px solid ${tier.color};border-radius:8px;padding:10px 12px;margin:4px 0;`;
-      return `
-        <div class="fr-msg fr-featured fr-tier-${msg.feature_tier} ${isOwn ? 'fr-own' : ''}"
-             data-msg-id="${esc(String(msg.id))}"
-             style="${boxStyle}--tc:${tier.color};--tb:${tier.bg};--tbr:${tier.border}">
-          <div class="fr-feat-header">
-            <span class="fr-feat-badge">${tier.emoji} ${tier.label}</span>
-            <span class="fr-msg-time">${time}</span>
-          </div>
-          <div class="fr-feat-nick">${esc(msg.nickname)}</div>
-          <div class="fr-feat-body"></div>
-        </div>`;
-    }
+  return `
+    <div class="fr-msg ${isOwn ? 'fr-own' : ''}" data-msg-id="${esc(String(msg.id))}"
+         style="border-left:2px solid ${tier.color};">
+      <div class="fr-msg-meta">
+        <span style="font-size:10px;color:${tier.color};font-weight:700;letter-spacing:.5px;">${tier.emoji}</span>
+        <span class="fr-msg-nick ${isOwn ? 'fr-own-nick' : ''}">${esc(msg.nickname)}</span>
+        <span class="fr-msg-time">${time}</span>
+      </div>
+      <div class="fr-msg-body"></div>
+    </div>`;
+}
 
     return `
       <div class="fr-msg ${isOwn ? 'fr-own' : ''}" data-msg-id="${esc(String(msg.id))}">
