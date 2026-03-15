@@ -76,6 +76,7 @@ const Auth = (() => {
       const name = getDisplayName() || '?';
       btn.innerHTML = `<span class="tb-auth-avatar">${name.slice(0,2).toUpperCase()}</span>`;
       btn.title = name;
+      btn.classList.add('is-logged-in');
     } else {
       btn.innerHTML = `
         <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
@@ -83,6 +84,7 @@ const Auth = (() => {
           <path d="M1 13c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
         </svg><span>Giriş</span>`;
       btn.title = 'Giriş Yap / Kayıt Ol';
+      btn.classList.remove('is-logged-in');
     }
   }
 
