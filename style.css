@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — style.css
+   SCOREPOP — style.css v1.0
    Layout: Fixed sidebar 240px + fluid main
    Match row: Home→Score←Away (Mackolik style)
    Palette: Near-black + Electric Orange accent
@@ -613,6 +613,15 @@ img { display: block; }
   /* height JS tarafından ayarlanır */
   clip-path: inset(0 0 0 0);
   -webkit-clip-path: inset(0 0 0 0);
+}
+
+/* Masaüstünde görsel çok büyümesin */
+@media (min-width: 768px) {
+  .d-visual {
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 .d-visual-iframe {
   display: block;
