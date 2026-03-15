@@ -10,6 +10,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
 <link rel="stylesheet" href="style.css"/>
+<!-- 404.html redirect trick: ?p=/mac/123 → gerçek URL -->
+<script>
+(function() {
+  var sp = new URLSearchParams(window.location.search);
+  var p  = sp.get('p');
+  if (p) {
+    sp.delete('p');
+    var qs = sp.toString();
+    history.replaceState(null, '', p + (qs ? '?' + qs : ''));
+  }
+})();
+</script>
 </head>
 <body>
 
