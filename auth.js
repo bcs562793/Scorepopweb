@@ -48,6 +48,10 @@ const Auth = (() => {
   function getUser()    { return _user; }
   function isLoggedIn() { return !!_user; }
   function getDisplayName() {
+    try {
+      const localNick = localStorage.getItem('sp_nick');
+      if (localNick && localNick.trim().length > 0) return localNick.trim();
+    } catch {}
     return _user?.user_metadata?.display_name
         || _user?.user_metadata?.full_name
         || _user?.email?.split('@')[0]
@@ -73,9 +77,16 @@ const Auth = (() => {
     const btn = document.getElementById('tb-auth-btn');
     if (!btn) return;
     if (_user) {
-      const name = getDisplayName() || '?';
-      btn.innerHTML = `<span class="tb-auth-avatar">${name.slice(0,2).toUpperCase()}</span>`;
-      btn.title = name;
+      const name = getDisplayName();
+      let inner;
+      if (name && name.trim().length > 0) {
+        inner = name.trim().slice(0,2).toUpperCase();
+      } else {
+        const email = _user?.email || '';
+        inner = email ? email.slice(0,2).toUpperCase() : '?';
+      }
+      btn.innerHTML = `<span class="tb-auth-avatar">${inner}</span>`;
+      btn.title = name || _user?.email || 'Profil';
       btn.classList.add('is-logged-in');
     } else {
       btn.innerHTML = `
