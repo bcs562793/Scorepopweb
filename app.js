@@ -700,7 +700,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
         ${m.visual_url ? `<span class="d-visual-live">LIVE</span>` : ''}
       </div>
       ${m.visual_url
-        ? `<iframe class="d-visual-iframe" src="${m.visual_url}" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups"></iframe>`
+        ? `<div class="d-visual-iframe-wrap"><iframe class="d-visual-iframe" src="${m.visual_url}" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe></div>`
         : `<div class="d-visual-empty">📡<span>Görsel stream mevcut değil</span></div>`}
     </div>`;
 
