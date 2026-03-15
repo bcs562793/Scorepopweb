@@ -33,10 +33,12 @@
 <!-- ── SIDEBAR ───────────────────────────────────── -->
 <aside id="sidebar">
   <div class="sb-top">
-    <div class="sb-brand">
-      <div class="sb-mark">SP</div>
+    <a class="sb-brand" href="/" onclick="event.preventDefault(); if(typeof navigate==='function') navigate('live');" style="text-decoration:none;cursor:pointer;">
+      <div class="sb-mark">
+        <img src="/logo.png" alt="SP" width="28" height="28" onerror="this.style.display='none';this.parentNode.innerHTML='SP'" style="border-radius:6px;">
+      </div>
       <div class="sb-name">SCORE<em>POP</em></div>
-    </div>
+    </a>
     <div class="sb-live-stat">
       <span class="sb-live-dot"></span>
       <span id="sb-live-n">0</span>
