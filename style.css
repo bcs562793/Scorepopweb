@@ -1467,35 +1467,44 @@ img { display: block; }
   padding: 5px 10px;
   border-radius: 6px;
   border: 1px solid var(--b2);
+  background: transparent;
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 12px; font-weight: 700; letter-spacing: .5px;
   color: var(--tx2);
   margin-right: 8px;
   transition: all .13s;
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .tb-auth-btn:hover { border-color: var(--b3); color: var(--tx1); background: var(--b1); }
 
-/* Giriş yapıldığında: sadece avatar göster, kutu olmasın */
+/* Giriş yapıldığında: sadece avatar, temiz görünüm */
 .tb-auth-btn.is-logged-in {
-  padding: 0;
-  border-color: transparent;
+  padding: 3px;
+  border: 2px solid #f26419;
+  border-radius: 50%;
   background: transparent;
-  margin-right: 4px;
+  margin-right: 8px;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
 }
 .tb-auth-btn.is-logged-in:hover {
-  background: transparent;
-  border-color: transparent;
-  opacity: 0.85;
+  border-color: #ff8c42;
+  background: rgba(242,100,25,0.1);
 }
 
 .tb-auth-avatar {
-  width: 30px; height: 30px;
-  background: var(--or);
-  color: #fff;
+  width: 28px; height: 28px;
+  background: #f26419;
+  color: #ffffff;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
+  font-family: 'Barlow Condensed', sans-serif;
   font-size: 11px; font-weight: 800;
   flex-shrink: 0;
+  line-height: 1;
+  letter-spacing: 0.5px;
 }
 
 /* Paylaşımlı Modal Altyapısı */
