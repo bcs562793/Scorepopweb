@@ -63,12 +63,12 @@ async function generate() {
   let matches = [];
   try {
     // live_matches — şu an canlı olanlar
-    const live = await fetchJson('live_matches?select=fixture_id,home_team,away_team,league_name,home_score,away_score,status&order=fixture_id.desc&limit=200');
+    const live = await fetchJson('live_matches?select=fixture_id,home_team,away_team,league_name,home_score,away_score,status_short&order=fixture_id.desc&limit=200');
     console.log('live_matches yanit:', JSON.stringify(live).slice(0,200));
     if (Array.isArray(live)) matches.push(...live);
 
     // daily_matches — bugün + yarın planlanmış
-    const daily = await fetchJson(`daily_matches?select=fixture_id,home_team,away_team,league_name,home_score,away_score,status&order=fixture_id.desc&limit=400`);
+    const daily = await fetchJson(`daily_matches?select=fixture_id,home_team,away_team,league_name,home_score,away_score,status_short&order=fixture_id.desc&limit=400`);
     console.log('daily_matches yanit:', JSON.stringify(daily).slice(0,200));
     if (Array.isArray(daily)) matches.push(...daily);
   } catch(e) {
@@ -111,7 +111,7 @@ async function generate() {
     // Her maç için ayrı URL
     ...matches.map(m => {
       const slug = `${slugify(m.home_team)}-vs-${slugify(m.away_team)}`;
-      const isLive = m.status === 'live' || m.status === 'inprogress' || m.status === 'ht';
+      const isLive = m.status_short === 'live' || m.status_short === 'inprogress' || m.status_short === 'ht';
       return `  <url>
     <loc>${BASE_URL}/mac/${m.fixture_id}-${slug}</loc>
     <lastmod>${now}</lastmod>
