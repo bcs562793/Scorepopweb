@@ -991,7 +991,13 @@ const Forum = (() => {
 
   function _sanitizeText(s) {
     return String(s).trim().slice(0, MAX_FEATURED_LEN)
-      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      // Zero-width ve görünmez karakterler
+      .replace(/[\u200B-\u200D\uFEFF\u00AD\u180E]/g, '')
+      // RTL/LTR override karakterleri — metin yönü manipülasyonu
+      .replace(/[\u202A-\u202E\u2066-\u2069\u206A-\u206F]/g, '')
+      // Homoglyph ve özel unicode blokları
+      .replace(/[\uFFF0-\uFFFF]/g, '')
+      // Çoklu boşluk
       .replace(/\s{3,}/g, '  ');
   }
 
