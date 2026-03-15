@@ -437,7 +437,7 @@ function render(rows, isLive) {
 function renderGroup(g, isLive) {
   const liveCount = g.matches.filter(m => statusInfo(m).live).length;
   const logo = g.logo
-    ? `<img src="${g.logo}" onerror="this.style.display='none'" alt="" style="width:16px;height:16px;object-fit:contain;flex-shrink:0">`
+    ? `<img src="${esc(g.logo)}" onerror="this.style.display='none'" alt="" style="width:16px;height:16px;object-fit:contain;flex-shrink:0">`
     : '';
   const countryFlag = g.flag
     ? `<img src="${g.flag}" onerror="this.style.display='none'" alt="" style="width:16px;height:11px;object-fit:cover;border-radius:2px;flex-shrink:0">`
@@ -572,7 +572,7 @@ function buildSidebarLeagues(groups) {
     item.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;cursor:pointer;white-space:nowrap;font-size:12px;';
     item.innerHTML = `
       ${fav ? '<span style="font-size:10px;">⭐</span>' : ''}
-      ${g.logo ? `<img src="${g.logo}" width="14" height="14" style="flex-shrink:0" onerror="this.style.display='none'" alt="">` : ''}
+      ${g.logo ? `<img src="${esc(g.logo)}" width="14" height="14" style="flex-shrink:0" onerror="this.style.display='none'" alt="">` : ''}
       <span class="sb-lg-n">${esc(g.name)}</span>
       <span class="sb-lg-ct">${g.matches.length}</span>`;
     item.addEventListener('click', () => { setLeague(g.name); if(window.innerWidth<=680) toggleSidebar(); });
