@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v3.2)
+   SCOREPOP — app.js  (v3.3)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -657,25 +657,28 @@ sq(S.sb.from('match_h2h').select('*')
 }
 
 function scaleVisualIframe() {
-  const wrap = document.querySelector('.d-visual-iframe-wrap');
+  const wrap   = document.querySelector('.d-visual-iframe-wrap');
   const iframe = document.querySelector('.d-visual-iframe');
   if (!wrap || !iframe) return;
 
-  const IFRAME_W = 420;  // tracker'ın minimum içerik genişliği
-  const RATIO = 9 / 16; // 16:9 oranı
+  const NATIVE_W = 460;
+  const NATIVE_H = Math.round(NATIVE_W * 9 / 16);
 
-  const wrapW = wrap.offsetWidth || wrap.clientWidth;
-  if (!wrapW) return;
+  const wrapW = wrap.getBoundingClientRect().width;
+  if (!wrapW || wrapW < 10) return;
 
-  const scale = wrapW / IFRAME_W;
-  const iframeH = IFRAME_W * RATIO;
-  const scaledH = Math.round(iframeH * scale);
+  const scale = wrapW / NATIVE_W;
 
-  iframe.style.width  = IFRAME_W + 'px';
-  iframe.style.height = iframeH + 'px';
-  iframe.style.transform = `scale(${scale})`;
+  iframe.style.width          = NATIVE_W + 'px';
+  iframe.style.height         = NATIVE_H + 'px';
+  iframe.style.transform      = 'scale(' + scale + ')';
+  iframe.style.transformOrigin = 'top left';
 
-  wrap.style.height = scaledH + 'px';
+  wrap.style.height = Math.round(NATIVE_H * scale) + 'px';
+}
+
+function _scheduleVisualScale() {
+  [50, 300, 800].forEach(function(ms) { setTimeout(scaleVisualIframe, ms); });
 }
 
 function buildDetail(m, evs, stats, lus, h2h, pred) {
@@ -896,16 +899,14 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
   setDetailHTML(html);
   Forum.open(m.fixture_id);
 
-  // iframe'i container'a sığacak şekilde ölçekle
-  requestAnimationFrame(() => {
-    scaleVisualIframe();
-  });
+  // iframe'i container'a sığacak şekilde ölçekle (3 farklı gecikme ile dene)
+  _scheduleVisualScale();
 
   // Ekran döndürmede veya resize'da tekrar hesapla
   if (window._visualResizeHandler) {
     window.removeEventListener('resize', window._visualResizeHandler);
   }
-  window._visualResizeHandler = () => scaleVisualIframe();
+  window._visualResizeHandler = function() { scaleVisualIframe(); };
   window.addEventListener('resize', window._visualResizeHandler);
 }
 
