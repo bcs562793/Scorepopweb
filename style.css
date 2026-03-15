@@ -607,14 +607,17 @@ img { display: block; }
 .d-visual-iframe-wrap {
   position: relative;
   width: 100%;
+  max-width: 100%;
   overflow: hidden;
   background: #000;
   /* height JS tarafından ayarlanır */
+  contain: layout paint;
+  isolation: isolate;
 }
 .d-visual-iframe {
   display: block;
   border: none;
-  /* width/height/transform JS tarafından ayarlanır */
+  max-width: none; /* zoom/scale için kısıtlanmasın */
   transform-origin: top left;
 }
 .d-visual-empty {
