@@ -1474,13 +1474,28 @@ img { display: block; }
   transition: all .13s;
 }
 .tb-auth-btn:hover { border-color: var(--b3); color: var(--tx1); background: var(--b1); }
+
+/* Giriş yapıldığında: sadece avatar göster, kutu olmasın */
+.tb-auth-btn.is-logged-in {
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  margin-right: 4px;
+}
+.tb-auth-btn.is-logged-in:hover {
+  background: transparent;
+  border-color: transparent;
+  opacity: 0.85;
+}
+
 .tb-auth-avatar {
-  width: 24px; height: 24px;
+  width: 30px; height: 30px;
   background: var(--or);
   color: #fff;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 800;
+  font-size: 11px; font-weight: 800;
+  flex-shrink: 0;
 }
 
 /* Paylaşımlı Modal Altyapısı */
