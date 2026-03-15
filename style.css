@@ -1719,7 +1719,7 @@ img { display: block; }
 /* Responsive */
 @media (max-width: 420px) {
   .sp-modal { padding: 16px; gap: 10px; }
-  .tb-auth-btn span { display: none; }
+  .tb-auth-btn > span:not(.tb-auth-avatar) { display: none; }
 }
 
 /* NS maç "v" kutusu */
