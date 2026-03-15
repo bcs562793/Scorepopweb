@@ -151,13 +151,49 @@ const Router = (() => {
     _setOG('og:site_name',   'ScorePop');
   }
 
-  function setMatchMeta(homeTeam, awayTeam, homeScore, awayScore, league) {
-    const scoreStr = (homeScore != null && awayScore != null)
-      ? `${homeScore}-${awayScore}`
-      : 'v';
-    const title = `${homeTeam} ${scoreStr} ${awayTeam}`;
-    const desc  = `${league ? league + ' — ' : ''}${homeTeam} - ${awayTeam} canlı skor ve istatistikler`;
+  function setMatchMeta(homeTeam, awayTeam, homeScore, awayScore, league, status, fixtureId) {
+    // Skor metni
+    const hasScore = homeScore != null && awayScore != null;
+    const scoreStr = hasScore ? `${homeScore}-${awayScore}` : 'vs';
+
+    // Durum etiketi
+    let stLabel = '';
+    if (status === 'live' || status === 'inprogress') stLabel = '🔴 CANLI | ';
+    else if (status === 'ht') stLabel = '⏸ Devre Arası | ';
+
+    // <title> ve <meta description>
+    const title = `${stLabel}${homeTeam} ${scoreStr} ${awayTeam}`;
+    const desc  = `${stLabel}${homeTeam} ${scoreStr} ${awayTeam} canlı skor, dakika dakika anlatım ve istatistikler.${league ? ' (' + league + ')' : ''}`;
     setPageMeta(title, desc);
+
+    // Schema.org SportsEvent JSON-LD — Google bu veriyi anlık skor için kullanır
+    _setJsonLD({
+      '@context': 'https://schema.org',
+      '@type': 'SportsEvent',
+      'name': `${homeTeam} - ${awayTeam}`,
+      'sport': 'Soccer',
+      'description': desc,
+      'organizer': { '@type': 'SportsOrganization', 'name': league || 'Football' },
+      'homeTeam': { '@type': 'SportsTeam', 'name': homeTeam },
+      'awayTeam': { '@type': 'SportsTeam', 'name': awayTeam },
+      'url': window.location.href,
+      ...(hasScore ? {
+        'homeScore': { '@type': 'Integer', 'value': homeScore },
+        'awayScore': { '@type': 'Integer', 'value': awayScore },
+      } : {}),
+      ...(fixtureId ? { 'identifier': String(fixtureId) } : {}),
+    });
+  }
+
+  function _setJsonLD(data) {
+    let el = document.getElementById('sp-jsonld');
+    if (!el) {
+      el = document.createElement('script');
+      el.id   = 'sp-jsonld';
+      el.type = 'application/ld+json';
+      document.head.appendChild(el);
+    }
+    try { el.textContent = JSON.stringify(data); } catch(e) {}
   }
 
   /* ── YARDIMCILAR ──────────────────────────── */
@@ -198,7 +234,7 @@ const Router = (() => {
   return {
     init,
     goLive, goToday, goUpcoming, goMatch, goBack,
-    setPageMeta, setMatchMeta,
+    setPageMeta, setMatchMeta, setJsonLD: _setJsonLD,
   };
 
 })();
