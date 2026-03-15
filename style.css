@@ -210,6 +210,7 @@ img { display: block; }
 #topbar {
   position: sticky; top: 0; z-index: 50;
   background: rgba(11,13,17,.95);
+  -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--b1);
   display: flex; align-items: center;
@@ -835,6 +836,7 @@ img { display: block; }
   position: fixed; inset: 0;
   background: rgba(0,0,0,.7);
   z-index: 90;
+  -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
 }
 
@@ -855,6 +857,17 @@ img { display: block; }
 }
 
 @media (max-width: 680px) {
+  /* Kiwi/Opera'da backdrop-filter siyah artefakt yaratır — mobilde kapat */
+  #topbar {
+    background: rgba(11,13,17,.98);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  #overlay {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
   #sidebar {
     transform: translateX(-100%);
     transition: transform .25s cubic-bezier(.4,0,.2,1);
@@ -1212,6 +1225,7 @@ img { display: block; }
 .fr-modal-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,.75);
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   z-index: 200;
   display: flex;
@@ -1515,6 +1529,7 @@ img { display: block; }
 .sp-modal-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,.78);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   z-index: 200;
   display: flex; align-items: center; justify-content: center;
