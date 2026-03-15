@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v3.1)
+   SCOREPOP — app.js  (v3.2)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -656,6 +656,28 @@ sq(S.sb.from('match_h2h').select('*')
   }
 }
 
+function scaleVisualIframe() {
+  const wrap = document.querySelector('.d-visual-iframe-wrap');
+  const iframe = document.querySelector('.d-visual-iframe');
+  if (!wrap || !iframe) return;
+
+  const IFRAME_W = 420;  // tracker'ın minimum içerik genişliği
+  const RATIO = 9 / 16; // 16:9 oranı
+
+  const wrapW = wrap.offsetWidth || wrap.clientWidth;
+  if (!wrapW) return;
+
+  const scale = wrapW / IFRAME_W;
+  const iframeH = IFRAME_W * RATIO;
+  const scaledH = Math.round(iframeH * scale);
+
+  iframe.style.width  = IFRAME_W + 'px';
+  iframe.style.height = iframeH + 'px';
+  iframe.style.transform = `scale(${scale})`;
+
+  wrap.style.height = scaledH + 'px';
+}
+
 function buildDetail(m, evs, stats, lus, h2h, pred) {
   const st = statusInfo(m);
   const hs = m.home_score ?? '-', as = m.away_score ?? '-';
@@ -873,6 +895,18 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
 
   setDetailHTML(html);
   Forum.open(m.fixture_id);
+
+  // iframe'i container'a sığacak şekilde ölçekle
+  requestAnimationFrame(() => {
+    scaleVisualIframe();
+  });
+
+  // Ekran döndürmede veya resize'da tekrar hesapla
+  if (window._visualResizeHandler) {
+    window.removeEventListener('resize', window._visualResizeHandler);
+  }
+  window._visualResizeHandler = () => scaleVisualIframe();
+  window.addEventListener('resize', window._visualResizeHandler);
 }
 
 /* ── STATS PARSER ──────────────────────────── */
