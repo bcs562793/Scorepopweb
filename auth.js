@@ -77,16 +77,17 @@ const Auth = (() => {
     const btn = document.getElementById('tb-auth-btn');
     if (!btn) return;
     if (_user) {
-      const name = getDisplayName();
-      let inner;
-      if (name && name.trim().length > 0) {
-        inner = name.trim().slice(0,2).toUpperCase();
-      } else {
-        const email = _user?.email || '';
-        inner = email ? email.slice(0,2).toUpperCase() : '?';
-      }
-      btn.innerHTML = `<span class="tb-auth-avatar">${inner}</span>`;
-      btn.title = name || _user?.email || 'Profil';
+      // İsim al — tüm kaynakları dene
+      let raw = '';
+      try { raw = localStorage.getItem('sp_nick') || ''; } catch {}
+      if (!raw) raw = _user?.user_metadata?.display_name || '';
+      if (!raw) raw = _user?.user_metadata?.full_name || '';
+      if (!raw) raw = _user?.email?.split('@')[0] || '';
+      if (!raw) raw = 'KU'; // son çare
+
+      const initials = raw.trim().slice(0, 2).toUpperCase() || '?';
+      btn.innerHTML = `<span class="tb-auth-avatar">${initials}</span>`;
+      btn.title = raw.trim() || 'Profil';
       btn.classList.add('is-logged-in');
     } else {
       btn.innerHTML = `
