@@ -508,10 +508,10 @@ function renderRow(m, isLive) {
   }
 
   const hLogo = m.home_logo
-    ? `<img class="mr-logo" src="${m.home_logo}" onerror="this.style.display='none'" alt="">`
+    ? `<img class="mr-logo" src="${esc(m.home_logo)}" onerror="this.style.display='none'" alt="">`
     : `<div class="mr-logo-ph"></div>`;
   const aLogo = m.away_logo
-    ? `<img class="mr-logo" src="${m.away_logo}" onerror="this.style.display='none'" alt="">`
+    ? `<img class="mr-logo" src="${esc(m.away_logo)}" onerror="this.style.display='none'" alt="">`
     : `<div class="mr-logo-ph"></div>`;
 
   const sbCls = st.live ? 'mr-sb live' : (isNS ? 'mr-sb ns' : 'mr-sb');
@@ -700,12 +700,12 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
   let html = `
     <div class="d-hero">
       <div class="d-league">
-        ${m.league_logo ? `<img src="${m.league_logo}" width="16" height="16" onerror="this.style.display='none'" alt="">` : ''}
+        ${m.league_logo ? `<img src="${esc(m.league_logo)}" width="16" height="16" onerror="this.style.display='none'" alt="">` : ''}
         <span class="d-league-n">${esc(m.league_name||'')}</span>
       </div>
       <div class="d-teams">
         <div class="d-team">
-          ${m.home_logo ? `<img class="d-logo" src="${m.home_logo}" onerror="this.style.display='none'" alt="">` : ''}
+          ${m.home_logo ? `<img class="d-logo" src="${esc(m.home_logo)}" onerror="this.style.display='none'" alt="">` : ''}
           <div class="d-tname">${esc(m.home_team||'')}</div>
         </div>
         <div class="d-center">
@@ -717,7 +717,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
           <div class="d-status ${st.cls}">${st.live ? `⚡ ${st.label}` : st.label}</div>
         </div>
         <div class="d-team">
-          ${m.away_logo ? `<img class="d-logo" src="${m.away_logo}" onerror="this.style.display='none'" alt="">` : ''}
+          ${m.away_logo ? `<img class="d-logo" src="${esc(m.away_logo)}" onerror="this.style.display='none'" alt="">` : ''}
           <div class="d-tname">${esc(m.away_team||'')}</div>
         </div>
       </div>
@@ -730,7 +730,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
         ${m.visual_url ? `<span class="d-visual-live">LIVE</span>` : ''}
       </div>
       ${m.visual_url
-        ? `<div class="d-visual-iframe-wrap"><iframe class="d-visual-iframe" src="${m.visual_url}" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe></div>`
+        ? `<div class="d-visual-iframe-wrap"><iframe class="d-visual-iframe" src="${esc(m.visual_url)}" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe></div>`
         : `<div class="d-visual-empty">📡<span>Görsel stream mevcut değil</span></div>`}
     </div>`;
 
@@ -810,7 +810,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
       html += `
         <div class="lu-card">
           <div class="lu-hdr">
-            ${team.team?.logo ? `<img src="${team.team.logo}" onerror="this.style.display='none'" alt="">` : ''}
+            ${team.team?.logo ? `<img src="${esc(team.team.logo)}" onerror="this.style.display='none'" alt="">` : ''}
             ${esc(team.team?.name||'')}
           </div>`;
       (team.startXI||[]).forEach(p => {
@@ -866,11 +866,11 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
       const resCls = fm.result === 'W' ? 'h2h-res w' : fm.result === 'L' ? 'h2h-res l' : 'h2h-res d';
       s += `
         <div class="h2h-row">
-          <div class="h2h-d">${fm.date || ''}</div>
+          <div class="h2h-d">${esc(fm.date || '')}</div>
           <div class="h2h-t">${esc(fm.homeTeam || '')}</div>
           <div class="h2h-sc">${fm.homeGoals ?? '-'} - ${fm.awayGoals ?? '-'}</div>
           <div class="h2h-t r">${esc(fm.awayTeam || '')}</div>
-          <div class="${resCls}">${fm.result}</div>
+          <div class="${resCls}">${esc(fm.result || '')}</div>
         </div>`;
     });
     s += `</div>`;
