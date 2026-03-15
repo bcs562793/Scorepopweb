@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v3.3)
+   SCOREPOP — app.js  (v3.1)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -661,24 +661,35 @@ function scaleVisualIframe() {
   const iframe = document.querySelector('.d-visual-iframe');
   if (!wrap || !iframe) return;
 
-  const NATIVE_W = 460;
-  const NATIVE_H = Math.round(NATIVE_W * 9 / 16);
-
   const wrapW = wrap.getBoundingClientRect().width;
   if (!wrapW || wrapW < 10) return;
 
-  const scale = wrapW / NATIVE_W;
+  // iframe native genişliğini ölç — yüklenmemişse 560 varsay
+  const NATIVE_W = 560;
+  const NATIVE_H = Math.round(NATIVE_W * (9/16));
+  const scale = parseFloat((wrapW / NATIVE_W).toFixed(4));
 
-  iframe.style.width          = NATIVE_W + 'px';
-  iframe.style.height         = NATIVE_H + 'px';
-  iframe.style.transform      = 'scale(' + scale + ')';
-  iframe.style.transformOrigin = 'top left';
-
-  wrap.style.height = Math.round(NATIVE_H * scale) + 'px';
+  // zoom: Chrome/Android'de transform'dan daha güvenilir
+  if ('zoom' in iframe.style) {
+    iframe.style.width  = NATIVE_W + 'px';
+    iframe.style.height = NATIVE_H + 'px';
+    iframe.style.zoom   = scale;
+    iframe.style.transform = '';
+    wrap.style.height = Math.round(NATIVE_H * scale) + 'px';
+  } else {
+    // Fallback: transform + clip-path ile overflow kesme
+    iframe.style.width          = NATIVE_W + 'px';
+    iframe.style.height         = NATIVE_H + 'px';
+    iframe.style.transform      = 'scale(' + scale + ')';
+    iframe.style.transformOrigin = 'top left';
+    iframe.style.clipPath       = 'inset(0)';
+    wrap.style.height = Math.round(NATIVE_H * scale) + 'px';
+    wrap.style.overflow = 'hidden';
+  }
 }
 
 function _scheduleVisualScale() {
-  [50, 300, 800].forEach(function(ms) { setTimeout(scaleVisualIframe, ms); });
+  [0, 100, 500, 1200].forEach(function(ms) { setTimeout(scaleVisualIframe, ms); });
 }
 
 function buildDetail(m, evs, stats, lus, h2h, pred) {
