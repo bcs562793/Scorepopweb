@@ -14,10 +14,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Inject credentials into config.js
+      - name: Inject credentials
         run: |
           sed -i "s|BURAYA_URL|${{ secrets.SUPABASE_URL }}|g" config.js
           sed -i "s|BURAYA_KEY|${{ secrets.SUPABASE_KEY }}|g" config.js
+          sed -i "s|BURAYA_PAYMENT_URL|${{ secrets.PAYMENT_EDGE_URL }}|g" index.html
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v3
