@@ -4,13 +4,9 @@
 <meta charset="UTF-8"/>
 <title>ScorePop</title>
 <script>
-  // GitHub Pages'de /mac/123 gibi URL'ler 404 verir.
-  // Bu sayfa path'i ?p= parametresi olarak index.html'e iletir.
-  // index.html bunu okuyup gerçek URL'e dönüştürür.
   var path = window.location.pathname;
   var search = window.location.search;
   var hash = window.location.hash;
-  // Ana sayfaya yönlendir, path'i parametre olarak taşı
   window.location.replace(
     '/?p=' + encodeURIComponent(path) +
     (search ? '&' + search.slice(1) : '') +
