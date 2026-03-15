@@ -16,6 +16,10 @@
   var sp = new URLSearchParams(window.location.search);
   var p  = sp.get('p');
   if (p) {
+    // Güvenlik: sadece / ile başlayan relative path'e izin ver
+    if (!/^\/[^/]/.test(p) && p !== '/') {
+      p = '/';
+    }
     sp.delete('p');
     var qs = sp.toString();
     history.replaceState(null, '', p + (qs ? '?' + qs : ''));
@@ -124,7 +128,7 @@
 <div id="overlay" onclick="toggleSidebar()"></div>
 
   <script>
-    window.PAYMENT_EDGE_URL = "https://qyebmwiuvrmfxlgdaarc.supabase.co/functions/v1";
+    window.PAYMENT_EDGE_URL = "BURAYA_PAYMENT_URL";
 </script>
 
 <script src="config.js"></script>
