@@ -16,6 +16,10 @@
   var sp = new URLSearchParams(window.location.search);
   var p  = sp.get('p');
   if (p) {
+    // Güvenlik: sadece / ile başlayan relative path'e izin ver
+    if (!/^\/[^/]/.test(p) && p !== '/') {
+      p = '/';
+    }
     sp.delete('p');
     var qs = sp.toString();
     history.replaceState(null, '', p + (qs ? '?' + qs : ''));
