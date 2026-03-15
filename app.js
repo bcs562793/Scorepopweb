@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v3.2)
+   SCOREPOP — app.js  (v3.3)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -656,52 +656,6 @@ sq(S.sb.from('match_h2h').select('*')
   }
 }
 
-function scaleVisualIframe() {
-  var wrap   = document.querySelector('.d-visual-iframe-wrap');
-  var iframe = document.querySelector('.d-visual-iframe');
-  if (!wrap || !iframe) return;
-
-  // Wrapper genişliğini al
-  var wrapW = wrap.parentElement
-    ? wrap.parentElement.getBoundingClientRect().width - 0
-    : wrap.getBoundingClientRect().width;
-  if (!wrapW || wrapW < 10) return;
-
-  // Margin varsa çıkar (d-visual margin 14px * 2)
-  var margin = window.innerWidth <= 680 ? 0 : 28;
-  wrapW = Math.min(wrapW, window.innerWidth - margin);
-
-  // Tracker'ın gerçek render genişliği — skor çubuğu bu kadar geniş açılıyor
-  var NATIVE_W = 600;
-  // Tracker sayfasının toplam yüksekliği: skor bar (~44px) + saha (16:9 oranında)
-  var NATIVE_H = Math.round(600 * 9 / 16) + 44;
-
-  var scale = wrapW / NATIVE_W;
-
-  // Wrapper boyutlarını ayarla — kesinlikle clip et
-  wrap.style.width    = wrapW + 'px';
-  wrap.style.height   = Math.round(NATIVE_H * scale) + 'px';
-  wrap.style.overflow = 'hidden';
-  wrap.style.clipPath = 'inset(0 0 0 0)';
-
-  // iframe'i ölçekle
-  iframe.style.width          = NATIVE_W + 'px';
-  iframe.style.height         = NATIVE_H + 'px';
-  iframe.style.transformOrigin = '0 0';
-
-  if ('zoom' in iframe.style && /Chrome/.test(navigator.userAgent)) {
-    iframe.style.zoom      = scale;
-    iframe.style.transform = 'none';
-  } else {
-    iframe.style.zoom      = '';
-    iframe.style.transform = 'scale(' + scale + ')';
-  }
-}
-
-function _scheduleVisualScale() {
-  [0, 80, 400, 1000].forEach(function(ms) { setTimeout(scaleVisualIframe, ms); });
-}
-
 function buildDetail(m, evs, stats, lus, h2h, pred) {
   const st = statusInfo(m);
   const hs = m.home_score ?? '-', as = m.away_score ?? '-';
@@ -709,7 +663,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
   try {
     if (typeof Router !== 'undefined') {
       Router.goMatch(m.fixture_id, m.home_team, m.away_team);
-      Router.setMatchMeta(m.home_team, m.away_team, m.home_score, m.away_score, m.league_name);
+      Router.setMatchMeta(m.home_team, m.away_team, m.home_score, m.away_score, m.league_name, m.status, m.fixture_id);
     }
   } catch(e) {}
 
@@ -919,16 +873,6 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
 
   setDetailHTML(html);
   Forum.open(m.fixture_id);
-
-  // iframe'i container'a sığacak şekilde ölçekle (3 farklı gecikme ile dene)
-  _scheduleVisualScale();
-
-  // Ekran döndürmede veya resize'da tekrar hesapla
-  if (window._visualResizeHandler) {
-    window.removeEventListener('resize', window._visualResizeHandler);
-  }
-  window._visualResizeHandler = function() { scaleVisualIframe(); };
-  window.addEventListener('resize', window._visualResizeHandler);
 }
 
 /* ── STATS PARSER ──────────────────────────── */
@@ -1066,6 +1010,15 @@ function startRealtime() {
         const ste = document.querySelector('.d-status');
         const st = statusInfo(m);
         if (ste) ste.textContent = st.live ? `⚡ ${st.label}` : st.label;
+
+        /* SEO: title ve JSON-LD'yi anlık skorla güncelle */
+        if (typeof Router !== 'undefined') {
+          Router.setMatchMeta(
+            m.home_team, m.away_team,
+            m.home_score, m.away_score,
+            m.league_name, m.status, m.fixture_id
+          );
+        }
         return;
       }
 
