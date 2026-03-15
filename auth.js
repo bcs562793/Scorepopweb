@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — auth.js  v2
+   SCOREPOP — auth.js  v3
    Supabase Auth tabanlı + localStorage fallback
    Sorun giderme: init timing, session cache
 ════════════════════════════════════════════════ */
@@ -378,9 +378,19 @@ const Auth = (() => {
     if (!_validEmail(email)) { _showErr('sp-login-err','Geçerli e-posta girin.'); return; }
     if (!pw || pw.length < 6) { _showErr('sp-login-err','Şifre en az 6 karakter.'); return; }
     _setBtnLoad('sp-login-btn', true, 'Giriş Yap');
-    const { error } = await _sb.auth.signInWithPassword({ email, password: pw });
+    const { data: loginData, error } = await _sb.auth.signInWithPassword({ email, password: pw });
     _setBtnLoad('sp-login-btn', false, 'Giriş Yap');
     if (error) { _showErr('sp-login-err', _trErr(error.message)); return; }
+    /* Giriş başarılı — session_id ile user_id ilişkilendir */
+    try {
+      const sid = sessionStorage.getItem('sp_session');
+      if (sid && loginData?.user?.id) {
+        await _sb.from('user_credits')
+          .update({ user_id: loginData.user.id })
+          .eq('session_id', sid)
+          .is('user_id', null);
+      }
+    } catch(e) {}
     document.getElementById('sp-auth-overlay')?.remove();
   }
 
