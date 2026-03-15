@@ -94,14 +94,14 @@ async function generate() {
   </url>`,
     // Bugün sayfası
     `  <url>
-    <loc>${BASE_URL}/#/bugun</loc>
+    <loc>${BASE_URL}/bugun</loc>
     <lastmod>${fmt(today)}</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.9</priority>
   </url>`,
     // Canlı sayfası
     `  <url>
-    <loc>${BASE_URL}/#/canli</loc>
+    <loc>${BASE_URL}/canli</loc>
     <lastmod>${now}</lastmod>
     <changefreq>always</changefreq>
     <priority>0.9</priority>
@@ -111,7 +111,7 @@ async function generate() {
       const slug = `${slugify(m.home_team)}-vs-${slugify(m.away_team)}`;
       const isLive = m.status === 'live' || m.status === 'inprogress' || m.status === 'ht';
       return `  <url>
-    <loc>${BASE_URL}/#/mac/${m.fixture_id}-${slug}</loc>
+    <loc>${BASE_URL}/mac/${m.fixture_id}-${slug}</loc>
     <lastmod>${now}</lastmod>
     <changefreq>${isLive ? 'always' : 'hourly'}</changefreq>
     <priority>${isLive ? '0.95' : '0.8'}</priority>
