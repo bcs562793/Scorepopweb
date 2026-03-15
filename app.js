@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v3.3)
+   SCOREPOP — app.js  (v3.4)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -656,6 +656,36 @@ sq(S.sb.from('match_h2h').select('*')
   }
 }
 
+function scaleVisualIframe() {
+  var wrap   = document.querySelector('.d-visual-iframe-wrap');
+  var iframe = document.querySelector('.d-visual-iframe');
+  if (!wrap || !iframe) return;
+
+  // Layout'u zorla hesaplat
+  void wrap.offsetWidth;
+  var wrapW = wrap.getBoundingClientRect().width;
+  if (!wrapW || wrapW < 10) return;
+
+  // Tracker gerçek boyutu: 600 × 400 (skor bar + saha birlikte)
+  var NATIVE_W = 600;
+  var NATIVE_H = 400;
+
+  var scale = wrapW / NATIVE_W;
+
+  wrap.style.height   = Math.round(NATIVE_H * scale) + 'px';
+  wrap.style.overflow = 'hidden';
+
+  iframe.style.width           = NATIVE_W + 'px';
+  iframe.style.height          = NATIVE_H + 'px';
+  iframe.style.transformOrigin = '0 0';
+  iframe.style.transform       = 'scale(' + scale + ')';
+}
+
+function _scheduleVisualScale() {
+  // pushState sonrası layout gecikmesi için daha uzun süreler
+  [50, 200, 600, 1500].forEach(function(ms) { setTimeout(scaleVisualIframe, ms); });
+}
+
 function buildDetail(m, evs, stats, lus, h2h, pred) {
   const st = statusInfo(m);
   const hs = m.home_score ?? '-', as = m.away_score ?? '-';
@@ -663,7 +693,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
   try {
     if (typeof Router !== 'undefined') {
       Router.goMatch(m.fixture_id, m.home_team, m.away_team);
-      Router.setMatchMeta(m.home_team, m.away_team, m.home_score, m.away_score, m.league_name, m.status, m.fixture_id);
+      Router.setMatchMeta(m.home_team, m.away_team, m.home_score, m.away_score, m.league_name);
     }
   } catch(e) {}
 
@@ -873,6 +903,16 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
 
   setDetailHTML(html);
   Forum.open(m.fixture_id);
+
+  // iframe'i container'a sığacak şekilde ölçekle (3 farklı gecikme ile dene)
+  _scheduleVisualScale();
+
+  // Ekran döndürmede veya resize'da tekrar hesapla
+  if (window._visualResizeHandler) {
+    window.removeEventListener('resize', window._visualResizeHandler);
+  }
+  window._visualResizeHandler = function() { scaleVisualIframe(); };
+  window.addEventListener('resize', window._visualResizeHandler);
 }
 
 /* ── STATS PARSER ──────────────────────────── */
@@ -1010,15 +1050,6 @@ function startRealtime() {
         const ste = document.querySelector('.d-status');
         const st = statusInfo(m);
         if (ste) ste.textContent = st.live ? `⚡ ${st.label}` : st.label;
-
-        /* SEO: title ve JSON-LD'yi anlık skorla güncelle */
-        if (typeof Router !== 'undefined') {
-          Router.setMatchMeta(
-            m.home_team, m.away_team,
-            m.home_score, m.away_score,
-            m.league_name, m.status, m.fixture_id
-          );
-        }
         return;
       }
 
