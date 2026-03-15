@@ -64,10 +64,12 @@ async function generate() {
   try {
     // live_matches — şu an canlı olanlar
     const live = await fetchJson('live_matches?select=fixture_id,home_team,away_team,league_name,home_score,away_score,status&order=fixture_id.desc&limit=200');
+    console.log('live_matches yanit:', JSON.stringify(live).slice(0,200));
     if (Array.isArray(live)) matches.push(...live);
 
     // daily_matches — bugün + yarın planlanmış
     const daily = await fetchJson(`daily_matches?select=fixture_id,home_team,away_team,league_name,home_score,away_score,status&order=fixture_id.desc&limit=400`);
+    console.log('daily_matches yanit:', JSON.stringify(daily).slice(0,200));
     if (Array.isArray(daily)) matches.push(...daily);
   } catch(e) {
     console.error('Supabase fetch hatası:', e.message);
