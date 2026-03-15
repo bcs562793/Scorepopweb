@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v3.1)
+   SCOREPOP — app.js  (v3.2)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -657,39 +657,49 @@ sq(S.sb.from('match_h2h').select('*')
 }
 
 function scaleVisualIframe() {
-  const wrap   = document.querySelector('.d-visual-iframe-wrap');
-  const iframe = document.querySelector('.d-visual-iframe');
+  var wrap   = document.querySelector('.d-visual-iframe-wrap');
+  var iframe = document.querySelector('.d-visual-iframe');
   if (!wrap || !iframe) return;
 
-  const wrapW = wrap.getBoundingClientRect().width;
+  // Wrapper genişliğini al
+  var wrapW = wrap.parentElement
+    ? wrap.parentElement.getBoundingClientRect().width - 0
+    : wrap.getBoundingClientRect().width;
   if (!wrapW || wrapW < 10) return;
 
-  // iframe native genişliğini ölç — yüklenmemişse 560 varsay
-  const NATIVE_W = 560;
-  const NATIVE_H = Math.round(NATIVE_W * (9/16));
-  const scale = parseFloat((wrapW / NATIVE_W).toFixed(4));
+  // Margin varsa çıkar (d-visual margin 14px * 2)
+  var margin = window.innerWidth <= 680 ? 0 : 28;
+  wrapW = Math.min(wrapW, window.innerWidth - margin);
 
-  // zoom: Chrome/Android'de transform'dan daha güvenilir
-  if ('zoom' in iframe.style) {
-    iframe.style.width  = NATIVE_W + 'px';
-    iframe.style.height = NATIVE_H + 'px';
-    iframe.style.zoom   = scale;
-    iframe.style.transform = '';
-    wrap.style.height = Math.round(NATIVE_H * scale) + 'px';
+  // Tracker'ın gerçek render genişliği — skor çubuğu bu kadar geniş açılıyor
+  var NATIVE_W = 600;
+  // Tracker sayfasının toplam yüksekliği: skor bar (~44px) + saha (16:9 oranında)
+  var NATIVE_H = Math.round(600 * 9 / 16) + 44;
+
+  var scale = wrapW / NATIVE_W;
+
+  // Wrapper boyutlarını ayarla — kesinlikle clip et
+  wrap.style.width    = wrapW + 'px';
+  wrap.style.height   = Math.round(NATIVE_H * scale) + 'px';
+  wrap.style.overflow = 'hidden';
+  wrap.style.clipPath = 'inset(0 0 0 0)';
+
+  // iframe'i ölçekle
+  iframe.style.width          = NATIVE_W + 'px';
+  iframe.style.height         = NATIVE_H + 'px';
+  iframe.style.transformOrigin = '0 0';
+
+  if ('zoom' in iframe.style && /Chrome/.test(navigator.userAgent)) {
+    iframe.style.zoom      = scale;
+    iframe.style.transform = 'none';
   } else {
-    // Fallback: transform + clip-path ile overflow kesme
-    iframe.style.width          = NATIVE_W + 'px';
-    iframe.style.height         = NATIVE_H + 'px';
-    iframe.style.transform      = 'scale(' + scale + ')';
-    iframe.style.transformOrigin = 'top left';
-    iframe.style.clipPath       = 'inset(0)';
-    wrap.style.height = Math.round(NATIVE_H * scale) + 'px';
-    wrap.style.overflow = 'hidden';
+    iframe.style.zoom      = '';
+    iframe.style.transform = 'scale(' + scale + ')';
   }
 }
 
 function _scheduleVisualScale() {
-  [0, 100, 500, 1200].forEach(function(ms) { setTimeout(scaleVisualIframe, ms); });
+  [0, 80, 400, 1000].forEach(function(ms) { setTimeout(scaleVisualIframe, ms); });
 }
 
 function buildDetail(m, evs, stats, lus, h2h, pred) {
