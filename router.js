@@ -19,24 +19,39 @@ const Router = (() => {
   };
 
   /* ── BAŞLAT ────────────────────────────────── */
-  let _busy = false;   // sonsuz döngü koruması
+  let _busy = false;
 
   function init() {
-    window.addEventListener('hashchange', () => {
+    // popstate: geri/ileri butonu
+    window.addEventListener('popstate', () => {
       if (_busy) return;
       _handle();
     });
 
-    /* Hash yoksa /canli'ye yönlendir, varsayılan sayfa */
-    const hash = _getHash();
-    const isEmpty = !hash || hash === '/' || hash === '';
+    // 404.html'den gelen yönlendirme parametresi
+    const redirectPath = _consumeRedirectParam();
+
+    const path = redirectPath || _getPath();
+    const isEmpty = !path || path === '/' || path === '';
     if (isEmpty) {
-      /* Hash'i sessizce kur — hashchange tetiklemez */
-      history.replaceState(null, '', '#/canli');
+      history.replaceState(null, '', '/canli');
       if (typeof navigate === 'function') navigate('live');
     } else {
       _handle();
     }
+  }
+
+  /* 404.html trick: ?p=/mac/123 parametresini al ve URL'e yaz */
+  function _consumeRedirectParam() {
+    const sp   = new URLSearchParams(window.location.search);
+    const path = sp.get('p');
+    if (!path) return null;
+    // Parametreyi temizle, gerçek URL'e yaz
+    sp.delete('p');
+    const qs = sp.toString();
+    const cleanUrl = path + (qs ? '?' + qs : '');
+    history.replaceState(null, '', cleanUrl);
+    return path;
   }
 
   /* ── HASH İŞLE ─────────────────────────────── */
@@ -48,21 +63,20 @@ const Router = (() => {
   }
 
   function _handleInner() {
-    const hash = _getHash();
+    const path = _getPath();
 
     /* /mac/ID-slug */
-    const mMatch = hash.match(ROUTES.match);
+    const mMatch = path.match(ROUTES.match);
     if (mMatch) {
       const id = parseInt(mMatch[1], 10);
       if (!isNaN(id)) {
-        /* Sayfa hangisinden açılmış bilemeyiz → önce live_matches dene */
         if (typeof openDetail === 'function') openDetail(id, false);
         return;
       }
     }
 
     /* /bugun veya /bugun/2026-03-12 */
-    const todayMatch = hash.match(ROUTES.today);
+    const todayMatch = path.match(ROUTES.today);
     if (todayMatch) {
       if (todayMatch[1]) S.date = todayMatch[1];
       if (typeof navigate === 'function') navigate('today');
@@ -70,7 +84,7 @@ const Router = (() => {
     }
 
     /* /yakin */
-    const upMatch = hash.match(ROUTES.upcoming);
+    const upMatch = path.match(ROUTES.upcoming);
     if (upMatch) {
       if (upMatch[1]) S.date = upMatch[1];
       if (typeof navigate === 'function') navigate('upcoming');
@@ -79,40 +93,39 @@ const Router = (() => {
 
     /* / veya /canli (varsayılan) */
     if (typeof navigate === 'function') navigate('live');
-  }  // _handleInner sonu
+  }
 
   /* ── URL PUSH ──────────────────────────────── */
   function goLive() {
     _busy = true;
-    _setHash('/canli');
+    _pushPath('/canli');
     setTimeout(() => { _busy = false; }, 150);
   }
 
   function goToday(date) {
     _busy = true;
-    _setHash(date ? `/bugun/${date}` : '/bugun');
+    _pushPath(date ? `/bugun/${date}` : '/bugun');
     setTimeout(() => { _busy = false; }, 150);
   }
 
   function goUpcoming(date) {
     _busy = true;
-    _setHash(date ? `/yakin/${date}` : '/yakin');
+    _pushPath(date ? `/yakin/${date}` : '/yakin');
     setTimeout(() => { _busy = false; }, 150);
   }
 
   /**
    * Maç detay sayfası URL'i
-   * scorepop.com.tr/#/mac/1234567-galatasaray-vs-fenerbahce
+   * scorepop.com.tr/mac/1234567-galatasaray-vs-fenerbahce
    */
   function goMatch(fixtureId, homeTeam, awayTeam) {
     _busy = true;
     const slug = _makeSlug(homeTeam, awayTeam);
-    _setHash(`/mac/${fixtureId}${slug ? '-' + slug : ''}`);
+    _pushPath(`/mac/${fixtureId}${slug ? '-' + slug : ''}`);
     setTimeout(() => { _busy = false; }, 150);
   }
 
   function goBack() {
-    /* Önceki hash varsa geri git, yoksa canlıya dön */
     if (window.history.length > 1) {
       window.history.back();
     } else {
@@ -141,7 +154,7 @@ const Router = (() => {
       canon.rel = 'canonical';
       document.head.appendChild(canon);
     }
-    canon.href = window.location.origin + window.location.pathname + window.location.hash;
+    canon.href = window.location.origin + window.location.pathname;
 
     /* Open Graph */
     _setOG('og:title',       document.title);
@@ -197,14 +210,13 @@ const Router = (() => {
   }
 
   /* ── YARDIMCILAR ──────────────────────────── */
-  function _getHash() {
-    return (window.location.hash || '#/').replace(/^#/, '') || '/';
+  function _getPath() {
+    return window.location.pathname || '/';
   }
 
-  function _setHash(path) {
-    const newHash = '#' + path;
-    if (window.location.hash !== newHash) {
-      window.location.hash = path;
+  function _pushPath(path) {
+    if (window.location.pathname !== path) {
+      history.pushState(null, '', path);
     }
   }
 
