@@ -1,0 +1,9 @@
+# Supabase credentials — bu dosyaları asla commit etme!
+config.js
+
+# Shopier webhook (PHP — GitHub Pages'de çalışmaz, güvenlik riski)
+shopier-webhook.php
+
+# Sitemap generator secrets
+.env
+*.env
