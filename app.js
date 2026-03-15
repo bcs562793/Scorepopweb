@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v3.4)
+   SCOREPOP — app.js  (v3.5)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -587,6 +587,11 @@ function setLeague(name) {
     const isAll = name === 'all' && lg === 'Tüm Ligler';
     el.classList.toggle('active', isAll || lg === name);
   });
+  // Detail view açıksa maç listesine geri dön
+  const detailView = document.getElementById('view-detail');
+  if (detailView && !detailView.classList.contains('hidden')) {
+    showView('matches');
+  }
   applyFilter();
 }
 
