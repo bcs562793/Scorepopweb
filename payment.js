@@ -36,7 +36,6 @@ const Payment = (() => {
      sayfanızın adresiyle güncelleyin.
   ──────────────────────────────────────────────── */
   const CREDIT_PACKAGES = [
-    { key: 'test',    credits: 100,  price: 1,   label: '🧪 Test',   popular: false, bonus: 'Test paketi', url: 'https://www.shopier.com/bizedemiofsayt/45196611' },
     { key: 'starter', credits: 100,  price: 29,  label: 'Başlangıç', popular: false, bonus: null,          url: 'https://www.shopier.com/bizedemiofsayt/45196611' },
     { key: 'popular', credits: 300,  price: 79,  label: 'Popüler',   popular: true,  bonus: '+ 20 bonus',  url: 'https://www.shopier.com/bizedemiofsayt/45196663' },
     { key: 'pro',     credits: 750,  price: 179, label: 'Pro',       popular: false, bonus: '+ 75 bonus',  url: 'https://www.shopier.com/bizedemiofsayt/45196703' },
