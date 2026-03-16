@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — forum.js  (v3.4 — Kompakt Pin)
+   SCOREPOP — forum.js  (v3.5 — Kompakt Pin)
 
    DEĞİŞİKLİKLER:
    ✅ Pinned section: Elmas kalıcı, Altın 30s, Gümüş 20s, Bronz 10s
@@ -47,14 +47,21 @@ const Forum = (() => {
   let _pollTimer       = null;   /* polling fallback zamanlayici */
   let _realtimeOk      = false;  /* gercek zamanli baglanti saglikli mi? */
   let _lastMsgId       = 0;      /* polling: son gorulen mesaj id */
-  let _reconnectTimer  = null;   /* yeniden baglanma zamanlayici */
-  let _reconnectDelay  = 3000;   /* ms - her denemede 2x artar, max 30s */
+  let _reconnectTimer  = null;
+  let _reconnectDelay  = 3000;
+  let _ownSessionIds   = new Set();  /* bu kullanıcının tüm session_id'leri */
 
   /* ── INIT ─────────────────────────────────── */
   function init(sb) {
     _sb        = sb;
     _sessionId = _getOrCreateSession();
     _nickname  = _getStoredNickname();
+    /* localStorage'dan önceki session'ları yükle */
+    try {
+      const stored = localStorage.getItem('sp_own_sessions');
+      if (stored) _ownSessionIds = new Set(JSON.parse(stored));
+    } catch(e) {}
+    _ownSessionIds.add(_sessionId);
 
     if (typeof Auth !== 'undefined') {
       Auth.onChange(async user => {
@@ -67,6 +74,19 @@ const Forum = (() => {
           const el = document.querySelector('.fr-nick-lbl strong');
           if (el) el.textContent = name;
         }
+
+        /* Bu kullanıcıya ait tüm session_id'leri kaydet → isOwn doğru çalışsın */
+        try {
+          const { data: ownSessions } = await _sb
+            .from('user_credits')
+            .select('session_id')
+            .eq('user_id', user.id);
+          if (ownSessions?.length) {
+            const ids = ownSessions.map(r => r.session_id).filter(Boolean);
+            localStorage.setItem('sp_own_sessions', JSON.stringify(ids));
+            _ownSessionIds = new Set(ids);
+          }
+        } catch(e) {}
 
         if (user.id && _sessionId && _sb) {
           try {
@@ -238,8 +258,28 @@ const Forum = (() => {
       }, payload => {
         if (_fixtureId !== fid) return;
         _realtimeOk = true;
-        _reconnectDelay = 3000;   /* basarili mesaj alindi, delay sifirla */
+        _reconnectDelay = 3000;
+        /* pending featured mesajları INSERT'te yoksay, UPDATE'te yakala */
+        if (payload.new.is_featured && payload.new.payment_status !== 'verified') return;
         _onNewMessage(payload.new);
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'forum_messages',
+        filter: `fixture_id=eq.${fid}`,
+      }, payload => {
+        if (_fixtureId !== fid) return;
+        _realtimeOk = true;
+        /* featured mesaj verified olunca pin'e ekle, chat'ten temizle */
+        if (payload.new.is_featured && payload.new.payment_status === 'verified') {
+          const chatIdx = _chatMsgs.findIndex(m => m.id === payload.new.id);
+          if (chatIdx >= 0) {
+            _chatMsgs.splice(chatIdx, 1);
+            document.querySelector(`[data-msg-id="${payload.new.id}"]`)?.remove();
+          }
+          if (!_pinnedSlots.some(s => s.msg.id === payload.new.id)) {
+            _addFeaturedMessage(payload.new);
+          }
+        }
       })
       .subscribe((status, err) => {
         if (status === 'SUBSCRIBED') {
@@ -270,7 +310,7 @@ const Forum = (() => {
   /* Realtime calismiyor veya tab arka plandaysa 15sn'de bir yeni mesaj cek */
   function _startPolling() {
     if (_pollTimer) return;
-    _pollTimer = setInterval(_pollNewMessages, 15000);
+    _pollTimer = setInterval(_pollNewMessages, 3000);
   }
 
   function _stopPolling() {
@@ -279,8 +319,7 @@ const Forum = (() => {
 
   async function _pollNewMessages() {
     if (!_fixtureId || !_sb || _isLoading) return;
-    /* Realtime sagliksa sadece dogrulama amacli daha seyrek calis */
-    if (_realtimeOk && _lastMsgId === 0) return;
+    /* Her zaman yeni mesajları kontrol et */
 
     try {
       const query = _sb
@@ -295,14 +334,6 @@ const Forum = (() => {
       if (error || !data?.length) return;
 
       data.forEach(msg => {
-        /* Featured+verified gelince chat listesinden önce temizle */
-        if (msg.is_featured && msg.payment_status === 'verified') {
-          const chatIdx = _chatMsgs.findIndex(m => m.id === msg.id);
-          if (chatIdx >= 0) {
-            _chatMsgs.splice(chatIdx, 1);
-            document.querySelector(`[data-msg-id="${msg.id}"]`)?.remove();
-          }
-        }
         _onNewMessage(msg);
         if (msg.id > _lastMsgId) _lastMsgId = msg.id;
       });
@@ -410,12 +441,10 @@ const Forum = (() => {
     scrollToBottom();
 
     try {
-      const _authUser = (typeof Auth !== 'undefined') ? Auth.getUser() : null;
       const { data, error } = await _sb.from('forum_messages').insert({
         fixture_id: _fixtureId, session_id: _sessionId,
         nickname: _nickname, message, is_featured: false,
         payment_status: 'none',
-        user_id: _authUser?.id || null,
         expires_at: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
       }).select();
 
@@ -705,8 +734,7 @@ const Forum = (() => {
   function _buildPinnedHTML(msg, unpinAt) {
     const tier = TIERS[msg.feature_tier];
     if (!tier) return '';
-    const isOwn     = msg.session_id === _sessionId
-      || (msg.user_id && typeof Auth !== "undefined" && Auth.getUser()?.id && msg.user_id === Auth.getUser().id);
+    const isOwn     = _ownSessionIds.has(msg.session_id) || (msg.user_id && typeof Auth !== "undefined" && Auth.getUser()?.id && msg.user_id === Auth.getUser().id);
     const time      = _fmtTime(msg.created_at);
     const permanent = unpinAt === Infinity;
     const remainMs  = permanent ? 0 : Math.max(0, unpinAt - Date.now());
@@ -884,8 +912,7 @@ const Forum = (() => {
   /* ── CHAT MESAJ HTML (renk korunur) ───────── */
   function _buildMsgHTML(msg) {
     const tier  = msg.is_featured && msg.feature_tier ? TIERS[msg.feature_tier] : null;
-    const isOwn = msg.session_id === _sessionId
-      || (msg.user_id && typeof Auth !== 'undefined' && Auth.getUser()?.id && msg.user_id === Auth.getUser().id);
+    const isOwn = _ownSessionIds.has(msg.session_id) || (msg.user_id && typeof Auth !== "undefined" && Auth.getUser()?.id && msg.user_id === Auth.getUser().id);
     const time  = _fmtTime(msg.created_at);
 
     if (tier) {
