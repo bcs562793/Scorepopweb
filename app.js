@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v3.6)
+   SCOREPOP — app.js  (v3.7)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -124,6 +124,10 @@ function _sortLeagueGroups(groups) {
 
 /* ── BOOT ───────────────────────────────────── */
 window.addEventListener('load', async () => {
+  /* Watchdog'u durdur */
+  window._appStarted = true;
+  if (window._watchdog) clearTimeout(window._watchdog);
+
   S.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   /* 1. Forum — Auth'dan önce başlat (session bağımsız) */
@@ -613,20 +617,7 @@ async function loadDetail(id, isLive) {
     }
 
     if (!m) {
-      setDetailHTML(`
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:16px;padding:40px 20px;text-align:center;">
-          <div style="font-size:48px;">🔍</div>
-          <div style="font-size:18px;font-weight:600;color:var(--tx1);">Maç Bulunamadı</div>
-          <div style="font-size:13px;color:var(--tx3);max-width:280px;line-height:1.6;">
-            Bu maç arşivde yok veya kaldırılmış olabilir.<br>Biten maçlar belirli süre sonra silinir.
-          </div>
-          <button onclick="closeDetail()" style="
-            margin-top:8px;padding:10px 24px;
-            background:var(--or);color:#fff;border:none;border-radius:8px;
-            font-size:14px;font-weight:600;cursor:pointer;
-          ">← Ana Sayfaya Dön</button>
-        </div>`);
-      Router.setPageMeta('Maç Bulunamadı');
+      setDetailHTML('<div class="empty"><div class="empty-t">Maç bulunamadı</div></div>');
       return;
     }
 
