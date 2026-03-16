@@ -604,15 +604,18 @@ img { display: block; }
   color: var(--live); background: var(--live2);
   border-radius: 3px; padding: 2px 7px;
 }
-.d-visual-iframe-wrap {
+..d-visual-iframe-wrap {
   position: relative;
   width: 100%;
   max-width: 100%;
   overflow: hidden;
   background: #000;
-  /* height JS tarafından ayarlanır */
   clip-path: inset(0 0 0 0);
   -webkit-clip-path: inset(0 0 0 0);
+  min-height: 0;
+  height: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
 
 /* Masaüstünde görsel çok büyümesin */
