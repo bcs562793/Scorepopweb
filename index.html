@@ -100,26 +100,25 @@
     </div>
   </header>
 
-  <!-- 🗑 SİL — İLK 1000 ÜYE KAMPANYASI BAŞLANGICI -->
-<div class="promo-banner" id="promo-banner">
-  <div class="promo-glow"></div>
-  <div class="promo-inner">
-    <div class="promo-badge">🎁 ÖZEL TEKLİF</div>
-    <div class="promo-text">
-      <span class="promo-title">İlk <strong>1.000</strong> üyeye <strong>1.000 Kredi</strong> hediye!</span>
-      <span class="promo-sub">Hemen üye ol, kredini kap. Kalan kontenjan dolmadan yerine al.</span>
+  <!-- ── PROMO BANNER ──────────────────────────────── -->
+  <div class="promo-banner" id="promo-banner">
+    <div class="promo-glow"></div>
+    <div class="promo-inner">
+      <div class="promo-badge">🎁 ÖZEL TEKLİF</div>
+      <div class="promo-text">
+        <span class="promo-title">İlk <strong>1.000</strong> üyeye <strong>1.000 Kredi</strong> hediye!</span>
+        <span class="promo-sub">Hemen üye ol, kredini kap. Kalan kontenjan dolmadan yerine al.</span>
+      </div>
+      <div class="promo-counter">
+        <span class="promo-counter-lbl">Kalan Kontenjan</span>
+        <span class="promo-counter-num" id="promo-slots">...</span>
+      </div>
+      <button class="promo-cta" onclick="Auth.showLoginModal('register')">
+        Üye Ol →
+      </button>
     </div>
-    <div class="promo-counter">
-      <span class="promo-counter-lbl">Kalan Kontenjan</span>
-      <span class="promo-counter-num" id="promo-slots">...</span>
-    </div>
-    <button class="promo-cta" onclick="document.querySelector('[data-action=register], .auth-btn, #auth-btn')?.click()">
-      Üye Ol →
-    </button>
+    <button class="promo-close" onclick="document.getElementById('promo-banner').style.display='none'" aria-label="Kapat">✕</button>
   </div>
-  <button class="promo-close" onclick="document.getElementById('promo-banner').style.display='none'" aria-label="Kapat">✕</button>
-</div>
-<!-- 🗑 SİL — İLK 1000 ÜYE KAMPANYASI BİTİŞİ -->
 
   <!-- col headers -->
   <div class="col-hdr" id="col-hdr">
@@ -171,23 +170,29 @@ window._watchdog = setTimeout(function() {
 <script src="payment.js"></script>
 <script src="app.js"></script>
 
-  <!-- 🗑 SİL — İLK 1000 ÜYE KAMPANYASI SAYAÇ BAŞLANGICI -->
 <script>
+/* ── PROMO BANNER KONTENJAN SAYACI ── */
 (async function() {
   const el = document.getElementById('promo-slots');
   if (!el) return;
   try {
+    // Supabase hazır olana kadar bekle
     await new Promise(r => {
       if (window.SUPA) return r();
       window.addEventListener('supabase-ready', r, { once: true });
-      setTimeout(r, 3000);
+      setTimeout(r, 3000); // max 3sn bekle
     });
+
     if (!window.SUPA) { el.textContent = '1000'; return; }
+
     const { count } = await window.SUPA
       .from('profiles')
       .select('id', { count: 'exact', head: true });
+
     const kalan = Math.max(0, 1000 - (count || 0));
     el.textContent = kalan.toLocaleString('tr-TR');
+
+    // Kontenjan bittiyse banneri gizle
     if (kalan === 0) {
       document.getElementById('promo-banner')?.remove();
     }
@@ -196,7 +201,5 @@ window._watchdog = setTimeout(function() {
   }
 })();
 </script>
-<!-- 🗑 SİL — İLK 1000 ÜYE KAMPANYASI SAYAÇ BİTİŞİ -->
 </body>
-  
 </html>
