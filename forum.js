@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — forum.js  (v3.5 — Kompakt Pin)
+   SCOREPOP — forum.js  (v3.6 — Kompakt Pin)
 
    DEĞİŞİKLİKLER:
    ✅ Pinned section: Elmas kalıcı, Altın 30s, Gümüş 20s, Bronz 10s
@@ -259,8 +259,8 @@ const Forum = (() => {
         if (_fixtureId !== fid) return;
         _realtimeOk = true;
         _reconnectDelay = 3000;
-        /* pending featured mesajları INSERT'te yoksay, UPDATE'te yakala */
-        if (payload.new.is_featured && payload.new.payment_status !== 'verified') return;
+        /* pending mesajları INSERT'te yoksay (is_featured olsun olmasın) — UPDATE'te yakala */
+        if (payload.new.payment_status === 'pending') return;
         _onNewMessage(payload.new);
       })
       .on('postgres_changes', {
@@ -334,6 +334,8 @@ const Forum = (() => {
       if (error || !data?.length) return;
 
       data.forEach(msg => {
+        /* pending featured mesajları için lastMsgId güncelleme — UPDATE sonrası tekrar gelsin */
+        if (msg.is_featured && msg.payment_status !== 'verified') return;
         _onNewMessage(msg);
         if (msg.id > _lastMsgId) _lastMsgId = msg.id;
       });
