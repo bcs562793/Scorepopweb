@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — auth.js  v3
+   SCOREPOP — auth.js  v4
    Supabase Auth tabanlı + localStorage fallback
    Sorun giderme: init timing, session cache
 ════════════════════════════════════════════════ */
@@ -15,6 +15,25 @@ const Auth = (() => {
   /* ── BAŞLAT ─────────────────────────────────── */
   async function init(sb) {
     _sb = sb;
+
+    /* Supabase şifre sıfırlama linki tıklandığında
+       URL'de #access_token=...&type=recovery gelir — yakala */
+    const hash = window.location.hash;
+    if (hash.includes('type=recovery') && hash.includes('access_token')) {
+      const params = new URLSearchParams(hash.slice(1));
+      const accessToken  = params.get('access_token');
+      const refreshToken = params.get('refresh_token') || '';
+      if (accessToken) {
+        try {
+          await _sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        } catch(e) { console.warn('[Auth] setSession hatası:', e); }
+        /* Hash'i temizle */
+        history.replaceState(null, '', window.location.pathname);
+        /* Şifre değiştir modalını göster */
+        setTimeout(() => _showPasswordChangeModal(), 300);
+      }
+    }
+
     try {
       /* Mevcut session'ı al — timeout 5s */
       const sessionResult = await Promise.race([
@@ -378,19 +397,9 @@ const Auth = (() => {
     if (!_validEmail(email)) { _showErr('sp-login-err','Geçerli e-posta girin.'); return; }
     if (!pw || pw.length < 6) { _showErr('sp-login-err','Şifre en az 6 karakter.'); return; }
     _setBtnLoad('sp-login-btn', true, 'Giriş Yap');
-    const { data: loginData, error } = await _sb.auth.signInWithPassword({ email, password: pw });
+    const { error } = await _sb.auth.signInWithPassword({ email, password: pw });
     _setBtnLoad('sp-login-btn', false, 'Giriş Yap');
     if (error) { _showErr('sp-login-err', _trErr(error.message)); return; }
-    /* Giriş başarılı — session_id ile user_id ilişkilendir */
-    try {
-      const sid = sessionStorage.getItem('sp_session');
-      if (sid && loginData?.user?.id) {
-        await _sb.from('user_credits')
-          .update({ user_id: loginData.user.id })
-          .eq('session_id', sid)
-          .is('user_id', null);
-      }
-    } catch(e) {}
     document.getElementById('sp-auth-overlay')?.remove();
   }
 
@@ -418,6 +427,55 @@ const Auth = (() => {
       provider: 'google',
       options: { redirectTo: window.location.href },
     });
+  }
+
+  /* ── ŞİFRE DEĞİŞTİR MODAL (recovery sonrası) ── */
+  function _showPasswordChangeModal() {
+    _closeModal();
+    const ov = _makeOverlay('sp-auth-overlay');
+    ov.innerHTML = `
+      <div class="sp-modal">
+        <div class="sp-modal-hdr">
+          <div class="sp-modal-title">🔑 Yeni Şifre Belirle</div>
+        </div>
+        <p class="sp-modal-sub">Lütfen yeni şifreni gir.</p>
+        <div class="sp-field">
+          <label class="sp-lbl">Yeni Şifre <span class="sp-hint">(min. 8 karakter)</span></label>
+          <div class="sp-pw-wrap">
+            <input type="password" id="sp-newpw" class="sp-input" placeholder="••••••••" maxlength="64"/>
+            <button class="sp-pw-eye" onclick="togglePwVis('sp-newpw',this)">👁</button>
+          </div>
+        </div>
+        <div class="sp-field">
+          <label class="sp-lbl">Şifre Tekrar</label>
+          <div class="sp-pw-wrap">
+            <input type="password" id="sp-newpw2" class="sp-input" placeholder="••••••••" maxlength="64"/>
+            <button class="sp-pw-eye" onclick="togglePwVis('sp-newpw2',this)">👁</button>
+          </div>
+        </div>
+        <div id="sp-newpw-err" class="sp-err hidden"></div>
+        <div id="sp-newpw-ok"  class="sp-ok  hidden"></div>
+        <button class="sp-submit-btn" id="sp-newpw-btn">Şifremi Güncelle</button>
+      </div>`;
+
+    document.body.appendChild(ov);
+
+    document.getElementById('sp-newpw-btn').onclick = async () => {
+      const pw  = document.getElementById('sp-newpw').value;
+      const pw2 = document.getElementById('sp-newpw2').value;
+      if (!pw || pw.length < 8)  { _showErr('sp-newpw-err', 'Şifre en az 8 karakter olmalı.'); return; }
+      if (pw !== pw2)            { _showErr('sp-newpw-err', 'Şifreler eşleşmiyor.'); return; }
+      const btn = document.getElementById('sp-newpw-btn');
+      btn.disabled = true; btn.textContent = 'Güncelleniyor…';
+      const { error } = await _sb.auth.updateUser({ password: pw });
+      if (error) {
+        btn.disabled = false; btn.textContent = 'Şifremi Güncelle';
+        _showErr('sp-newpw-err', _trErr(error.message));
+        return;
+      }
+      _showOk('sp-newpw-ok', '✅ Şifren güncellendi! Giriş yapabilirsin.');
+      setTimeout(() => ov.remove(), 2000);
+    };
   }
 
   /* ── YARDIMCILAR ────────────────────────────── */
