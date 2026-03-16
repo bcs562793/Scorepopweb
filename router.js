@@ -1,16 +1,11 @@
 /* ═══════════════════════════════════════════════
    SCOREPOP — router.js
    Hash tabanlı SEO dostu URL yönetimi
-   Örnek:  scorepop.com.tr/#/canli
-           scorepop.com.tr/#/bugun/2026-03-12
-           scorepop.com.tr/#/mac/1234567-galatasaray-vs-fenerbahce
-           scorepop.com.tr/#/yakin
 ════════════════════════════════════════════════ */
 'use strict';
 
 const Router = (() => {
 
-  /* ── ROTALAR ──────────────────────────────── */
   const ROUTES = {
     live:     /^\/?(?:canli|live)?$/i,
     today:    /^\/?(?:bugun|today)(?:\/(\d{4}-\d{2}-\d{2}))?$/i,
@@ -18,19 +13,15 @@ const Router = (() => {
     match:    /^\/?mac\/(\d+)(?:-[^/]+)?$/i,
   };
 
-  /* ── BAŞLAT ────────────────────────────────── */
   let _busy = false;
 
   function init() {
-    // popstate: geri/ileri butonu
     window.addEventListener('popstate', () => {
       if (_busy) return;
       _handle();
     });
 
-    // 404.html'den gelen yönlendirme parametresi
     const redirectPath = _consumeRedirectParam();
-
     const path = redirectPath || _getPath();
     const isEmpty = !path || path === '/' || path === '';
     if (isEmpty) {
@@ -41,12 +32,10 @@ const Router = (() => {
     }
   }
 
-  /* 404.html trick: ?p=/mac/123 parametresini al ve URL'e yaz */
   function _consumeRedirectParam() {
     const sp   = new URLSearchParams(window.location.search);
     const path = sp.get('p');
     if (!path) return null;
-    // Parametreyi temizle, gerçek URL'e yaz
     sp.delete('p');
     const qs = sp.toString();
     const cleanUrl = path + (qs ? '?' + qs : '');
@@ -54,7 +43,6 @@ const Router = (() => {
     return path;
   }
 
-  /* ── HASH İŞLE ─────────────────────────────── */
   function _handle() {
     if (_busy) return;
     _busy = true;
@@ -65,7 +53,6 @@ const Router = (() => {
   function _handleInner() {
     const path = _getPath();
 
-    /* /mac/ID-slug */
     const mMatch = path.match(ROUTES.match);
     if (mMatch) {
       const id = parseInt(mMatch[1], 10);
@@ -75,7 +62,6 @@ const Router = (() => {
       }
     }
 
-    /* /bugun veya /bugun/2026-03-12 */
     const todayMatch = path.match(ROUTES.today);
     if (todayMatch) {
       if (todayMatch[1]) S.date = todayMatch[1];
@@ -83,7 +69,6 @@ const Router = (() => {
       return;
     }
 
-    /* /yakin */
     const upMatch = path.match(ROUTES.upcoming);
     if (upMatch) {
       if (upMatch[1]) S.date = upMatch[1];
@@ -91,11 +76,9 @@ const Router = (() => {
       return;
     }
 
-    /* / veya /canli (varsayılan) */
     if (typeof navigate === 'function') navigate('live');
   }
 
-  /* ── URL PUSH ──────────────────────────────── */
   function goLive() {
     _busy = true;
     _pushPath('/canli');
@@ -114,10 +97,6 @@ const Router = (() => {
     setTimeout(() => { _busy = false; }, 150);
   }
 
-  /**
-   * Maç detay sayfası URL'i
-   * scorepop.com.tr/mac/1234567-galatasaray-vs-fenerbahce
-   */
   function goMatch(fixtureId, homeTeam, awayTeam) {
     _busy = true;
     const slug = _makeSlug(homeTeam, awayTeam);
@@ -133,7 +112,6 @@ const Router = (() => {
     }
   }
 
-  /* ── SEO: <title> ve <meta> güncelle ─────── */
   function setPageMeta(title, description) {
     document.title = title
       ? `${title} — ScorePop`
@@ -147,7 +125,6 @@ const Router = (() => {
     }
     desc.content = description || 'Canlı maç skorları, anlık sonuçlar ve istatistikler.';
 
-    /* Canonical URL */
     let canon = document.querySelector('link[rel="canonical"]');
     if (!canon) {
       canon = document.createElement('link');
@@ -156,7 +133,6 @@ const Router = (() => {
     }
     canon.href = window.location.origin + window.location.pathname;
 
-    /* Open Graph */
     _setOG('og:title',       document.title);
     _setOG('og:description', desc.content);
     _setOG('og:url',         canon.href);
@@ -165,31 +141,38 @@ const Router = (() => {
   }
 
   function setMatchMeta(homeTeam, awayTeam, homeScore, awayScore, league, status, fixtureId) {
-    // Skor metni
     const hasScore = homeScore != null && awayScore != null;
     const scoreStr = hasScore ? `${homeScore}-${awayScore}` : 'vs';
 
-    // Durum etiketi
     let stLabel = '';
     if (status === 'live' || status === 'inprogress') stLabel = '🔴 CANLI | ';
     else if (status === 'ht') stLabel = '⏸ Devre Arası | ';
 
-    // <title> ve <meta description>
     const title = `${stLabel}${homeTeam} ${scoreStr} ${awayTeam}`;
     const desc  = `${stLabel}${homeTeam} ${scoreStr} ${awayTeam} canlı skor, dakika dakika anlatım ve istatistikler.${league ? ' (' + league + ')' : ''}`;
     setPageMeta(title, desc);
 
-    // Schema.org SportsEvent JSON-LD — Google bu veriyi anlık skor için kullanır
     _setJsonLD({
       '@context': 'https://schema.org',
       '@type': 'SportsEvent',
       'name': `${homeTeam} - ${awayTeam}`,
       'sport': 'Soccer',
       'description': desc,
-      'organizer': { '@type': 'SportsOrganization', 'name': league || 'Football' },
+      'url': window.location.href,
+      'startDate': new Date().toISOString(),
+      'location': {
+        '@type': 'Place',
+        'name': 'Futbol Stadyumu',
+        'address': '',
+      },
+      'eventStatus': 'https://schema.org/EventScheduled',
+      'organizer': {
+        '@type': 'SportsOrganization',
+        'name': league || 'Football',
+        'url': 'https://scorepop.com.tr',
+      },
       'homeTeam': { '@type': 'SportsTeam', 'name': homeTeam },
       'awayTeam': { '@type': 'SportsTeam', 'name': awayTeam },
-      'url': window.location.href,
       ...(hasScore ? {
         'homeScore': { '@type': 'Integer', 'value': homeScore },
         'awayScore': { '@type': 'Integer', 'value': awayScore },
@@ -209,7 +192,6 @@ const Router = (() => {
     try { el.textContent = JSON.stringify(data); } catch(e) {}
   }
 
-  /* ── YARDIMCILAR ──────────────────────────── */
   function _getPath() {
     return window.location.pathname || '/';
   }
@@ -242,7 +224,6 @@ const Router = (() => {
     el.content = content;
   }
 
-  /* ── PUBLIC ────────────────────────────────── */
   return {
     init,
     goLive, goToday, goUpcoming, goMatch, goBack,
