@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — forum.js  (v3.6 — Kompakt Pin)
+   SCOREPOP — forum.js  (v3.7 — Kompakt Pin)
 
    DEĞİŞİKLİKLER:
    ✅ Pinned section: Elmas kalıcı, Altın 30s, Gümüş 20s, Bronz 10s
@@ -370,6 +370,12 @@ const Forum = (() => {
     if (chatIdx >= 0) return;
 
     if (msg.is_featured && msg.payment_status === 'verified') {
+      /* Chat'te pending olarak girmiş olabilir — temizle */
+      const ci = _chatMsgs.findIndex(m => m.id === msg.id);
+      if (ci >= 0) {
+        _chatMsgs.splice(ci, 1);
+        document.querySelector(`[data-msg-id="${msg.id}"]`)?.remove();
+      }
       _addFeaturedMessage(msg);
       return;
     }
@@ -391,6 +397,14 @@ const Forum = (() => {
   function _addFeaturedMessage(msg) {
     const tier = TIERS[msg.feature_tier];
     if (!tier) return;
+    /* Zaten pin'de varsa tekrar ekleme */
+    if (_pinnedSlots.some(s => s.msg.id === msg.id)) return;
+    /* Chat'te varsa temizle */
+    const chatIdx = _chatMsgs.findIndex(m => m.id === msg.id);
+    if (chatIdx >= 0) {
+      _chatMsgs.splice(chatIdx, 1);
+      document.querySelector(`[data-msg-id="${msg.id}"]`)?.remove();
+    }
 
     const now     = Date.now();
     const sentAt  = new Date(msg.created_at).getTime();
@@ -656,9 +670,14 @@ const Forum = (() => {
       return;
     }
 
+    if (!message || !message.trim()) {
+      _showToast('⚠️ Mesaj boş olamaz.');
+      return;
+    }
+
     const result = await Payment.startPayment({
       tierKey,
-      message,
+      message: message.trim(),
       fixtureId: _fixtureId,
       sessionId: _sessionId,
       nickname:  _nickname,
