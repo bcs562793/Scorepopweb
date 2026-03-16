@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v3.8)
+   SCOREPOP — app.js  (v3.9)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -123,7 +123,7 @@ function _sortLeagueGroups(groups) {
 }
 
 /* ── BOOT ───────────────────────────────────── */
-window.addEventListener('load', async () => {
+async function _boot() {
   /* Watchdog'u durdur */
   window._appStarted = true;
   if (window._watchdog) clearTimeout(window._watchdog);
@@ -158,7 +158,14 @@ window.addEventListener('load', async () => {
 
   startClock();
   startRealtime();
-});
+}
+
+/* readyState zaten complete ise load eventi bir daha tetiklenmez — direkt çağır */
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  _boot();
+} else {
+  window.addEventListener('load', _boot);
+}
 
 /* ── EVENTS ─────────────────────────────────── */
 function bindEvents() {
@@ -206,9 +213,6 @@ function navigate(page) {
 function openDetail(id, isLive) {
   S.detail     = id;
   S.detailLive = isLive;
-  // Önce loading göster, view'ı aç
-  document.getElementById('detail-root').innerHTML = 
-    '<div class="skel"><div class="sk-h"></div><div class="sk-r"></div><div class="sk-r"></div></div>';
   showView('detail');
   loadDetail(id, isLive);
 }
@@ -680,7 +684,6 @@ function scaleVisualIframe() {
   var scale = wrapW / NATIVE_W;
 
   wrap.style.height   = Math.round(NATIVE_H * scale) + 'px';
-  wrap.style.opacity  = '1';
   wrap.style.overflow = 'hidden';
 
   iframe.style.width           = NATIVE_W + 'px';
@@ -689,7 +692,8 @@ function scaleVisualIframe() {
   iframe.style.transform       = 'scale(' + scale + ')';
 }
 
- function _scheduleVisualScale() {
+function _scheduleVisualScale() {
+  // pushState sonrası layout gecikmesi için daha uzun süreler
   [50, 200, 600, 1500].forEach(function(ms) { setTimeout(scaleVisualIframe, ms); });
 }
 
