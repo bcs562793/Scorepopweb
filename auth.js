@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — auth.js  v4
+   SCOREPOP — auth.js  v4.1
    Supabase Auth tabanlı + localStorage fallback
    Sorun giderme: init timing, session cache
 ════════════════════════════════════════════════ */
@@ -271,22 +271,15 @@ const Auth = (() => {
               <circle cx="7" cy="5" r="3" stroke="currentColor" stroke-width="1.3"/>
               <path d="M1 13c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
             </svg>
-            Görünen Ad
+            Kullanıcı Adı
           </label>
           <input type="text" id="sp-profile-nick" class="sp-input"
-            value="${_esc(name)}" maxlength="24" placeholder="Forum'da görünecek adın"/>
+            value="${_esc(name)}" maxlength="24" placeholder="Kullanıcı adın"
+            disabled style="opacity:0.5;cursor:not-allowed;"/>
+          <span style="font-size:11px;color:var(--tx3);margin-top:4px;display:block;">
+            🔒 Kullanıcı adı değiştirilemez.
+          </span>
         </div>
-
-        <div id="sp-profile-err" class="sp-err hidden"></div>
-        <div id="sp-profile-ok"  class="sp-ok  hidden"></div>
-
-        <button class="sp-submit-btn" id="sp-profile-save"
-          style="display:flex;align-items:center;justify-content:center;gap:7px;">
-          <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-            <path d="M2 7l4 4 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Değişiklikleri Kaydet
-        </button>
 
         <div style="height:1px;background:var(--b1);"></div>
 
@@ -319,20 +312,7 @@ const Auth = (() => {
     } catch { el.textContent = '—'; }
   })();
 
-  document.getElementById('sp-profile-save').onclick = async () => {
-    const n = document.getElementById('sp-profile-nick').value.trim();
-    if (n.length < 2) { _showErr('sp-profile-err','En az 2 karakter girin.'); return; }
-    const btn = document.getElementById('sp-profile-save');
-    btn.disabled = true; btn.textContent = 'Kaydediliyor…';
-    const { error } = await _sb.auth.updateUser({ data: { display_name: n } });
-    btn.disabled = false;
-    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Değişiklikleri Kaydet`;
-    if (error) { _showErr('sp-profile-err', _trErr(error.message)); return; }
-    if (_user) _user.user_metadata.display_name = n;
-    _updateTopbarBtn();
-    try { localStorage.setItem('sp_nick', n); } catch {}
-    _showOk('sp-profile-ok','✅ Kaydedildi!');
-  };
+  /* İsim değiştirme devre dışı — sp-profile-save butonu kaldırıldı */
 
   document.getElementById('sp-logout-btn').onclick = async () => {
     await _sb.auth.signOut();
@@ -410,6 +390,22 @@ const Auth = (() => {
     if (!nick || nick.length < 2)  { _showErr('sp-reg-err','Kullanıcı adı en az 2 karakter.'); return; }
     if (!_validEmail(email))       { _showErr('sp-reg-err','Geçerli e-posta girin.'); return; }
     if (!pw || pw.length < 8)      { _showErr('sp-reg-err','Şifre en az 8 karakter.'); return; }
+
+    /* Kullanıcı adı benzersizlik kontrolü */
+    _setBtnLoad('sp-reg-btn', true, 'Kontrol ediliyor…');
+    try {
+      const { data: existing } = await _sb
+        .from('profiles')
+        .select('id')
+        .ilike('display_name', nick)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        _setBtnLoad('sp-reg-btn', false, 'Kayıt Ol');
+        _showErr('sp-reg-err', 'Bu kullanıcı adı zaten alınmış. Başka bir ad seç.');
+        return;
+      }
+    } catch {}
+
     _setBtnLoad('sp-reg-btn', true, 'Kayıt Ol');
     const { error } = await _sb.auth.signUp({
       email, password: pw,
@@ -417,7 +413,6 @@ const Auth = (() => {
     });
     _setBtnLoad('sp-reg-btn', false, 'Kayıt Ol');
     if (error) { _showErr('sp-reg-err', _trErr(error.message)); return; }
-    /* Nickname'i localStorage'a da kaydet */
     try { localStorage.setItem('sp_nick', nick); } catch {}
     _showOk('sp-reg-ok','✅ Kayıt başarılı! E-postanı doğrulamayı unutma.');
   }
