@@ -138,9 +138,10 @@ window._appStarted = false;
 window._watchdog = setTimeout(function() {
   if (!window._appStarted) {
     console.warn('[ScorePop] Yükleme zaman aşımı, yenileniyor...');
-    window.location.reload();
+    // Reload yerine ana sayfaya git
+    window.location.href = '/canli';
   }
-}, 6000);
+}, 15000);
 </script>
 <script src="config.js"></script>
 <script src="router.js"></script>
