@@ -100,7 +100,7 @@
     </div>
   </header>
 
-  <!-- ── PROMO BANNER ──────────────────────────────── -->
+  <!-- 🗑 SİL — İLK 1000 ÜYE KAMPANYASI BAŞLANGICI -->
   <div class="promo-banner" id="promo-banner">
     <div class="promo-glow"></div>
     <div class="promo-inner">
@@ -119,6 +119,7 @@
     </div>
     <button class="promo-close" onclick="document.getElementById('promo-banner').style.display='none'" aria-label="Kapat">✕</button>
   </div>
+  <!-- 🗑 SİL — İLK 1000 ÜYE KAMPANYASI BİTİŞİ -->
 
   <!-- col headers -->
   <div class="col-hdr" id="col-hdr">
@@ -170,36 +171,37 @@ window._watchdog = setTimeout(function() {
 <script src="payment.js"></script>
 <script src="app.js"></script>
 
+<!-- 🗑 SİL — İLK 1000 ÜYE KAMPANYASI SAYAÇ BAŞLANGICI -->
 <script>
 /* ── PROMO BANNER KONTENJAN SAYACI ── */
 (async function() {
   const el = document.getElementById('promo-slots');
   if (!el) return;
   try {
-    // Supabase hazır olana kadar bekle
-    await new Promise(r => {
-      if (window.SUPA) return r();
-      window.addEventListener('supabase-ready', r, { once: true });
-      setTimeout(r, 3000); // max 3sn bekle
+    // S.sb hazır olana kadar bekle (max 5sn)
+    const sb = await new Promise(r => {
+      const check = () => { if (window.S?.sb) return r(window.S.sb); setTimeout(check, 200); };
+      check();
+      setTimeout(() => r(null), 5000);
     });
 
-    if (!window.SUPA) { el.textContent = '1000'; return; }
+    if (!sb) { el.textContent = '1.000'; return; }
 
-    const { count } = await window.SUPA
+    const { count } = await sb
       .from('profiles')
       .select('id', { count: 'exact', head: true });
 
     const kalan = Math.max(0, 1000 - (count || 0));
     el.textContent = kalan.toLocaleString('tr-TR');
 
-    // Kontenjan bittiyse banneri gizle
     if (kalan === 0) {
       document.getElementById('promo-banner')?.remove();
     }
   } catch(e) {
-    el.textContent = '1000';
+    el.textContent = '1.000';
   }
 })();
 </script>
+<!-- 🗑 SİL — İLK 1000 ÜYE KAMPANYASI SAYAÇ BİTİŞİ -->
 </body>
 </html>
