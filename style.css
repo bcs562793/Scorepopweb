@@ -78,11 +78,11 @@ img { display: block; }
 .sb-brand { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
 .sb-mark {
   width: 32px; height: 32px;
-  background: var(--or);
+  background: var(--or) url('logo.png') center/contain no-repeat;
   color: #fff;
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 800;
-  font-size: 14px;
+  font-size: 0;
   letter-spacing: 1px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 7px;
