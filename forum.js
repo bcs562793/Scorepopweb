@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — forum.js  (v3.2 — Kompakt Pin)
+   SCOREPOP — forum.js  (v3.3 — Kompakt Pin)
 
    DEĞİŞİKLİKLER:
    ✅ Pinned section: Elmas kalıcı, Altın 30s, Gümüş 20s, Bronz 10s
@@ -238,8 +238,21 @@ const Forum = (() => {
       }, payload => {
         if (_fixtureId !== fid) return;
         _realtimeOk = true;
-        _reconnectDelay = 3000;   /* basarili mesaj alindi, delay sifirla */
+        _reconnectDelay = 3000;
+        /* pending featured mesajları INSERT'te yoksay, UPDATE'te yakala */
+        if (payload.new.is_featured && payload.new.payment_status !== 'verified') return;
         _onNewMessage(payload.new);
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'forum_messages',
+        filter: `fixture_id=eq.${fid}`,
+      }, payload => {
+        if (_fixtureId !== fid) return;
+        _realtimeOk = true;
+        /* verified olan featured mesajı şimdi göster */
+        if (payload.new.is_featured && payload.new.payment_status === 'verified') {
+          _onNewMessage(payload.new);
+        }
       })
       .subscribe((status, err) => {
         if (status === 'SUBSCRIBED') {
@@ -270,7 +283,7 @@ const Forum = (() => {
   /* Realtime calismiyor veya tab arka plandaysa 15sn'de bir yeni mesaj cek */
   function _startPolling() {
     if (_pollTimer) return;
-    _pollTimer = setInterval(_pollNewMessages, 15000);
+    _pollTimer = setInterval(_pollNewMessages, 3000);
   }
 
   function _stopPolling() {
@@ -279,14 +292,14 @@ const Forum = (() => {
 
   async function _pollNewMessages() {
     if (!_fixtureId || !_sb || _isLoading) return;
-    /* Realtime sagliksa sadece dogrulama amacli daha seyrek calis */
-    if (_realtimeOk && _lastMsgId === 0) return;
+    /* Her zaman yeni mesajları kontrol et */
 
     try {
       const query = _sb
         .from('forum_messages')
         .select('*')
         .eq('fixture_id', _fixtureId)
+        .or('is_featured.eq.false,and(is_featured.eq.true,payment_status.eq.verified)')
         .order('id', { ascending: true });
 
       if (_lastMsgId > 0) query.gt('id', _lastMsgId);
