@@ -206,6 +206,9 @@ function navigate(page) {
 function openDetail(id, isLive) {
   S.detail     = id;
   S.detailLive = isLive;
+  // Önce loading göster, view'ı aç
+  document.getElementById('detail-root').innerHTML = 
+    '<div class="skel"><div class="sk-h"></div><div class="sk-r"></div><div class="sk-r"></div></div>';
   showView('detail');
   loadDetail(id, isLive);
 }
