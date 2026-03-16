@@ -33,12 +33,10 @@
 <!-- ── SIDEBAR ───────────────────────────────────── -->
 <aside id="sidebar">
   <div class="sb-top">
-    <a class="sb-brand" href="/" onclick="event.preventDefault(); if(typeof navigate==='function') navigate('live');" style="text-decoration:none;cursor:pointer;">
-      <div class="sb-mark">
-        <img src="/logo.png" alt="SP" width="28" height="28" onerror="this.style.display='none';this.parentNode.innerHTML='SP'" style="border-radius:6px;">
-      </div>
+    <div class="sb-brand">
+      <div class="sb-mark">SP</div>
       <div class="sb-name">SCORE<em>POP</em></div>
-    </a>
+    </div>
     <div class="sb-live-stat">
       <span class="sb-live-dot"></span>
       <span id="sb-live-n">0</span>
@@ -134,6 +132,16 @@
     window.PAYMENT_EDGE_URL = "https://qyebmwiuvrmfxlgdaarc.supabase.co/functions/v1";
 </script>
 
+<script>
+/* Uygulama 6 saniyede başlamazsa otomatik yenile */
+window._appStarted = false;
+window._watchdog = setTimeout(function() {
+  if (!window._appStarted) {
+    console.warn('[ScorePop] Yükleme zaman aşımı, yenileniyor...');
+    window.location.reload();
+  }
+}, 6000);
+</script>
 <script src="config.js"></script>
 <script src="router.js"></script>
 <script src="auth.js"></script>
