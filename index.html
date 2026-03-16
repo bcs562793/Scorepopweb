@@ -1,6 +1,7 @@
-<!DOCTYPE html>
+<!DOCTYPE html> //v1.0
 <html lang="tr">
 <head>
+<base href="/">
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>ScorePop — Canlı Maç Sonuçları</title>
@@ -138,8 +139,7 @@ window._appStarted = false;
 window._watchdog = setTimeout(function() {
   if (!window._appStarted) {
     console.warn('[ScorePop] Yükleme zaman aşımı, yenileniyor...');
-    // Reload yerine ana sayfaya git
-    window.location.href = '/canli';
+    window.location.reload();
   }
 }, 15000);
 </script>
