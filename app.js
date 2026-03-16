@@ -686,8 +686,7 @@ function scaleVisualIframe() {
   iframe.style.transform       = 'scale(' + scale + ')';
 }
 
-function _scheduleVisualScale() {
-  // pushState sonrası layout gecikmesi için daha uzun süreler
+ function _scheduleVisualScale() {
   [50, 200, 600, 1500].forEach(function(ms) { setTimeout(scaleVisualIframe, ms); });
 }
 
