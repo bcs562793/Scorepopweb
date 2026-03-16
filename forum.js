@@ -722,6 +722,23 @@ const Forum = (() => {
     if (_nickname) input.value = _nickname;
     input.focus();
 
+    /* Giriş yapmış kullanıcı adını değiştiremez */
+    if (typeof Auth !== 'undefined' && Auth.isLoggedIn()) {
+      input.disabled = true;
+      input.style.opacity = '0.5';
+      input.style.cursor = 'not-allowed';
+      const hint = document.createElement('p');
+      hint.style.cssText = 'font-size:11px;color:var(--tx3);margin:4px 0 0;text-align:center;';
+      hint.textContent = '🔒 Kullanıcı adı değiştirilemez.';
+      errEl.parentNode.insertBefore(hint, errEl);
+      document.getElementById('fr-nick-save').textContent = 'Devam Et';
+      document.getElementById('fr-nick-save').addEventListener('click', () => {
+        overlay.remove();
+        if (callback) callback();
+      });
+      return;
+    }
+
     function _save() {
       const nick = _sanitizeText(input.value.trim());
       if (!nick || nick.length < 2) {
