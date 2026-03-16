@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v3.7)
+   SCOREPOP — app.js  (v3.8)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -677,6 +677,7 @@ function scaleVisualIframe() {
   var scale = wrapW / NATIVE_W;
 
   wrap.style.height   = Math.round(NATIVE_H * scale) + 'px';
+  wrap.style.opacity  = '1';
   wrap.style.overflow = 'hidden';
 
   iframe.style.width           = NATIVE_W + 'px';
