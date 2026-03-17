@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — auth.js  v4.1
+   SCOREPOP — auth.js  v4.2
    Supabase Auth tabanlı + localStorage fallback
    Sorun giderme: init timing, session cache
 ════════════════════════════════════════════════ */
@@ -407,12 +407,16 @@ const Auth = (() => {
     } catch {}
 
     _setBtnLoad('sp-reg-btn', true, 'Kayıt Ol');
-    const { error } = await _sb.auth.signUp({
+    const { data, error } = await _sb.auth.signUp({
       email, password: pw,
       options: { data: { display_name: nick } },
     });
     _setBtnLoad('sp-reg-btn', false, 'Kayıt Ol');
     if (error) { _showErr('sp-reg-err', _trErr(error.message)); return; }
+    if (!data?.user?.identities || data.user.identities.length === 0) {
+      _showErr('sp-reg-err', 'Bu e-posta zaten kayıtlı. Giriş yapmayı dene.');
+      return;
+    }
     try { localStorage.setItem('sp_nick', nick); } catch {}
     _showOk('sp-reg-ok','✅ Kayıt başarılı! E-postanı doğrulamayı unutma.');
   }
