@@ -22,6 +22,7 @@ const S = {
   cd:          30,
   cycle:       30,
   allLeagues:  [],
+  lastGoals:   {},   /* fixture_id (string) → { events: [...] } */
 };
 
 /* ── LİG ÖNCELİK SİSTEMİ ───────────────────── */
@@ -278,6 +279,8 @@ async function loadLive(silent = false) {
   if (error) throw error;
   const rows = data || [];
   updLiveCt(rows.length);
+  const ids = rows.map(r => r.fixture_id).filter(Boolean);
+  await loadGoalScorers(ids);
   if (silent) silentUpdate(rows);
   else        render(rows, true);
 }
@@ -313,6 +316,8 @@ async function loadToday() {
     rows.push(normFix(r));
   });
 
+  const ids = rows.map(r => r.fixture_id).filter(Boolean);
+  await loadGoalScorers(ids);
   render(rows, false);
 }
 
@@ -365,6 +370,32 @@ async function loadUpcoming() {
   render(rows, false);
 }
 
+
+/* ── GOL ATAN OYUNCULARI YÜKLE ───────────────── */
+/* live ve today sayfaları için fixture id listesi alır,
+   match_events tablosundan en son golcüleri çekip S.lastGoals'a kaydeder.
+   Gol kaydı: son 5 dakikada atılan gol "aktif" sayılır. */
+async function loadGoalScorers(ids) {
+  if (!ids || !ids.length) return;
+  try {
+    const { data, error } = await S.sb
+      .from('match_events')
+      .select('fixture_id,team_id,player_name,elapsed_time,extra_time,event_type,event_detail')
+      .in('fixture_id', ids)
+      .in('event_type', ['Goal','goal']);
+    if (error) { console.warn('[GoalScorers]', error.message); return; }
+    /* Önceki kayıtları sıfırla — sadece bu yüklemede gelen maçlar */
+    ids.forEach(id => { delete S.lastGoals[String(id)]; });
+    (data || []).forEach(ev => {
+      const key = String(ev.fixture_id);
+      if (!S.lastGoals[key]) S.lastGoals[key] = { events: [], ts: Date.now() };
+      /* Own goal'u filtrele */
+      const detail = (ev.event_detail || '').toLowerCase();
+      if (detail.includes('own')) return;
+      S.lastGoals[key].events.push(ev);
+    });
+  } catch(e) { console.warn('[GoalScorers] hata:', e.message); }
+}
 
 function normFix(m) {
   /* fixture hem doğrudan hem data içinden gelebilir */
@@ -534,8 +565,25 @@ function renderRow(m, isLive) {
     ? `<span class="mr-tv">TV</span>`
     : `<span class="mr-arr">›</span>`;
 
+  /* ── GOL LOWER THIRD ────────────────────────── */
+  let goalBar = '';
+  const gd = S.lastGoals[String(m.fixture_id)];
+  if (gd?.events?.length) {
+    const homeGoals = gd.events.filter(e => String(e.team_id) === String(m.home_team_id));
+    const awayGoals = gd.events.filter(e => String(e.team_id) === String(m.away_team_id));
+    const hName = homeGoals.length ? homeGoals[0].player_name : null;
+    const aName = awayGoals.length ? awayGoals[0].player_name : null;
+    if (hName || aName) {
+      goalBar = `
+        <div class="mr-lower-third">
+          <div class="mr-lt-h${hName ? ' scored' : ''}">${hName ? `⚽ ${esc(hName)}` : ''}</div>
+          <div class="mr-lt-a${aName ? ' scored' : ''}">${aName ? `${esc(aName)} ⚽` : ''}</div>
+        </div>`;
+    }
+  }
+
   return `
-    <div class="mr ${st.live ? 'is-live' : ''}" data-id="${m.fixture_id}"
+    <div class="mr ${st.live ? 'is-live' : ''}${goalBar ? ' has-goal' : ''}" data-id="${m.fixture_id}"
          onclick="openDetail(${m.fixture_id},${st.live})">
       <div class="mr-time">
         <span class="mr-t1 ${st.cls}">${st.label}</span>
@@ -557,6 +605,7 @@ function renderRow(m, isLive) {
         <span class="mr-name ${acls}">${esc(m.away_team||'')}</span>
       </div>
       <div class="mr-x">${extra}</div>
+      ${goalBar}
     </div>`;
 }
 
@@ -1011,6 +1060,38 @@ async function silentUpdateDetail() {
   if (ste) ste.textContent = st.live ? `⚡ ${st.label}` : st.label;
 }
 
+/* Realtime gol sonrası DOM'daki lower third'i güncelle (sayfa yenilenmeden) */
+function _updateGoalBar(m) {
+  const row = document.querySelector(`.mr[data-id="${m.fixture_id}"]`);
+  if (!row) return;
+  const gd = S.lastGoals[String(m.fixture_id)];
+  if (!gd?.events?.length) return;
+
+  const homeGoals = gd.events.filter(e => String(e.team_id) === String(m.home_team_id));
+  const awayGoals = gd.events.filter(e => String(e.team_id) === String(m.away_team_id));
+  const hName = homeGoals.length ? homeGoals[homeGoals.length - 1].player_name : null;
+  const aName = awayGoals.length ? awayGoals[awayGoals.length - 1].player_name : null;
+
+  let lt = row.querySelector('.mr-lower-third');
+  if (!hName && !aName) {
+    if (lt) lt.remove();
+    row.classList.remove('has-goal');
+    return;
+  }
+  if (!lt) {
+    lt = document.createElement('div');
+    lt.className = 'mr-lower-third';
+    row.appendChild(lt);
+    row.classList.add('has-goal');
+  }
+  lt.innerHTML = `
+    <div class="mr-lt-h${hName ? ' scored' : ''}">${hName ? `⚽ ${esc(hName)}` : ''}</div>
+    <div class="mr-lt-a${aName ? ' scored' : ''}">${aName ? `${esc(aName)} ⚽` : ''}</div>`;
+  /* Giriş animasyonu için kısa gecikme */
+  lt.style.animation = 'none';
+  requestAnimationFrame(() => { lt.style.animation = ''; });
+}
+
 function flashEl(el) {
   el.style.transition = 'none';
   el.style.color = 'var(--or)';
@@ -1073,6 +1154,18 @@ function startRealtime() {
         /* Yeni maç geldi — listeye ekle */
         loadMatches(true);
       } else {
+        /* Skor değiştiyse golcüleri yeniden çek */
+        const prevRow = document.querySelector(`.mr[data-id="${m.fixture_id}"]`);
+        const prevHs = prevRow?.querySelector('.mr-n:first-child')?.textContent;
+        const newHs  = String(m.home_score ?? '-');
+        const newAs  = String(m.away_score ?? '-');
+        const scoredNow = prevHs !== undefined && prevHs !== newHs || prevRow?.querySelector('.mr-n:last-child')?.textContent !== newAs;
+        if (scoredNow) {
+          loadGoalScorers([m.fixture_id]).then(() => {
+            /* Lower third'i DOM'da güncelle */
+            _updateGoalBar(m);
+          });
+        }
         silentUpdate([m]);
       }
 
