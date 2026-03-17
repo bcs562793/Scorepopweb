@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — style.css v1.2
+   SCOREPOP — style.css v1.1
    Layout: Fixed sidebar 240px + fluid main
    Match row: Home→Score←Away (Mackolik style)
    Palette: Near-black + Electric Orange accent
@@ -397,53 +397,31 @@ img { display: block; }
 .mr.is-live { background: var(--bg2); }
 .mr.is-live::after { width: 3px !important; background: var(--live); box-shadow: 1px 0 8px var(--live-gl); }
 
-/* ── GOL LOWER THIRD ────────────────────────── */
-.mr.has-goal {
-  height: auto;
-  min-height: 46px;
+/* ── GOL VURGUSU ─────────────────────────────── */
+/* Gol atan takımın isim hücresi — açık yeşil band */
+.mr-home.goal-band,
+.mr-away.goal-band {
+  background: linear-gradient(90deg, rgba(74,222,128,.18) 0%, rgba(34,197,94,.12) 100%);
+  animation: goal-band-in .3s ease both;
 }
-.mr-lower-third {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  overflow: hidden;
-  animation: lt-slide-in .35s cubic-bezier(.22,.68,0,1.2) both;
-}
-@keyframes lt-slide-in {
-  from { opacity: 0; transform: translateY(-6px); max-height: 0; }
-  to   { opacity: 1; transform: translateY(0);    max-height: 40px; }
-}
-.mr-lt-h,
-.mr-lt-a {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 14px 5px;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .4px;
-  text-transform: uppercase;
-  color: transparent;
-  min-height: 0;
-  line-height: 1;
-  transition: color .2s;
-}
-.mr-lt-h { justify-content: flex-end; text-align: right; padding-right: 50px; }
-.mr-lt-a { justify-content: flex-start; text-align: left;  padding-left:  50px; }
+.mr-home.goal-band { border-right: 2px solid rgba(74,222,128,.5); }
+.mr-away.goal-band { border-left:  2px solid rgba(74,222,128,.5); }
 
-/* Gol olan taraf — açık yeşil lower third */
-.mr-lt-h.scored,
-.mr-lt-a.scored {
-  color: #052e16;
-  background: linear-gradient(135deg, #4ade80 0%, #22c55e 60%, #16a34a 100%);
-  text-shadow: 0 1px 0 rgba(255,255,255,.35);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 1px 4px rgba(34,197,94,.35);
-  animation: lt-slide-in .35s cubic-bezier(.22,.68,0,1.2) both, lt-glow-pulse 2s ease-in-out 0.4s infinite;
+@keyframes goal-band-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
-@keyframes lt-glow-pulse {
-  0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 1px 4px rgba(34,197,94,.35); }
-  50%       { box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 2px 10px rgba(34,197,94,.55); }
+
+/* Skor kutusunun yanındaki top */
+.mr-ball {
+  font-size: 11px;
+  line-height: 1;
+  animation: ball-pop .35s cubic-bezier(.22,.68,0,1.4) both;
+  flex-shrink: 0;
+}
+@keyframes ball-pop {
+  from { transform: scale(0) rotate(-30deg); opacity: 0; }
+  to   { transform: scale(1) rotate(0deg);   opacity: 1; }
 }
 
 /* Time */
