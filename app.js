@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v3.9)
+   SCOREPOP — app.js  (v4.0)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -565,47 +565,39 @@ function renderRow(m, isLive) {
     ? `<span class="mr-tv">TV</span>`
     : `<span class="mr-arr">›</span>`;
 
-  /* ── GOL LOWER THIRD ────────────────────────── */
-  let goalBar = '';
+  /* ── GOL VURGUSU: kim attı? ──────────────────── */
   const gd = S.lastGoals[String(m.fixture_id)];
+  let homeScored = false, awayScored = false;
   if (gd?.events?.length) {
-    const homeGoals = gd.events.filter(e => String(e.team_id) === String(m.home_team_id));
-    const awayGoals = gd.events.filter(e => String(e.team_id) === String(m.away_team_id));
-    const hName = homeGoals.length ? homeGoals[0].player_name : null;
-    const aName = awayGoals.length ? awayGoals[0].player_name : null;
-    if (hName || aName) {
-      goalBar = `
-        <div class="mr-lower-third">
-          <div class="mr-lt-h${hName ? ' scored' : ''}">${hName ? `⚽ ${esc(hName)}` : ''}</div>
-          <div class="mr-lt-a${aName ? ' scored' : ''}">${aName ? `${esc(aName)} ⚽` : ''}</div>
-        </div>`;
-    }
+    homeScored = gd.events.some(e => String(e.team_id) === String(m.home_team_id));
+    awayScored = gd.events.some(e => String(e.team_id) === String(m.away_team_id));
   }
 
   return `
-    <div class="mr ${st.live ? 'is-live' : ''}${goalBar ? ' has-goal' : ''}" data-id="${m.fixture_id}"
+    <div class="mr ${st.live ? 'is-live' : ''}" data-id="${m.fixture_id}"
          onclick="openDetail(${m.fixture_id},${st.live})">
       <div class="mr-time">
         <span class="mr-t1 ${st.cls}">${st.label}</span>
         ${st.live ? `<span class="mr-t2"></span>` : ''}
       </div>
-      <div class="mr-home">
+      <div class="mr-home${homeScored ? ' goal-band' : ''}">
         <span class="mr-name ${hcls}">${esc(m.home_team||'')}</span>
         <div class="mr-logo-wrap">${hLogo}</div>
       </div>
       <div class="mr-score">
         <div class="${sbCls}">
+          ${homeScored ? `<span class="mr-ball">⚽</span>` : ''}
           <span class="mr-n">${hs}</span>
           ${isNS ? '' : '<div class="mr-sep"></div>'}
           ${isNS ? '' : `<span class="mr-n">${as}</span>`}
+          ${awayScored ? `<span class="mr-ball">⚽</span>` : ''}
         </div>
       </div>
-      <div class="mr-away">
+      <div class="mr-away${awayScored ? ' goal-band' : ''}">
         <div class="mr-logo-wrap">${aLogo}</div>
         <span class="mr-name ${acls}">${esc(m.away_team||'')}</span>
       </div>
       <div class="mr-x">${extra}</div>
-      ${goalBar}
     </div>`;
 }
 
@@ -1060,36 +1052,45 @@ async function silentUpdateDetail() {
   if (ste) ste.textContent = st.live ? `⚡ ${st.label}` : st.label;
 }
 
-/* Realtime gol sonrası DOM'daki lower third'i güncelle (sayfa yenilenmeden) */
+/* Realtime gol sonrası DOM'daki vurguyu güncelle (sayfa yenilenmeden) */
 function _updateGoalBar(m) {
   const row = document.querySelector(`.mr[data-id="${m.fixture_id}"]`);
   if (!row) return;
   const gd = S.lastGoals[String(m.fixture_id)];
-  if (!gd?.events?.length) return;
 
-  const homeGoals = gd.events.filter(e => String(e.team_id) === String(m.home_team_id));
-  const awayGoals = gd.events.filter(e => String(e.team_id) === String(m.away_team_id));
-  const hName = homeGoals.length ? homeGoals[homeGoals.length - 1].player_name : null;
-  const aName = awayGoals.length ? awayGoals[awayGoals.length - 1].player_name : null;
+  const homeDiv = row.querySelector('.mr-home');
+  const awayDiv = row.querySelector('.mr-away');
+  const scoreBox = row.querySelector('.mr-sb');
 
-  let lt = row.querySelector('.mr-lower-third');
-  if (!hName && !aName) {
-    if (lt) lt.remove();
-    row.classList.remove('has-goal');
+  /* Önceki topları temizle */
+  row.querySelectorAll('.mr-ball').forEach(b => b.remove());
+
+  if (!gd?.events?.length) {
+    homeDiv?.classList.remove('goal-band');
+    awayDiv?.classList.remove('goal-band');
     return;
   }
-  if (!lt) {
-    lt = document.createElement('div');
-    lt.className = 'mr-lower-third';
-    row.appendChild(lt);
-    row.classList.add('has-goal');
+
+  const homeScored = gd.events.some(e => String(e.team_id) === String(m.home_team_id));
+  const awayScored = gd.events.some(e => String(e.team_id) === String(m.away_team_id));
+
+  homeDiv?.classList.toggle('goal-band', homeScored);
+  awayDiv?.classList.toggle('goal-band', awayScored);
+
+  if (scoreBox) {
+    if (homeScored) {
+      const ball = document.createElement('span');
+      ball.className = 'mr-ball';
+      ball.textContent = '⚽';
+      scoreBox.prepend(ball);
+    }
+    if (awayScored) {
+      const ball = document.createElement('span');
+      ball.className = 'mr-ball';
+      ball.textContent = '⚽';
+      scoreBox.append(ball);
+    }
   }
-  lt.innerHTML = `
-    <div class="mr-lt-h${hName ? ' scored' : ''}">${hName ? `⚽ ${esc(hName)}` : ''}</div>
-    <div class="mr-lt-a${aName ? ' scored' : ''}">${aName ? `${esc(aName)} ⚽` : ''}</div>`;
-  /* Giriş animasyonu için kısa gecikme */
-  lt.style.animation = 'none';
-  requestAnimationFrame(() => { lt.style.animation = ''; });
 }
 
 function flashEl(el) {
