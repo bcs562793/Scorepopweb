@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — forum.js  (v3.8 — Kompakt Pin)
+   SCOREPOP — forum.js  (v4.0 — Kompakt Pin)
 
    DEĞİŞİKLİKLER:
    ✅ Pinned section: Elmas kalıcı, Altın 30s, Gümüş 20s, Bronz 10s
@@ -420,14 +420,24 @@ const Forum = (() => {
       document.querySelector(`[data-msg-id="${msg.id}"]`)?.remove();
     }
 
-    const now     = Date.now();
-    /* unpinAt: ödeme gecikmesi ne olursa olsun pin'e eklendiği andan itibaren say */
-    const unpinAt = tier.pinDuration === Infinity ? Infinity : now + tier.pinDuration;
+    const now    = Date.now();
+    const sentAt = new Date(msg.created_at).getTime();
+    const ageMs  = now - sentAt;
+    /* Mesaj 60sn'den yeni ise (ödeme gecikmesi) timer şimdi başlasın,
+       eski mesajlarda sentAt'ten say — sayfa yenilemede doğru çalışsın */
+    const base   = ageMs < 60000 ? now : sentAt;
+    const unpinAt = tier.pinDuration === Infinity ? Infinity : base + tier.pinDuration;
 
-    _pinnedSlots.push({ msg, unpinAt });
-    _sortPinned();
-    _rebuildPinnedDOM();
-    if (unpinAt !== Infinity) _startPinTimer();
+    if (unpinAt === Infinity || now < unpinAt) {
+      _pinnedSlots.push({ msg, unpinAt });
+      _sortPinned();
+      _rebuildPinnedDOM();
+      if (unpinAt !== Infinity) _startPinTimer();
+    } else {
+      _insertChronologically(msg);
+      _insertChatDOM(msg);
+      scrollToBottom();
+    }
   }
 
   /* ── MESAJ GÖNDER ─────────────────────────── */
