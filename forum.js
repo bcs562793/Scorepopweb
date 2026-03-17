@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — forum.js  (v3.7 — Kompakt Pin)
+   SCOREPOP — forum.js  (v3.8 — Kompakt Pin)
 
    DEĞİŞİKLİKLER:
    ✅ Pinned section: Elmas kalıcı, Altın 30s, Gümüş 20s, Bronz 10s
@@ -259,8 +259,9 @@ const Forum = (() => {
         if (_fixtureId !== fid) return;
         _realtimeOk = true;
         _reconnectDelay = 3000;
-        /* pending mesajları INSERT'te yoksay (is_featured olsun olmasın) — UPDATE'te yakala */
+        /* pending veya feature_tier dolu mesajları INSERT'te yoksay — UPDATE'te yakala */
         if (payload.new.payment_status === 'pending') return;
+        if (payload.new.feature_tier && payload.new.payment_status !== 'verified') return;
         _onNewMessage(payload.new);
       })
       .on('postgres_changes', {
@@ -334,8 +335,8 @@ const Forum = (() => {
       if (error || !data?.length) return;
 
       data.forEach(msg => {
-        /* pending featured mesajları için lastMsgId güncelleme — UPDATE sonrası tekrar gelsin */
-        if (msg.is_featured && msg.payment_status !== 'verified') return;
+        /* feature_tier dolu ama henüz verified değilse atla — UPDATE gelince yakalanır */
+        if (msg.feature_tier && msg.payment_status !== 'verified') return;
         _onNewMessage(msg);
         if (msg.id > _lastMsgId) _lastMsgId = msg.id;
       });
@@ -862,7 +863,7 @@ const Forum = (() => {
 
     const WRAP_STYLE = 'display:flex;flex-direction:column;height:500px;overflow:hidden;';
     const LIST_STYLE = 'flex:1;overflow-y:auto;min-height:0;';
-    const PIN_STYLE  = 'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);';
+    const PIN_STYLE  = 'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);max-height:168px;overflow-y:auto;';
 
     if (_isLoading) {
       panel.innerHTML = `
