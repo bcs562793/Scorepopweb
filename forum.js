@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — forum.js  (v3.7 — Kompakt Pin)
+   SCOREPOP — forum.js  (v3.8 — Kompakt Pin)
 
    DEĞİŞİKLİKLER:
    ✅ Pinned section: Elmas kalıcı, Altın 30s, Gümüş 20s, Bronz 10s
@@ -421,19 +421,13 @@ const Forum = (() => {
     }
 
     const now     = Date.now();
-    const sentAt  = new Date(msg.created_at).getTime();
-    const unpinAt = tier.pinDuration === Infinity ? Infinity : sentAt + tier.pinDuration;
+    /* unpinAt: ödeme gecikmesi ne olursa olsun pin'e eklendiği andan itibaren say */
+    const unpinAt = tier.pinDuration === Infinity ? Infinity : now + tier.pinDuration;
 
-    if (unpinAt === Infinity || now < unpinAt) {
-      _pinnedSlots.push({ msg, unpinAt });
-      _sortPinned();
-      _rebuildPinnedDOM();
-      if (unpinAt !== Infinity) _startPinTimer();
-    } else {
-      _insertChronologically(msg);
-      _insertChatDOM(msg);
-      scrollToBottom();
-    }
+    _pinnedSlots.push({ msg, unpinAt });
+    _sortPinned();
+    _rebuildPinnedDOM();
+    if (unpinAt !== Infinity) _startPinTimer();
   }
 
   /* ── MESAJ GÖNDER ─────────────────────────── */
@@ -825,6 +819,8 @@ const Forum = (() => {
     let html = `<div style="
       display:flex;align-items:center;padding:4px 12px;
       font-size:11px;color:var(--color-text-secondary);
+      position:sticky;top:0;z-index:1;
+      background:var(--color-background-primary,#0f1218);
     ">📌 ${_pinnedSlots.length} sabitlenmiş mesaj</div>`;
 
     _pinnedSlots.forEach(s => {
@@ -845,9 +841,8 @@ const Forum = (() => {
       return;
     }
 
-    section.style.display = '';
-    section.style.maxHeight = '168px';
-    section.style.overflowY = 'auto';
+    section.setAttribute('style',
+      'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);max-height:168px;overflow-y:auto;');
     section.innerHTML = _buildPinnedSectionHTML();
 
     /* Mesaj text'lerini güvenli ata */
@@ -868,7 +863,7 @@ const Forum = (() => {
 
     const WRAP_STYLE = 'display:flex;flex-direction:column;height:500px;overflow:hidden;';
     const LIST_STYLE = 'flex:1;overflow-y:auto;min-height:0;';
-    const PIN_STYLE  = 'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);max-height:168px;overflow-y:auto;';
+    const PIN_STYLE  = 'border-bottom:1px solid rgba(255,255,255,.08);';
 
     if (_isLoading) {
       panel.innerHTML = `
