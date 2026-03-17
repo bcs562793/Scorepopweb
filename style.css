@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — style.css v1.1
+   SCOREPOP — style.css v1.2
    Layout: Fixed sidebar 240px + fluid main
    Match row: Home→Score←Away (Mackolik style)
    Palette: Near-black + Electric Orange accent
@@ -398,30 +398,29 @@ img { display: block; }
 .mr.is-live::after { width: 3px !important; background: var(--live); box-shadow: 1px 0 8px var(--live-gl); }
 
 /* ── GOL VURGUSU ─────────────────────────────── */
-/* Gol atan takımın isim hücresi — açık yeşil band */
 .mr-home.goal-band,
 .mr-away.goal-band {
-  background: linear-gradient(90deg, rgba(74,222,128,.18) 0%, rgba(34,197,94,.12) 100%);
-  animation: goal-band-in .3s ease both;
+  animation: goal-pulse 1.1s ease-in-out infinite;
 }
-.mr-home.goal-band { border-right: 2px solid rgba(74,222,128,.5); }
-.mr-away.goal-band { border-left:  2px solid rgba(74,222,128,.5); }
+.mr-home.goal-band { border-right: 2px solid #22c55e; }
+.mr-away.goal-band { border-left:  2px solid #22c55e; }
 
-@keyframes goal-band-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+@keyframes goal-pulse {
+  0%   { background: rgba(34,197,94,.08); }
+  50%  { background: rgba(34,197,94,.28); }
+  100% { background: rgba(34,197,94,.08); }
 }
 
-/* Skor kutusunun yanındaki top */
+/* Top ikonu skorda */
 .mr-ball {
   font-size: 11px;
   line-height: 1;
-  animation: ball-pop .35s cubic-bezier(.22,.68,0,1.4) both;
   flex-shrink: 0;
+  animation: ball-pop .3s cubic-bezier(.22,.68,0,1.4) both;
 }
 @keyframes ball-pop {
-  from { transform: scale(0) rotate(-30deg); opacity: 0; }
-  to   { transform: scale(1) rotate(0deg);   opacity: 1; }
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
 }
 
 /* Time */
