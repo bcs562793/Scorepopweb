@@ -37,9 +37,9 @@ const Payment = (() => {
   ──────────────────────────────────────────────── */
   const CREDIT_PACKAGES = [
     { key: 'starter', credits: 100,  price: 29,  label: 'Başlangıç', popular: false, bonus: null,          url: 'https://www.shopier.com/bizedemiofsayt/45196611' },
-    { key: 'popular', credits: 300,  price: 79,  label: 'Popüler',   popular: true,  bonus: '+ 20 bonus',  url: 'https://www.shopier.com/bizedemiofsayt/45196663' },
-    { key: 'pro',     credits: 750,  price: 179, label: 'Pro',       popular: false, bonus: '+ 75 bonus',  url: 'https://www.shopier.com/bizedemiofsayt/45196703' },
-    { key: 'ultra',   credits: 2000, price: 399, label: 'Ultra',     popular: false, bonus: '+ 300 bonus', url: 'https://www.shopier.com/bizedemiofsayt/45196733' },
+    { key: 'popular', credits: 300,  price: 79,  label: 'Popüler',   popular: true,  bonus: null,          url: 'https://www.shopier.com/bizedemiofsayt/45196663' },
+    { key: 'pro',     credits: 750,  price: 179, label: 'Pro',       popular: false, bonus: null,          url: 'https://www.shopier.com/bizedemiofsayt/45196703' },
+    { key: 'ultra',   credits: 2000, price: 399, label: 'Ultra',     popular: false, bonus: null,          url: 'https://www.shopier.com/bizedemiofsayt/45196733' },
   ];
 
   /* ── BAŞLAT ──────────────────────────────────── */
