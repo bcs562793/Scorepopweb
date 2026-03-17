@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — style.css v1.0
+   SCOREPOP — style.css v1.1
    Layout: Fixed sidebar 240px + fluid main
    Match row: Home→Score←Away (Mackolik style)
    Palette: Near-black + Electric Orange accent
@@ -1751,7 +1751,7 @@ img { display: block; }
   padding: 0 12px;
 }
 
-/* 🗑 SİL — İLK 1000 ÜYE KAMPANYASI BAŞLANGICI */
+/* ── PROMO BANNER ──────────────────────────────────────── */
 .promo-banner {
   position: relative;
   overflow: hidden;
@@ -1761,6 +1761,7 @@ img { display: block; }
   border: 1px solid rgba(255, 160, 0, 0.35);
   box-shadow: 0 0 32px rgba(255, 140, 0, 0.12), inset 0 1px 0 rgba(255,255,255,0.05);
 }
+
 .promo-glow {
   position: absolute;
   top: -40px; left: -40px;
@@ -1768,6 +1769,7 @@ img { display: block; }
   background: radial-gradient(circle, rgba(255,140,0,0.2) 0%, transparent 70%);
   pointer-events: none;
 }
+
 .promo-inner {
   display: flex;
   align-items: center;
@@ -1775,6 +1777,7 @@ img { display: block; }
   padding: 12px 40px 12px 16px;
   flex-wrap: wrap;
 }
+
 .promo-badge {
   flex-shrink: 0;
   background: var(--or);
@@ -1788,6 +1791,7 @@ img { display: block; }
   white-space: nowrap;
   box-shadow: 0 0 12px var(--or-glow);
 }
+
 .promo-text {
   display: flex;
   flex-direction: column;
@@ -1795,6 +1799,7 @@ img { display: block; }
   flex: 1;
   min-width: 160px;
 }
+
 .promo-title {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 16px;
@@ -1802,12 +1807,17 @@ img { display: block; }
   color: var(--tx1);
   letter-spacing: 0.5px;
 }
-.promo-title strong { color: var(--or); }
+
+.promo-title strong {
+  color: var(--or);
+}
+
 .promo-sub {
   font-size: 11px;
   color: var(--tx3);
   font-weight: 400;
 }
+
 .promo-counter {
   display: flex;
   flex-direction: column;
@@ -1819,6 +1829,7 @@ img { display: block; }
   border-radius: 8px;
   padding: 6px 14px;
 }
+
 .promo-counter-lbl {
   font-size: 9px;
   color: var(--tx3);
@@ -1826,6 +1837,7 @@ img { display: block; }
   text-transform: uppercase;
   font-weight: 600;
 }
+
 .promo-counter-num {
   font-family: 'JetBrains Mono', monospace;
   font-size: 20px;
@@ -1833,6 +1845,7 @@ img { display: block; }
   color: var(--or);
   line-height: 1;
 }
+
 .promo-cta {
   flex-shrink: 0;
   background: var(--or);
@@ -1849,8 +1862,10 @@ img { display: block; }
   transition: opacity .15s, transform .15s;
   box-shadow: 0 0 16px var(--or-glow);
 }
+
 .promo-cta:hover { opacity: .85; transform: translateY(-1px); }
 .promo-cta:active { transform: scale(.97); }
+
 .promo-close {
   position: absolute;
   top: 8px; right: 10px;
@@ -1863,10 +1878,24 @@ img { display: block; }
   padding: 2px 4px;
   transition: color .15s;
 }
+
 .promo-close:hover { color: var(--tx1); }
+
 @media (max-width: 600px) {
   .promo-inner { padding: 10px 36px 10px 12px; gap: 10px; }
   .promo-counter { display: none; }
   .promo-title { font-size: 14px; }
 }
-/* 🗑 SİL — İLK 1000 ÜYE KAMPANYASI BİTİŞİ */
+/* ── END PROMO BANNER ──────────────────────────────────── */
+
+/* ── PIN SECTION SCROLL ── */
+.fr-pinned-section {
+  max-height: 180px;
+  overflow-y: auto;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.15) transparent;
+}
+.fr-pinned-section::-webkit-scrollbar { width: 4px; }
+.fr-pinned-section::-webkit-scrollbar-track { background: transparent; }
+.fr-pinned-section::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 2px; }
