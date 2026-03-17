@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — forum.js  (v3.8 — Kompakt Pin)
+   SCOREPOP — forum.js  (v3.7 — Kompakt Pin)
 
    DEĞİŞİKLİKLER:
    ✅ Pinned section: Elmas kalıcı, Altın 30s, Gümüş 20s, Bronz 10s
@@ -335,8 +335,11 @@ const Forum = (() => {
       if (error || !data?.length) return;
 
       data.forEach(msg => {
-        /* feature_tier dolu ama henüz verified değilse atla — UPDATE gelince yakalanır */
-        if (msg.feature_tier && msg.payment_status !== 'verified') return;
+        /* feature_tier dolu ama henüz verified değilse lastMsgId güncelle ama işleme */
+        if (msg.feature_tier && msg.payment_status !== 'verified') {
+          if (msg.id > _lastMsgId) _lastMsgId = msg.id; /* tekrar sorgulanmasın */
+          return;
+        }
         _onNewMessage(msg);
         if (msg.id > _lastMsgId) _lastMsgId = msg.id;
       });
@@ -843,6 +846,8 @@ const Forum = (() => {
     }
 
     section.style.display = '';
+    section.style.maxHeight = '168px';
+    section.style.overflowY = 'auto';
     section.innerHTML = _buildPinnedSectionHTML();
 
     /* Mesaj text'lerini güvenli ata */
