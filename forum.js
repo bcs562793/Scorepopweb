@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — forum.js  (v3.7 — Kompakt Pin)
+   SCOREPOP — forum.js  (v3.8 — Kompakt Pin)
 
    DEĞİŞİKLİKLER:
    ✅ Pinned section: Elmas kalıcı, Altın 30s, Gümüş 20s, Bronz 10s
@@ -906,9 +906,12 @@ const Forum = (() => {
     _bindInputEvents();
   }
 
-  /* ── PINNED BÖLME YENİDEN İNŞA ───────────── */
+  /* ── PINNED BÖLME YENİDEN İNŞA ────────────── */
   function _rebuildPinnedDOM() {
     _refreshPinnedSection();
+    /* Yeni pin geldiğinde pin bölümünü en alta kaydır */
+    const section = document.getElementById('fr-pinned-section');
+    if (section) section.scrollTop = section.scrollHeight;
   }
 
   /* ── CHAT DOM: SONUNA EKLE ────────────────── */
