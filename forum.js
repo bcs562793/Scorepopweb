@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — forum.js  (v4.0 — Kompakt Pin)
+   SCOREPOP — forum.js  (v3.7 — Kompakt Pin)
 
    DEĞİŞİKLİKLER:
    ✅ Pinned section: Elmas kalıcı, Altın 30s, Gümüş 20s, Bronz 10s
@@ -350,15 +350,15 @@ const Forum = (() => {
     /* polling icin son gorülen id'yi takip et */
     if (msg.id && msg.id > _lastMsgId) _lastMsgId = msg.id;
 
-    /* Ücretli mesajlar chat'e düşmemeli — direkt pin'e gider */
-    if (msg.is_featured && msg.payment_status === 'verified') {
-      if (!_pinnedSlots.some(s => s.msg.id === msg.id)) {
-        _addFeaturedMessage(msg);
+    /* Ücretli mesajlar (is_featured veya feature_tier dolu) chat'e düşmemeli */
+    if (msg.feature_tier) {
+      if (msg.is_featured && msg.payment_status === 'verified') {
+        if (!_pinnedSlots.some(s => s.msg.id === msg.id)) {
+          _addFeaturedMessage(msg);
+        }
       }
-      return;
+      return; /* pending veya henüz verified olmamış — yoksay */
     }
-    /* Pending featured mesajları tamamen yoksay */
-    if (msg.is_featured) return;
 
     if (_pinnedSlots.some(s => s.msg.id === msg.id)) return;
     const chatIdx = _chatMsgs.findIndex(m => m.id === msg.id);
