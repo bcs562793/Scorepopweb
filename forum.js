@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — forum.js  (v4.0 — Kompakt Pin)
+   SCOREPOP — forum.js  (v3.7 — Kompakt Pin)
 
    DEĞİŞİKLİKLER:
    ✅ Pinned section: Elmas kalıcı, Altın 30s, Gümüş 20s, Bronz 10s
@@ -335,9 +335,9 @@ const Forum = (() => {
       if (error || !data?.length) return;
 
       data.forEach(msg => {
-        /* feature_tier dolu ama henüz verified değilse lastMsgId güncelle ama işleme */
+        /* feature_tier dolu ama verified değilse id kaydet, chat'e düşürme */
         if (msg.feature_tier && msg.payment_status !== 'verified') {
-          if (msg.id > _lastMsgId) _lastMsgId = msg.id; /* tekrar sorgulanmasın */
+          if (msg.id > _lastMsgId) _lastMsgId = msg.id;
           return;
         }
         _onNewMessage(msg);
@@ -353,16 +353,6 @@ const Forum = (() => {
 
     /* polling icin son gorülen id'yi takip et */
     if (msg.id && msg.id > _lastMsgId) _lastMsgId = msg.id;
-
-    /* Ücretli mesajlar (is_featured veya feature_tier dolu) chat'e düşmemeli */
-    if (msg.feature_tier) {
-      if (msg.is_featured && msg.payment_status === 'verified') {
-        if (!_pinnedSlots.some(s => s.msg.id === msg.id)) {
-          _addFeaturedMessage(msg);
-        }
-      }
-      return; /* pending veya henüz verified olmamış — yoksay */
-    }
 
     if (_pinnedSlots.some(s => s.msg.id === msg.id)) return;
     const chatIdx = _chatMsgs.findIndex(m => m.id === msg.id);
@@ -408,7 +398,7 @@ const Forum = (() => {
   }
 
   /* ── FEATURED MESAJ EKLE ──────────────────── */
-  function _addFeaturedMessage(msg) {
+  function _addFeaturedMessage(msg, isNew = false) {
     const tier = TIERS[msg.feature_tier];
     if (!tier) return;
     /* Zaten pin'de varsa tekrar ekleme */
@@ -420,12 +410,11 @@ const Forum = (() => {
       document.querySelector(`[data-msg-id="${msg.id}"]`)?.remove();
     }
 
-    const now    = Date.now();
-    const sentAt = new Date(msg.created_at).getTime();
-    const ageMs  = now - sentAt;
-    /* Mesaj 60sn'den yeni ise (ödeme gecikmesi) timer şimdi başlasın,
-       eski mesajlarda sentAt'ten say — sayfa yenilemede doğru çalışsın */
-    const base   = ageMs < 60000 ? now : sentAt;
+    const now     = Date.now();
+    const sentAt  = new Date(msg.created_at).getTime();
+    /* isNew=true: yeni ödeme — timer şimdi başlasın (ödeme gecikmesini tolere eder)
+       isNew=false: sayfa yüklemesi — sentAt'ten say, süresi dolmuşsa chat'e at */
+    const base    = isNew ? now : sentAt;
     const unpinAt = tier.pinDuration === Infinity ? Infinity : base + tier.pinDuration;
 
     if (unpinAt === Infinity || now < unpinAt) {
@@ -702,7 +691,7 @@ const Forum = (() => {
     });
 
     if (result.success) {
-      _addFeaturedMessage(result.data);
+      _addFeaturedMessage(result.data, true);
       _showToast(`${tier.emoji} Mesajınız öne çıktı! (Kalan: ${result.newBalance ?? '?'} kredi)`);
       const el = document.getElementById('fr-credit-amount');
       if (el && result.newBalance != null) el.textContent = `${result.newBalance} kredi`;
@@ -743,17 +732,14 @@ const Forum = (() => {
     /* Giriş yapmış kullanıcı adını değiştiremez */
     if (typeof Auth !== 'undefined' && Auth.isLoggedIn()) {
       input.disabled = true;
-      input.style.opacity = '0.5';
-      input.style.cursor = 'not-allowed';
+      input.style.cssText += ';opacity:.5;cursor:not-allowed';
       const hint = document.createElement('p');
       hint.style.cssText = 'font-size:11px;color:var(--tx3);margin:4px 0 0;text-align:center;';
       hint.textContent = '🔒 Kullanıcı adı değiştirilemez.';
       errEl.parentNode.insertBefore(hint, errEl);
-      document.getElementById('fr-nick-save').textContent = 'Devam Et';
-      document.getElementById('fr-nick-save').addEventListener('click', () => {
-        overlay.remove();
-        if (callback) callback();
-      });
+      const saveBtn = document.getElementById('fr-nick-save');
+      saveBtn.textContent = 'Devam Et';
+      saveBtn.addEventListener('click', () => { overlay.remove(); if (callback) callback(); });
       return;
     }
 
@@ -829,8 +815,6 @@ const Forum = (() => {
     let html = `<div style="
       display:flex;align-items:center;padding:4px 12px;
       font-size:11px;color:var(--color-text-secondary);
-      position:sticky;top:0;z-index:1;
-      background:var(--color-background-primary,#0f1218);
     ">📌 ${_pinnedSlots.length} sabitlenmiş mesaj</div>`;
 
     _pinnedSlots.forEach(s => {
@@ -851,8 +835,7 @@ const Forum = (() => {
       return;
     }
 
-    section.setAttribute('style',
-      'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);max-height:168px;overflow-y:auto;');
+    section.style.cssText = 'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);max-height:180px;overflow-y:auto;';
     section.innerHTML = _buildPinnedSectionHTML();
 
     /* Mesaj text'lerini güvenli ata */
@@ -873,7 +856,7 @@ const Forum = (() => {
 
     const WRAP_STYLE = 'display:flex;flex-direction:column;height:500px;overflow:hidden;';
     const LIST_STYLE = 'flex:1;overflow-y:auto;min-height:0;';
-    const PIN_STYLE  = 'border-bottom:1px solid rgba(255,255,255,.08);';
+    const PIN_STYLE  = 'flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);max-height:180px;overflow-y:auto;';
 
     if (_isLoading) {
       panel.innerHTML = `
