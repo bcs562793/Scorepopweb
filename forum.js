@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — forum.js  (v3.8 — Kompakt Pin)
+   SCOREPOP — forum.js  (v3.7 — Kompakt Pin)
 
    DEĞİŞİKLİKLER:
    ✅ Pinned section: Elmas kalıcı, Altın 30s, Gümüş 20s, Bronz 10s
@@ -439,6 +439,12 @@ const Forum = (() => {
     const err = _validateMessage(raw, MAX_MSG_LEN);
     if (err) { _showError(err); return; }
 
+    /* Giriş zorunlu */
+    if (typeof Auth !== 'undefined' && !Auth.isLoggedIn()) {
+      Auth.showLoginModal();
+      return;
+    }
+
     if (!_nickname) { _showNickModal(() => _sendMessage()); return; }
 
     const now = Date.now();
@@ -495,6 +501,10 @@ const Forum = (() => {
 
   /* ── ÖNE ÇIKAN MODAL ──────────────────────── */
   async function _showFeaturedModal() {
+    if (typeof Auth !== 'undefined' && !Auth.isLoggedIn()) {
+      Auth.showLoginModal();
+      return;
+    }
     if (!_nickname) { _showNickModal(() => _showFeaturedModal()); return; }
     document.getElementById('fr-modal-overlay')?.remove();
 
@@ -1067,9 +1077,33 @@ const Forum = (() => {
     try { localStorage.setItem('sp_nick', nick); } catch {}
   }
 
+  /* ── KÜFÜR / HAKARET FİLTRESİ ───────────────── */
+  const _BAD_WORDS = [
+    'orospu','oğlan','piç','göt','sik','amk','bok','oç','ibne','götveren',
+    'ananı','ananısikeyim','anasını','anasını sik','babası','babanı',
+    'orospu çocuğu','orospuçocuğu','siktir','sikiş','sikeyim','siksin',
+    'amına','amına koyayım','amcık','yarrak','yarak','götvere','göte',
+    'oç','pezevenk','kahpe','fahişe','sürtük','serefsiz','şerefsiz',
+    'bok','boktan','orospu','puşt','ibne','götveren','dağarcık',
+    'mal','gerizekalı','geri zekalı','aptal','salak','ahmak','dangalak',
+    'haysiyetsiz','namussuz','alçak','pislik','it','köpek','eşek',
+    'hain','soysuz','aşağılık','rezil','pis','kaltak',
+  ];
+
+  function _containsBadWord(text) {
+    const t = text.toLowerCase().replace(/[^a-zğüşıöç0-9\s]/gi, '');
+    return _BAD_WORDS.some(w => {
+      // Boşluklu kelimeleri direkt içerik tara
+      if (w.includes(' ')) return t.includes(w);
+      // Tekil kelimeler — kelime sınırı kontrolü
+      return new RegExp(`(^|\\s)${w}(\\s|$)`).test(t) || t.includes(w);
+    });
+  }
+
   function _validateMessage(raw, maxLen) {
     if (!raw || !raw.trim()) return 'Mesaj boş olamaz.';
     if (raw.trim().length > maxLen) return `En fazla ${maxLen} karakter.`;
+    if (_containsBadWord(raw)) return '⚠️ Mesajınız uygunsuz ifade içeriyor.';
     return null;
   }
 
