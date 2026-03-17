@@ -129,6 +129,10 @@ async function _boot() {
   if (window._watchdog) clearTimeout(window._watchdog);
 
   S.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  /* 🗑 SİL — İLK 1000 ÜYE KAMPANYASI BAŞLANGICI */
+  window._sb = S.sb;  /* promo sayacı için */
+  window.dispatchEvent(new Event('sb-ready'));
+  /* 🗑 SİL — İLK 1000 ÜYE KAMPANYASI BİTİŞİ */
 
   /* 1. Forum — Auth'dan önce başlat (session bağımsız) */
   try { Forum.init(S.sb); } catch(e) { console.warn('Forum:', e); }
