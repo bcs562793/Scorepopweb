@@ -873,6 +873,42 @@ img { display: block; }
   100% { color: inherit; }
 }
 
+/* ── GOL ANİMASYONU ──────────────────────────── */
+@keyframes goalPulse {
+  0%,100% {
+    background: rgba(16, 185, 129, 0.08);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+  50% {
+    background: rgba(16, 185, 129, 0.22);
+    box-shadow: 0 0 14px 4px rgba(16, 185, 129, 0.35);
+  }
+}
+
+.mr-home.goal-band,
+.mr-away.goal-band {
+  background: rgba(16, 185, 129, 0.10);
+  border-radius: 6px;
+  outline: 1.5px solid rgba(16, 185, 129, 0.55);
+  animation: goalPulse 1s ease-in-out infinite;
+  transition: background .2s, outline .2s;
+}
+
+.mr-home.goal-band .mr-name,
+.mr-away.goal-band .mr-name {
+  color: #10b981;
+  font-weight: 800;
+}
+
+/* Skor kutusunun yanındaki top ikonu */
+.mr-ball {
+  font-size: 14px;
+  padding: 0 5px;
+  animation: pulse 1s ease-in-out infinite;
+  display: inline-flex;
+  align-items: center;
+}
+
 /* ── RESPONSIVE ──────────────────────────────── */
 @media (max-width: 900px) {
   :root { --sb-w: 200px; }
