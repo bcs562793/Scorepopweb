@@ -989,9 +989,20 @@ function switchTab(name, el) {
 
 /* ── SILENT UPDATE ───────────────────────────── */
 function silentUpdate(rows) {
+  const DONE = new Set(['FT','AET','PEN']);
   rows.forEach(m => {
     const row = document.querySelector(`.mr[data-id="${m.fixture_id}"]`);
     if (!row) return;
+
+    /* Maç bittiyse → satırı DOM'dan kaldır */
+    if (DONE.has(m.status_short)) {
+      const lgGrp = row.closest('.lg-grp');
+      row.remove();
+      /* Lig grubunda başka maç kalmadıysa onu da kaldır */
+      if (lgGrp && !lgGrp.querySelector('.mr')) lgGrp.remove();
+      return;
+    }
+
     const st = statusInfo(m);
     const hs = m.home_score != null ? m.home_score : '-';
     const as = m.away_score != null ? m.away_score : '-';
