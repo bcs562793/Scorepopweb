@@ -279,8 +279,20 @@ async function loadLive(silent = false) {
   if (error) throw error;
   const rows = data || [];
   updLiveCt(rows.length);
-  if (silent) silentUpdate(rows);
-  else        render(rows, true);
+   if (silent) {
+    /* Artık canlı olmayan maçları DOM'dan temizle */
+    const activeIds = new Set(rows.map(r => String(r.fixture_id)));
+    document.querySelectorAll('.mr[data-id]').forEach(el => {
+      if (!activeIds.has(el.dataset.id)) {
+        const lgGrp = el.closest('.lg-grp');
+        el.remove();
+        if (lgGrp && !lgGrp.querySelector('.mr')) lgGrp.remove();
+      }
+    });
+    silentUpdate(rows);
+  } else {
+    render(rows, true);
+  }
 }
 
 async function loadToday() {
