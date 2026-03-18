@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — style.css v1.2
+   SCOREPOP — style.css v1.1
    Layout: Fixed sidebar 240px + fluid main
    Match row: Home→Score←Away (Mackolik style)
    Palette: Near-black + Electric Orange accent
@@ -75,10 +75,12 @@ img { display: block; }
 
 /* brand */
 .sb-top { padding: 16px 16px 14px; border-bottom: 1px solid var(--b1); }
-.sb-brand { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+.sb-brand { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; text-decoration: none; }
+.sb-brand:hover .sb-name { opacity: 0.8; }
+.sb-brand:hover .sb-mark { box-shadow: 0 0 24px var(--or-glow); }
 .sb-mark {
   width: 32px; height: 32px;
-  background: var(--or) url('logo.png') center/contain no-repeat;
+  background: var(--or);
   color: #fff;
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 800;
@@ -88,6 +90,13 @@ img { display: block; }
   border-radius: 7px;
   flex-shrink: 0;
   box-shadow: 0 0 18px var(--or-glow);
+  overflow: hidden;
+}
+.sb-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 .sb-name {
   font-family: 'Barlow Condensed', sans-serif;
@@ -396,32 +405,6 @@ img { display: block; }
 .mr:hover::after { width: 2px; background: var(--b3); }
 .mr.is-live { background: var(--bg2); }
 .mr.is-live::after { width: 3px !important; background: var(--live); box-shadow: 1px 0 8px var(--live-gl); }
-
-/* ── GOL VURGUSU ─────────────────────────────── */
-.mr-home.goal-band,
-.mr-away.goal-band {
-  animation: goal-pulse 1.1s ease-in-out infinite;
-}
-.mr-home.goal-band { border-right: 2px solid #22c55e; }
-.mr-away.goal-band { border-left:  2px solid #22c55e; }
-
-@keyframes goal-pulse {
-  0%   { background: rgba(34,197,94,.08); }
-  50%  { background: rgba(34,197,94,.28); }
-  100% { background: rgba(34,197,94,.08); }
-}
-
-/* Top ikonu skorda */
-.mr-ball {
-  font-size: 11px;
-  line-height: 1;
-  flex-shrink: 0;
-  animation: ball-pop .3s cubic-bezier(.22,.68,0,1.4) both;
-}
-@keyframes ball-pop {
-  from { transform: scale(0); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
-}
 
 /* Time */
 .mr-time {
