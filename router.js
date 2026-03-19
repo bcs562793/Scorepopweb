@@ -140,7 +140,7 @@ const Router = (() => {
     _setOG('og:site_name',   'ScorePop');
   }
 
-  function setMatchMeta(homeTeam, awayTeam, homeScore, awayScore, league, status, fixtureId) {
+  function setMatchMeta(homeTeam, awayTeam, homeScore, awayScore, league, status, fixtureId, kickoffTime, homeLogo, awayLogo) {
     const hasScore = homeScore != null && awayScore != null;
     const scoreStr = hasScore ? `${homeScore}-${awayScore}` : 'vs';
 
@@ -152,6 +152,12 @@ const Router = (() => {
     const desc  = `${stLabel}${homeTeam} ${scoreStr} ${awayTeam} canlı skor, dakika dakika anlatım ve istatistikler.${league ? ' (' + league + ')' : ''}`;
     setPageMeta(title, desc);
 
+    const startDateObj = kickoffTime ? new Date(kickoffTime) : new Date();
+    const startDateISO = startDateObj.toISOString();
+    const endDateISO = new Date(startDateObj.getTime() + 2 * 60 * 60 * 1000).toISOString();
+
+    const imageUrl = homeLogo || awayLogo || 'https://scorepop.com.tr/logo.png';
+
     _setJsonLD({
       '@context': 'https://schema.org',
       '@type': 'SportsEvent',
@@ -159,7 +165,9 @@ const Router = (() => {
       'sport': 'Soccer',
       'description': desc,
       'url': window.location.href,
-      'startDate': new Date().toISOString(),
+      'startDate': startDateISO,
+      'endDate': endDateISO,
+      'image': imageUrl,
       'location': {
         '@type': 'Place',
         'name': 'Futbol Stadyumu',
@@ -170,6 +178,18 @@ const Router = (() => {
         '@type': 'SportsOrganization',
         'name': league || 'Football',
         'url': 'https://scorepop.com.tr',
+      },
+      'performer': [
+        { '@type': 'SportsTeam', 'name': homeTeam },
+        { '@type': 'SportsTeam', 'name': awayTeam },
+      ],
+      'offers': {
+        '@type': 'Offer',
+        'name': 'Canlı Maç Takibi',
+        'price': '0',
+        'priceCurrency': 'TRY',
+        'availability': 'https://schema.org/InStock',
+        'url': window.location.href,
       },
       'homeTeam': { '@type': 'SportsTeam', 'name': homeTeam },
       'awayTeam': { '@type': 'SportsTeam', 'name': awayTeam },
