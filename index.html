@@ -191,7 +191,7 @@ window._watchdog = setTimeout(function() {
       .from('profiles')
       .select('id', { count: 'exact', head: true });
 
-    const kalan = Math.max(0, 1000 - (count || 0));
+    const kalan = Math.max(0, 823 - (count || 0));
     el.textContent = kalan.toLocaleString('tr-TR');
 
     if (kalan === 0) {
