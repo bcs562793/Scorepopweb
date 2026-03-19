@@ -728,7 +728,8 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
   try {
     if (typeof Router !== 'undefined') {
       Router.goMatch(m.fixture_id, m.home_team, m.away_team);
-      Router.setMatchMeta(m.home_team, m.away_team, m.home_score, m.away_score, m.league_name);
+      const kickoff = m.kickoff_time || m.fixture_date || m.match_date || m.event_date || null;
+      Router.setMatchMeta(m.home_team, m.away_team, m.home_score, m.away_score, m.league_name, null, m.fixture_id, kickoff, m.home_logo, m.away_logo);
     }
   } catch(e) {}
 
