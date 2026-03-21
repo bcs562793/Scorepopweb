@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v4.0 — Arşiv Desteği)
+   SCOREPOP — app.js  (v4.1 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -311,8 +311,11 @@ function buildDateStrip() {
     btn.innerHTML = '<span class="dp-d">' + dd + '</span><span class="dp-w">' + lbl + '</span>';
     btn.addEventListener('click', () => {
       S.date = s;
+      S.page = 'today';
+      document.querySelectorAll('.sb-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.page === 'today'));
+      try { if (typeof Router !== 'undefined') Router.goToday(s); } catch(e) {}
       _activateDateBtn(btn);
-      /* Takvim butonunu sifirla */
       const cp = document.getElementById('cal-picker');
       if (cp) cp.value = '';
       const calBtn = document.querySelector('.tb-cal-btn');
@@ -331,6 +334,10 @@ function buildDateStrip() {
       const picked = calPicker.value;
       if (!picked) return;
       S.date = picked;
+      S.page = 'today';
+      document.querySelectorAll('.sb-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.page === 'today'));
+      try { if (typeof Router !== 'undefined') Router.goToday(picked); } catch(e) {}
       _activateDateBtn(null);
       const calBtn = document.querySelector('.tb-cal-btn');
       if (calBtn) {
