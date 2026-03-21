@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v4.3 — Arşiv Desteği)
+   SCOREPOP — app.js  (v4.0 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -253,6 +253,8 @@ function navigate(page) {
 
   const showDate = page !== 'live';
   document.getElementById('date-strip').style.display = showDate ? 'flex' : 'none';
+  const calWrap = document.querySelector('.tb-cal-wrap');
+  if (calWrap) calWrap.style.display = showDate ? 'flex' : 'none';
 
   try {
     if (typeof Router !== 'undefined') {
@@ -298,36 +300,6 @@ function buildDateStrip() {
   el.innerHTML = '';
   const dow = ['Paz','Pzt','Sal','\u00c7ar','Per','Cum','Cmt'];
 
-  /* ── Takvim butonu + gizli input ── */
-  const calWrap = document.createElement('div');
-  calWrap.style.cssText = 'flex-shrink:0;position:relative;display:flex;align-items:center;';
-
-  const calBtn = document.createElement('button');
-  calBtn.className = 'dp dp-cal';
-  calBtn.title = 'Tarih se\u00e7';
-  calBtn.innerHTML = '<span style="font-size:16px;line-height:1">\uD83D\uDCC5</span>';
-
-  const calInput = document.createElement('input');
-  calInput.type = 'date';
-  calInput.max  = fmtDate(new Date());
-  calInput.style.cssText = 'position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;';
-
-  calInput.addEventListener('change', () => {
-    const picked = calInput.value;
-    if (!picked) return;
-    S.date = picked;
-    _activateDateBtn(null);
-    calBtn.classList.add('active');
-    loadMatches();
-    const [y, m, d] = picked.split('-');
-    calBtn.innerHTML = '<span class="dp-d">' + d + '/' + m + '</span><span class="dp-w">\uD83D\uDCC5</span>';
-  });
-
-  calWrap.appendChild(calBtn);
-  calWrap.appendChild(calInput);
-  el.appendChild(calWrap);
-
-  /* ── Normal g\u00fcnler ── */
   for (let i = -3; i <= 4; i++) {
     const d = new Date(); d.setDate(d.getDate() + i);
     const s = fmtDate(d);
@@ -340,17 +312,39 @@ function buildDateStrip() {
     btn.addEventListener('click', () => {
       S.date = s;
       _activateDateBtn(btn);
-      calBtn.classList.remove('active');
-      calBtn.innerHTML = '<span style="font-size:16px;line-height:1">\uD83D\uDCC5</span>';
+      /* Takvim butonunu sifirla */
+      const cp = document.getElementById('cal-picker');
+      if (cp) cp.value = '';
+      const calBtn = document.querySelector('.tb-cal-btn');
+      if (calBtn) { calBtn.classList.remove('active'); calBtn.querySelector('span').textContent = '\uD83D\uDCC5'; }
       loadMatches();
     });
     el.appendChild(btn);
   }
   el.style.display = 'none';
+
+  /* Takvim input'unu baslat (HTML'deki #cal-picker) */
+  const calPicker = document.getElementById('cal-picker');
+  if (calPicker) {
+    calPicker.max = fmtDate(new Date());
+    calPicker.addEventListener('change', () => {
+      const picked = calPicker.value;
+      if (!picked) return;
+      S.date = picked;
+      _activateDateBtn(null);
+      const calBtn = document.querySelector('.tb-cal-btn');
+      if (calBtn) {
+        calBtn.classList.add('active');
+        const [y, m, d] = picked.split('-');
+        calBtn.querySelector('span').textContent = d + '/' + m;
+      }
+      loadMatches();
+    });
+  }
 }
 
 function _activateDateBtn(activeBtn) {
-  document.querySelectorAll('.dp').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#date-strip .dp').forEach(p => p.classList.remove('active'));
   if (activeBtn) activeBtn.classList.add('active');
 }
 
