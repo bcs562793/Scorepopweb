@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — style.css v1.1
+   SCOREPOP — style.css v1.2
    Layout: Fixed sidebar 240px + fluid main
    Match row: Home→Score←Away (Mackolik style)
    Palette: Near-black + Electric Orange accent
@@ -1980,4 +1980,34 @@ img { display: block; }
   width: 36px;
   height: 34px;
   cursor: pointer;
+}
+
+/* ── Takvim butonu — date-strip hemen yanına yapışık ── */
+.tb-cal-btn {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--tx3);
+  border: 1px solid transparent;
+  transition: all .13s;
+  user-select: none;
+  margin-left: 2px;
+}
+.tb-cal-btn:hover { background: var(--b1); color: var(--tx2); }
+.tb-cal-btn.active { color: var(--or); background: var(--or3); border-color: rgba(242,100,25,.25); }
+.tb-cal-btn input[type="date"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
 }
