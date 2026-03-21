@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v4.0 — Arşiv Desteği)
+   SCOREPOP — app.js  (v4.1 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -12,17 +12,18 @@
 'use strict';
 
 const S = {
-  sb:          null,
-  page:        'live',
-  date:        todayStr(),
-  league:      'all',
-  detail:      null,
-  detailLive:  false,
-  timer:       null,
-  cd:          30,
-  cycle:       30,
-  allLeagues:  [],
-  lastGoals:   {},   /* fixture_id (string) → { events: [...] } */
+  sb:           null,
+  page:         'live',
+  date:         todayStr(),
+  league:       'all',
+  detail:       null,
+  detailLive:   false,
+  timer:        null,
+  cd:           30,
+  cycle:        30,
+  allLeagues:   [],
+  lastGoals:    {},   /* fixture_id (string) → { events: [...] } */
+  archiveCache: {},   /* fixture_id (string) → tam maç objesi (arşivden) */
 };
 
 /* ── LİG ÖNCELİK SİSTEMİ ───────────────────── */
@@ -346,7 +347,6 @@ async function loadArchive(date) {
     const res = await fetch(`${ARCHIVE_BASE}/${date}.json`);
 
     if (!res.ok) {
-      /* Arşiv bulunamadı */
       setMatchesHTML(`<div class="empty"><div class="empty-i">📂</div><div class="empty-t">${date} tarihine ait arşiv bulunamadı</div></div>`);
       return;
     }
@@ -363,6 +363,13 @@ async function loadArchive(date) {
       return;
     }
 
+    /* Tam maç verisini fixture_id bazında cache'le (detail için) */
+    S.archiveCache = {};
+    raw.forEach(m => {
+      const id = m?.fixture?.id;
+      if (id) S.archiveCache[String(id)] = m;
+    });
+
     const rows = raw.map(m => normFix(m));
     render(rows, false);
 
@@ -370,6 +377,65 @@ async function loadArchive(date) {
     console.error('Arşiv yüklenemedi:', e);
     setMatchesHTML(`<div class="empty"><div class="empty-i">⚠️</div><div class="empty-t">Arşiv yüklenirken hata oluştu</div></div>`);
   }
+}
+
+/* ── ARŞİV ADAPTÖRLER: scraper formatı → buildDetail formatı ── */
+
+/* Scraper events → Supabase match_events satırı formatı
+   Scraper : { minute, minuteExtra, type, detail, playerName, assistName, teamSide, teamId, teamName }
+   buildDetail: { elapsed_time, extra_time, event_type, event_detail, player_name, assist_name, team_id, team_name } */
+function archiveAdaptEvents(events) {
+  if (!Array.isArray(events)) return [];
+  return events.map(e => ({
+    elapsed_time: e.minute      ?? null,
+    extra_time:   e.minuteExtra ?? null,
+    event_type:   e.type        ?? '',
+    event_detail: e.detail      ?? '',
+    player_name:  e.playerName  ?? '',
+    assist_name:  e.assistName  ?? null,
+    team_id:      e.teamId      ?? null,
+    team_name:    e.teamName    ?? '',
+  }));
+}
+
+/* Scraper stats → parseStatsData'nın beklediği { data: [...] } formatı
+   parseStatsData zaten homeVal/awayVal formatını destekliyor */
+function archiveAdaptStats(stats) {
+  if (!Array.isArray(stats) || !stats.length) return null;
+  return { data: stats };
+}
+
+/* Scraper lineups → buildDetail'in beklediği { data: [teamA, teamB] } formatı
+   Scraper : { home: { startXI:[{id,name,number}], substitutes:[] }, away: {...} }
+   buildDetail: lus.data[i] = { team:{logo,name}, startXI:[{player:{number,name,pos}}], substitutes:[] } */
+function archiveAdaptLineups(lineups, match) {
+  if (!lineups) return null;
+
+  const adaptTeam = (side) => {
+    const lu    = lineups[side] || { startXI: [], substitutes: [] };
+    const tInfo = match?.teams?.[side] || {};
+
+    const adaptPlayers = (arr) =>
+      (arr || []).map(p => ({
+        player: { number: p.number || '', name: p.name || '', pos: p.pos || '' }
+      }));
+
+    return {
+      team:        { id: tInfo.id || null, name: tInfo.name || '', logo: tInfo.logo || '' },
+      formation:   lu.formation || null,
+      startXI:     adaptPlayers(lu.startXI),
+      substitutes: adaptPlayers(lu.substitutes),
+    };
+  };
+
+  return { data: [ adaptTeam('home'), adaptTeam('away') ] };
+}
+
+/* Scraper h2h → buildDetail'in beklediği { data: {...} } formatı
+   Scraper: { h2h:[], homeForm:[], awayForm:[], homeScorers:[], awayScorers:[] } */
+function archiveAdaptH2H(h2h) {
+  if (!h2h) return null;
+  return { data: h2h };
 }
 
 async function loadUpcoming() {
@@ -678,6 +744,21 @@ function applyFilter() {
 async function loadDetail(id, isLive) {
   setDetailHTML(`<div class="empty" style="min-height:160px"><div class="empty-i">⚽</div></div>`);
   try {
+
+    /* ── ARŞİV CACHE kontrolü ──────────────────────────────────────
+       Geçmiş tarih seçildiyse Supabase'e gitmeden cache'ten oku    */
+    const cached = S.archiveCache[String(id)];
+    if (cached) {
+      const m    = normFix(cached);
+      const evs  = archiveAdaptEvents(cached.events);
+      const stats = archiveAdaptStats(cached.stats);
+      const lus  = archiveAdaptLineups(cached.lineups, cached);
+      const h2h  = archiveAdaptH2H(cached.h2h);
+      buildDetail(m, evs, stats, lus, h2h, null);
+      return;
+    }
+
+    /* ── Normal akış: Supabase ────────────────────────────────────── */
     let m = null;
     const tables = isLive
       ? ['live_matches','daily_matches','future_matches']
