@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v3.9)
+   SCOREPOP — app.js  (v4.0 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -297,6 +297,13 @@ async function loadLive(silent = false) {
 
 async function loadToday() {
   _fetchLiveCount();   /* sayaç her zaman güncel kalsın */
+
+  /* Geçmiş tarih seçildiyse GitHub arşivinden yükle */
+  if (S.date < todayStr()) {
+    await loadArchive(S.date);
+    return;
+  }
+
   const { data, error } = await S.sb.from('live_matches')
     .select('*')
     .order('league_name');
@@ -327,6 +334,42 @@ async function loadToday() {
   });
 
   render(rows, false);
+}
+
+/* ── ARŞİV: Geçmiş tarih maçları GitHub'dan yükle ─── */
+const ARCHIVE_BASE = 'https://raw.githubusercontent.com/bcs562793/scorepop-worker/main/data';
+
+async function loadArchive(date) {
+  setMatchesHTML(`<div class="empty"><div class="empty-i">⏳</div><div class="empty-t">${date} arşivi yükleniyor…</div></div>`);
+
+  try {
+    const res = await fetch(`${ARCHIVE_BASE}/${date}.json`);
+
+    if (!res.ok) {
+      /* Arşiv bulunamadı */
+      setMatchesHTML(`<div class="empty"><div class="empty-i">📂</div><div class="empty-t">${date} tarihine ait arşiv bulunamadı</div></div>`);
+      return;
+    }
+
+    const json = await res.json();
+
+    /* JSON formatı: dizi ya da { response: [...] } olabilir */
+    const raw = Array.isArray(json) ? json
+               : Array.isArray(json?.response) ? json.response
+               : [];
+
+    if (!raw.length) {
+      setMatchesHTML(`<div class="empty"><div class="empty-i">📂</div><div class="empty-t">${date} için maç verisi yok</div></div>`);
+      return;
+    }
+
+    const rows = raw.map(m => normFix(m));
+    render(rows, false);
+
+  } catch (e) {
+    console.error('Arşiv yüklenemedi:', e);
+    setMatchesHTML(`<div class="empty"><div class="empty-i">⚠️</div><div class="empty-t">Arşiv yüklenirken hata oluştu</div></div>`);
+  }
 }
 
 async function loadUpcoming() {
