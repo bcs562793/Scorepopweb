@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v4.1 — Arşiv Desteği)
+   SCOREPOP — app.js  (v4.2 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -91,9 +91,31 @@ function isFavLeague(name) {
 }
 
 /*  Lig adından { tier, order } döndür — ülke filtresi destekler  */
+
+/* Mackolik Türkçe ülke adları → İngilizce eşlemesi */
+const COUNTRY_TR_MAP = {
+  'türkiye':   'turkey',
+  'ingiltere': 'england',
+  'ispanya':   'spain',
+  'italya':    'italy',
+  'almanya':   'germany',
+  'fransa':    'france',
+  'portekiz':  'portugal',
+  'hollanda':  'netherlands',
+  'belçika':   'belgium',
+  'isviçre':   'switzerland',
+  'iskocya':   'scotland',
+  'polonya':   'poland',
+};
+
+function _normalizeCountry(country) {
+  const lower = (country || '').toLowerCase().trim();
+  return COUNTRY_TR_MAP[lower] || lower;   /* Türkçe → İngilizce, yoksa olduğu gibi */
+}
+
 function _matchLeagueTier(leagueName, country) {
   const lower = (leagueName || '').toLowerCase().trim();
-  const lowerCountry = (country || '').toLowerCase().trim();
+  const lowerCountry = _normalizeCountry(country);
   for (const entry of LEAGUE_TIERS) {
     for (const kw of entry.keywords) {
       if (lower.includes(kw)) {
