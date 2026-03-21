@@ -296,24 +296,62 @@ function showView(v) {
 function buildDateStrip() {
   const el = document.getElementById('date-strip');
   el.innerHTML = '';
-  const dow = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+  const dow = ['Paz','Pzt','Sal','\u00c7ar','Per','Cum','Cmt'];
+
+  /* ── Takvim butonu + gizli input ── */
+  const calWrap = document.createElement('div');
+  calWrap.style.cssText = 'flex-shrink:0;position:relative;display:flex;align-items:center;';
+
+  const calBtn = document.createElement('button');
+  calBtn.className = 'dp dp-cal';
+  calBtn.title = 'Tarih se\u00e7';
+  calBtn.innerHTML = '<span style="font-size:16px;line-height:1">\uD83D\uDCC5</span>';
+
+  const calInput = document.createElement('input');
+  calInput.type = 'date';
+  calInput.max  = fmtDate(new Date());
+  calInput.style.cssText = 'position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;';
+
+  calInput.addEventListener('change', () => {
+    const picked = calInput.value;
+    if (!picked) return;
+    S.date = picked;
+    _activateDateBtn(null);
+    calBtn.classList.add('active');
+    loadMatches();
+    const [y, m, d] = picked.split('-');
+    calBtn.innerHTML = '<span class="dp-d">' + d + '/' + m + '</span><span class="dp-w">\uD83D\uDCC5</span>';
+  });
+
+  calWrap.appendChild(calBtn);
+  calWrap.appendChild(calInput);
+  el.appendChild(calWrap);
+
+  /* ── Normal g\u00fcnler ── */
   for (let i = -3; i <= 4; i++) {
     const d = new Date(); d.setDate(d.getDate() + i);
     const s = fmtDate(d);
     const btn = document.createElement('button');
     btn.className = 'dp' + (i === 0 ? ' active' : '');
+    btn.dataset.dateVal = s;
     const dd = pad2(d.getDate()) + '/' + pad2(d.getMonth()+1);
-    const lbl = i === 0 ? 'Bugün' : i === 1 ? 'Yarın' : i === -1 ? 'Dün' : dow[d.getDay()];
-    btn.innerHTML = `<span class="dp-d">${dd}</span><span class="dp-w">${lbl}</span>`;
+    const lbl = i === 0 ? 'Bug\u00fcn' : i === 1 ? 'Yar\u0131n' : i === -1 ? 'D\u00fcn' : dow[d.getDay()];
+    btn.innerHTML = '<span class="dp-d">' + dd + '</span><span class="dp-w">' + lbl + '</span>';
     btn.addEventListener('click', () => {
       S.date = s;
-      document.querySelectorAll('.dp').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
+      _activateDateBtn(btn);
+      calBtn.classList.remove('active');
+      calBtn.innerHTML = '<span style="font-size:16px;line-height:1">\uD83D\uDCC5</span>';
       loadMatches();
     });
     el.appendChild(btn);
   }
   el.style.display = 'none';
+}
+
+function _activateDateBtn(activeBtn) {
+  document.querySelectorAll('.dp').forEach(p => p.classList.remove('active'));
+  if (activeBtn) activeBtn.classList.add('active');
 }
 
 /* ── LOAD ────────────────────────────────────── */
