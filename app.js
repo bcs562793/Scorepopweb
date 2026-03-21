@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v4.1 — Arşiv Desteği)
+   SCOREPOP — app.js  (v4.0 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -253,8 +253,8 @@ function navigate(page) {
 
   const showDate = page !== 'live';
   document.getElementById('date-strip').style.display = showDate ? 'flex' : 'none';
-  const calWrap = document.querySelector('.tb-cal-wrap');
-  if (calWrap) calWrap.style.display = showDate ? 'flex' : 'none';
+  const calBtn2 = document.querySelector('.tb-cal-btn');
+  if (calBtn2) calBtn2.style.display = showDate ? 'flex' : 'none';
 
   try {
     if (typeof Router !== 'undefined') {
@@ -319,7 +319,7 @@ function buildDateStrip() {
       const cp = document.getElementById('cal-picker');
       if (cp) cp.value = '';
       const calBtn = document.querySelector('.tb-cal-btn');
-      if (calBtn) { calBtn.classList.remove('active'); calBtn.querySelector('span').textContent = '\uD83D\uDCC5'; }
+      if (calBtn) calBtn.classList.remove('active');
       loadMatches();
     });
     el.appendChild(btn);
@@ -340,11 +340,7 @@ function buildDateStrip() {
       try { if (typeof Router !== 'undefined') Router.goToday(picked); } catch(e) {}
       _activateDateBtn(null);
       const calBtn = document.querySelector('.tb-cal-btn');
-      if (calBtn) {
-        calBtn.classList.add('active');
-        const [y, m, d] = picked.split('-');
-        calBtn.querySelector('span').textContent = d + '/' + m;
-      }
+      if (calBtn) calBtn.classList.add('active');
       loadMatches();
     });
   }
