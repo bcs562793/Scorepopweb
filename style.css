@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — style.css v1.1
+   SCOREPOP — style.css v1.2
    Layout: Fixed sidebar 240px + fluid main
    Match row: Home→Score←Away (Mackolik style)
    Palette: Near-black + Electric Orange accent
@@ -1944,3 +1944,7 @@ img { display: block; }
 .fr-pinned-section::-webkit-scrollbar { width: 4px; }
 .fr-pinned-section::-webkit-scrollbar-track { background: transparent; }
 .fr-pinned-section::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 2px; }
+
+/* ── Takvim butonu ── */
+.dp-cal { min-width: 38px; padding: 0 8px; }
+.dp-cal:hover { background: var(--b1); }
