@@ -898,7 +898,7 @@ sq(S.sb.from('match_h2h').select('*')
   .limit(1)
   .then(r => ({ data: r.data?.[0] ?? null, error: r.error }))
 ),      sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
-      sq(S.sb.from('match_odds').select('*').eq('fixture_id', id).maybeSingle()),
+      sq(S.sb.from('match_odds').select('*').eq('fixture_id', Number(id)).maybeSingle()),
     ]);
 
     buildDetail(m, evs||[], stats, lus, h2h, pred, odds);
