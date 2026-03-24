@@ -2068,3 +2068,90 @@ img { display: block; }
   width: 100%;
   height: 100%;
 }
+
+/* ── ORANLAR V2 ── */
+.or2-wrap { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+
+.or2-src-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255,107,0,.08);
+  border: 1px solid rgba(255,107,0,.2);
+  border-radius: 8px;
+}
+.or2-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 1.5px;
+  color: #ff6b00; background: rgba(255,107,0,.15);
+  padding: 2px 7px; border-radius: 20px;
+  border: 1px solid rgba(255,107,0,.3);
+}
+.or2-src  { font-size: 12px; font-weight: 600; color: var(--tx); }
+.or2-upd  { font-size: 11px; color: var(--tx2); margin-left: auto; }
+
+/* Accordion grup */
+.or2-group {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.or2-group-hdr {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  background: rgba(255,255,255,.02);
+  user-select: none;
+  transition: background .15s;
+}
+.or2-group-hdr:hover { background: rgba(255,255,255,.05); }
+.or2-group-icon  { font-size: 14px; }
+.or2-group-title { font-size: 12px; font-weight: 600; color: var(--tx); flex: 1; letter-spacing: .3px; }
+.or2-group-arrow {
+  font-size: 16px; color: var(--tx2);
+  transition: transform .2s;
+  display: inline-block;
+}
+.or2-group.open .or2-group-arrow { transform: rotate(90deg); }
+.or2-group-body  { display: none; padding: 8px; }
+.or2-group.open .or2-group-body { display: block; }
+
+/* Market satırı */
+.or2-market {
+  margin-bottom: 6px;
+  background: rgba(255,255,255,.02);
+  border: 1px solid rgba(255,255,255,.05);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.or2-market:last-child { margin-bottom: 0; }
+.or2-mkt-title {
+  font-size: 10px; font-weight: 600; letter-spacing: .6px;
+  text-transform: uppercase; color: var(--tx2);
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.or2-cells {
+  display: grid; gap: 4px; padding: 6px;
+}
+.or2-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 7px 4px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 6px;
+  transition: background .15s, border-color .15s;
+  cursor: default;
+}
+.or2-cell:hover { background: rgba(255,107,0,.08); border-color: rgba(255,107,0,.2); }
+.or2-lbl {
+  font-size: 9px; font-weight: 500; color: var(--tx2);
+  text-align: center; line-height: 1.2;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.or2-val {
+  font-size: 15px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.or2-val.high  { color: #4ade80; }
+.or2-val.mid   { color: #ff6b00; }
+.or2-val.low   { color: var(--tx2); }
