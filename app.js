@@ -845,7 +845,7 @@ async function loadDetail(id, isLive) {
       const stats = archiveAdaptStats(cached.stats);
       const lus  = archiveAdaptLineups(cached.lineups, cached);
       const h2h  = archiveAdaptH2H(cached.h2h);
-      buildDetail(m, evs, stats, lus, h2h, null);
+      buildDetail(m, evs, stats, lus, h2h, null, null);
       return;
     }
 
@@ -901,7 +901,7 @@ sq(S.sb.from('match_h2h').select('*')
       sq(S.sb.from('match_odds').select('*').eq('fixture_id', id).maybeSingle()),
     ]);
 
-    buildDetail(m, evs||[], stats, lus, h2h, pred);
+    buildDetail(m, evs||[], stats, lus, h2h, pred, odds);
   } catch (e) {
     console.error(e);
     setDetailHTML(`<div class="empty"><div class="empty-t">Hata: ${esc(e.message)}</div></div>`);
@@ -938,7 +938,7 @@ function _scheduleVisualScale() {
   [50, 200, 600, 1500].forEach(function(ms) { setTimeout(scaleVisualIframe, ms); });
 }
 
-function buildDetail(m, evs, stats, lus, h2h, pred) {
+function buildDetail(m, evs, stats, lus, h2h, pred, odds) {
   const st = statusInfo(m);
   const hs = m.home_score ?? '-', as = m.away_score ?? '-';
 
