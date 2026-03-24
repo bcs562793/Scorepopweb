@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — style.css v1.2
+   SCOREPOP — style.css v1.3
    Layout: Fixed sidebar 240px + fluid main
    Match row: Home→Score←Away (Mackolik style)
    Palette: Near-black + Electric Orange accent
@@ -740,6 +740,63 @@ img { display: block; }
 .st-bar-row { display: flex; height: 3px; border-radius: 3px; overflow: hidden; gap: 1px; }
 .st-bh { background: var(--or); border-radius: 2px; min-width: 2px; }
 .st-ba { background: var(--blue); border-radius: 2px; flex: 1; min-width: 2px; }
+
+/* ── ORANLAR ─────────────────────────────────── */
+.or-wrap {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.or-src-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 12px;
+  background: var(--bg4); border: 1px solid var(--b2);
+  border-radius: 8px;
+}
+.or-src-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  color: var(--or); text-transform: uppercase;
+}
+.or-src-upd {
+  font-size: 10px; color: var(--tx3);
+}
+.or-market {
+  background: var(--bg3); border: 1px solid var(--b2);
+  border-radius: 8px; overflow: hidden;
+}
+.or-mkt-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px; font-weight: 700; letter-spacing: 1px;
+  color: var(--tx3); text-transform: uppercase;
+  padding: 7px 14px 5px;
+  border-bottom: 1px solid var(--b1);
+}
+.or-cells {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1px; background: var(--b1);
+}
+.or-cells-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+.or-cell {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 4px; padding: 10px 8px;
+  background: var(--bg3);
+  cursor: default;
+  transition: background .15s;
+}
+.or-cell:hover { background: var(--bg4); }
+.or-cell-lbl {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px; font-weight: 600; letter-spacing: .4px;
+  color: var(--tx2); text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 90px; text-align: center;
+}
+.or-cell-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px; font-weight: 700;
+  color: var(--tx1);
+}
 
 /* ── LINEUPS ─────────────────────────────────── */
 .lu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
