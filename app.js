@@ -1057,126 +1057,278 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds) {
   html += `</div>`;
 
   /* ── ORANLAR PANELİ ────────────────────────── */
-  html += `<div class="d-panel" id="d-or">`;
-  const od = odds?.odds_data;
-  if (od && od.markets) {
-    const mk = od.markets;
-    const src = od.source || 'İddaa';
-    const updAt = odds.updated_at ? new Date(odds.updated_at).toLocaleString('tr-TR',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'}) : '';
-    const homeN = esc(m.home_team || '');
-    const awayN = esc(m.away_team || '');
+html += `<div class="d-panel" id="d-or">`;
+const od = odds?.odds_data ?? null;
 
-    html += `<div class="or-wrap">`;
-    html += `<div class="or-src-bar"><span class="or-src-name">${src}</span>${updAt ? `<span class="or-src-upd">🕐 ${updAt}</span>` : ''}</div>`;
+if (od && od.markets) {
+  const mk = od.markets;
+  const src = od.source || 'İddaa / Nesine';
+  const updAt = odds.updated_at
+    ? new Date(odds.updated_at).toLocaleString('tr-TR',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})
+    : '';
+  const homeN = esc(m.home_team || '');
+  const awayN = esc(m.away_team || '');
 
-    /* 1X2 */
+  /* ── Yardımcı: tek bir oran kartı ── */
+  const cell = (lbl, val) => {
+    const v = +val || 0;
+    const cls = v >= 3 ? 'high' : v >= 1.8 ? 'mid' : 'low';
+    return `<div class="or2-cell">
+      <div class="or2-lbl">${lbl}</div>
+      <div class="or2-val ${cls}">${v > 0 ? v.toFixed(2) : '-'}</div>
+    </div>`;
+  };
+
+  /* ── Yardımcı: market satırı (başlık + hücreler) ── */
+  const marketRow = (title, cells) =>
+    `<div class="or2-market">
+      <div class="or2-mkt-title">${title}</div>
+      <div class="or2-cells" style="grid-template-columns:repeat(${cells.length},1fr)">
+        ${cells.join('')}
+      </div>
+    </div>`;
+
+  /* ── Yardımcı: accordion grup ── */
+  let grpIdx = 0;
+  const group = (icon, title, content, openByDefault = false) => {
+    const id = `or2g${grpIdx++}`;
+    return `
+      <div class="or2-group ${openByDefault ? 'open' : ''}">
+        <div class="or2-group-hdr" onclick="this.closest('.or2-group').classList.toggle('open')">
+          <span class="or2-group-icon">${icon}</span>
+          <span class="or2-group-title">${title}</span>
+          <span class="or2-group-arrow">›</span>
+        </div>
+        <div class="or2-group-body">${content}</div>
+      </div>`;
+  };
+
+  html += `<div class="or2-wrap">`;
+
+  /* ── KAYNAK BAR ── */
+  html += `
+    <div class="or2-src-bar">
+      <span class="or2-badge">ORANLAR</span>
+      <span class="or2-src">${esc(src)}</span>
+      ${updAt ? `<span class="or2-upd">🕐 ${updAt}</span>` : ''}
+    </div>`;
+
+  /* ══════════════════════════════════════
+     GRUP 1: MAÇ SONUCU
+  ══════════════════════════════════════ */
+  {
+    let g1 = '';
     if (mk['1x2']) {
       const o = mk['1x2'];
-      html += `
-        <div class="or-market">
-          <div class="or-mkt-title">Maç Sonucu</div>
-          <div class="or-cells">
-            <div class="or-cell">
-              <div class="or-cell-lbl">${homeN}</div>
-              <div class="or-cell-val">${(+o.home||0).toFixed(2)}</div>
-            </div>
-            <div class="or-cell">
-              <div class="or-cell-lbl">Beraberlik</div>
-              <div class="or-cell-val">${(+o.draw||0).toFixed(2)}</div>
-            </div>
-            <div class="or-cell">
-              <div class="or-cell-lbl">${awayN}</div>
-              <div class="or-cell-val">${(+o.away||0).toFixed(2)}</div>
-            </div>
-          </div>
-        </div>`;
+      g1 += marketRow('Maç Sonucu', [cell(homeN,o.home), cell('X',o.draw), cell(awayN,o.away)]);
     }
-
-    /* Çifte Şans */
     if (mk['dc']) {
       const o = mk['dc'];
-      html += `
-        <div class="or-market">
-          <div class="or-mkt-title">Çifte Şans</div>
-          <div class="or-cells">
-            <div class="or-cell">
-              <div class="or-cell-lbl">1X</div>
-              <div class="or-cell-val">${(+o['1x']||0).toFixed(2)}</div>
-            </div>
-            <div class="or-cell">
-              <div class="or-cell-lbl">12</div>
-              <div class="or-cell-val">${(+o['12']||0).toFixed(2)}</div>
-            </div>
-            <div class="or-cell">
-              <div class="or-cell-lbl">X2</div>
-              <div class="or-cell-val">${(+o['x2']||0).toFixed(2)}</div>
-            </div>
-          </div>
-        </div>`;
+      g1 += marketRow('Çifte Şans', [cell('1X',o['1x']), cell('12',o['12']), cell('X2',o['x2'])]);
     }
-
-    /* Alt/Üst 2.5 */
-    if (mk['ou25']) {
-      const o = mk['ou25'];
-      html += `
-        <div class="or-market">
-          <div class="or-mkt-title">Alt / Üst 2.5</div>
-          <div class="or-cells or-cells-2">
-            <div class="or-cell">
-              <div class="or-cell-lbl">Alt 2.5</div>
-              <div class="or-cell-val">${(+o.under||0).toFixed(2)}</div>
-            </div>
-            <div class="or-cell">
-              <div class="or-cell-lbl">Üst 2.5</div>
-              <div class="or-cell-val">${(+o.over||0).toFixed(2)}</div>
-            </div>
-          </div>
-        </div>`;
+    /* Handikap — tüm çizgiler */
+    const ahKeys = Object.keys(mk).filter(k => k.startsWith('ah_')).sort();
+    ahKeys.forEach(k => {
+      const o = mk[k];
+      const line = o.line !== undefined ? o.line : k.replace('ah_p','+').replace('ah_m','-').replace('_','.');
+      g1 += marketRow(`Handikap (${line})`, [cell(homeN,o.home), cell('X',o.draw), cell(awayN,o.away)]);
+    });
+    if (mk['ht_ft']) {
+      const o = mk['ht_ft'];
+      g1 += marketRow('İY / Maç Sonucu', [
+        cell('1/1',o['1/1']), cell('1/X',o['1/X']), cell('1/2',o['1/2']),
+        cell('X/1',o['X/1']), cell('X/X',o['X/X']), cell('X/2',o['X/2']),
+        cell('2/1',o['2/1']), cell('2/X',o['2/X']), cell('2/2',o['2/2']),
+      ]);
     }
-
-    /* Alt/Üst 3.5 */
-    if (mk['ou35']) {
-      const o = mk['ou35'];
-      html += `
-        <div class="or-market">
-          <div class="or-mkt-title">Alt / Üst 3.5</div>
-          <div class="or-cells or-cells-2">
-            <div class="or-cell">
-              <div class="or-cell-lbl">Alt 3.5</div>
-              <div class="or-cell-val">${(+o.under||0).toFixed(2)}</div>
-            </div>
-            <div class="or-cell">
-              <div class="or-cell-lbl">Üst 3.5</div>
-              <div class="or-cell-val">${(+o.over||0).toFixed(2)}</div>
-            </div>
-          </div>
-        </div>`;
+    if (mk['win_margin']) {
+      const o = mk['win_margin'];
+      g1 += marketRow('Kaç Farkla Kazanır', [
+        cell(`${homeN} 3+`,o.h3p), cell(`${homeN} 2`,o.h2), cell(`${homeN} 1`,o.h1),
+        cell('Ber.',o.draw), cell(`${awayN} 1`,o.a1), cell(`${awayN} 2`,o.a2), cell(`${awayN} 3+`,o.a3p),
+      ]);
     }
-
-    /* Karşılıklı Gol */
-    if (mk['btts']) {
-      const o = mk['btts'];
-      html += `
-        <div class="or-market">
-          <div class="or-mkt-title">Karşılıklı Gol</div>
-          <div class="or-cells or-cells-2">
-            <div class="or-cell">
-              <div class="or-cell-lbl">Var</div>
-              <div class="or-cell-val">${(+o.yes||0).toFixed(2)}</div>
-            </div>
-            <div class="or-cell">
-              <div class="or-cell-lbl">Yok</div>
-              <div class="or-cell-val">${(+o.no||0).toFixed(2)}</div>
-            </div>
-          </div>
-        </div>`;
+    if (mk['ms_ou15']) {
+      const o = mk['ms_ou15'];
+      g1 += marketRow('MS + 1.5 Alt/Üst', [
+        cell(`${homeN}&Alt`,o.h_u), cell('X&Alt',o.x_u), cell(`${awayN}&Alt`,o.a_u),
+        cell(`${homeN}&Üst`,o.h_o), cell('X&Üst',o.x_o), cell(`${awayN}&Üst`,o.a_o),
+      ]);
     }
-
-    html += `</div>`; /* or-wrap */
-  } else {
-    html += `<div class="empty"><div class="empty-t">Oran verisi henüz mevcut değil</div></div>`;
+    if (mk['ms_ou25']) {
+      const o = mk['ms_ou25'];
+      g1 += marketRow('MS + 2.5 Alt/Üst', [
+        cell(`${homeN}&Alt`,o.h_u), cell('X&Alt',o.x_u), cell(`${awayN}&Alt`,o.a_u),
+        cell(`${homeN}&Üst`,o.h_o), cell('X&Üst',o.x_o), cell(`${awayN}&Üst`,o.a_o),
+      ]);
+    }
+    if (mk['ms_ou35']) {
+      const o = mk['ms_ou35'];
+      g1 += marketRow('MS + 3.5 Alt/Üst', [
+        cell(`${homeN}&Alt`,o.h_u), cell('X&Alt',o.x_u), cell(`${awayN}&Alt`,o.a_u),
+        cell(`${homeN}&Üst`,o.h_o), cell('X&Üst',o.x_o), cell(`${awayN}&Üst`,o.a_o),
+      ]);
+    }
+    if (mk['ms_ou45']) {
+      const o = mk['ms_ou45'];
+      g1 += marketRow('MS + 4.5 Alt/Üst', [
+        cell(`${homeN}&Alt`,o.h_u), cell('X&Alt',o.x_u), cell(`${awayN}&Alt`,o.a_u),
+        cell(`${homeN}&Üst`,o.h_o), cell('X&Üst',o.x_o), cell(`${awayN}&Üst`,o.a_o),
+      ]);
+    }
+    if (mk['ms_kg']) {
+      const o = mk['ms_kg'];
+      g1 += marketRow('MS + Karşılıklı Gol', [
+        cell(`${homeN}&Var`,o.h_y), cell('X&Var',o.x_y), cell(`${awayN}&Var`,o.a_y),
+        cell(`${homeN}&Yok`,o.h_n), cell('X&Yok',o.x_n), cell(`${awayN}&Yok`,o.a_n),
+      ]);
+    }
+    if (g1) html += group('⚽', 'Maç Sonucu', g1, true);
   }
-  html += `</div>`; /* d-or panel */
+
+  /* ══════════════════════════════════════
+     GRUP 2: ALT / ÜST
+  ══════════════════════════════════════ */
+  {
+    let g2 = '';
+    ['ou15','ou25','ou35','ou45','ou55'].forEach(k => {
+      if (!mk[k]) return;
+      const n = k.replace('ou','').replace(/(\d)(\d)/,'$1.$2');
+      g2 += marketRow(`${n} Gol Alt/Üst`, [cell(`Alt ${n}`,mk[k].under), cell(`Üst ${n}`,mk[k].over)]);
+    });
+    if (mk['ou25_kg']) {
+      const o = mk['ou25_kg'];
+      g2 += marketRow('2.5 Alt/Üst + KG', [cell('Alt&Var',o.u_y), cell('Üst&Var',o.o_y), cell('Alt&Yok',o.u_n), cell('Üst&Yok',o.o_n)]);
+    }
+    if (mk['goal_range']) {
+      const o = mk['goal_range'];
+      g2 += marketRow('Toplam Gol Aralığı', [cell('0-1',o['0_1']), cell('2-3',o['2_3']), cell('4-5',o['4_5']), cell('6+',o['6p'])]);
+    }
+    if (mk['odd_even']) {
+      g2 += marketRow('Tek / Çift', [cell('Tek',mk['odd_even'].odd), cell('Çift',mk['odd_even'].even)]);
+    }
+    if (g2) html += group('📊', 'Alt / Üst & Toplam Gol', g2, true);
+  }
+
+  /* ══════════════════════════════════════
+     GRUP 3: YARI
+  ══════════════════════════════════════ */
+  {
+    let g3 = '';
+    if (mk['ht_1x2']) {
+      const o = mk['ht_1x2'];
+      g3 += marketRow('1. Yarı Sonucu', [cell(homeN,o.home), cell('X',o.draw), cell(awayN,o.away)]);
+    }
+    if (mk['ht_dc']) {
+      const o = mk['ht_dc'];
+      g3 += marketRow('1. Yarı Çifte Şans', [cell('1X',o['1x']), cell('12',o['12']), cell('X2',o['x2'])]);
+    }
+    if (mk['2h_1x2']) {
+      const o = mk['2h_1x2'];
+      g3 += marketRow('2. Yarı Sonucu', [cell(homeN,o.home), cell('X',o.draw), cell(awayN,o.away)]);
+    }
+    if (mk['home_win_both']) {
+      g3 += marketRow(`${homeN} Her İki Yarıyı Kazanır`, [cell('Evet',mk['home_win_both'].yes), cell('Hayır',mk['home_win_both'].no)]);
+    }
+    if (mk['away_win_both']) {
+      g3 += marketRow(`${awayN} Her İki Yarıyı Kazanır`, [cell('Evet',mk['away_win_both'].yes), cell('Hayır',mk['away_win_both'].no)]);
+    }
+    if (mk['ht_ms_ou15']) {
+      const o = mk['ht_ms_ou15'];
+      g3 += marketRow('1Y Sonucu + 1Y 1.5 Alt/Üst', [
+        cell(`${homeN}&Alt`,o.h_u), cell('X&Alt',o.x_u), cell(`${awayN}&Alt`,o.a_u),
+        cell(`${homeN}&Üst`,o.h_o), cell('X&Üst',o.x_o), cell(`${awayN}&Üst`,o.a_o),
+      ]);
+    }
+    if (mk['ht_ms_kg']) {
+      const o = mk['ht_ms_kg'];
+      g3 += marketRow('1Y Sonucu + 1Y KG', [
+        cell(`${homeN}&Var`,o.h_y), cell('X&Var',o.x_y), cell(`${awayN}&Var`,o.a_y),
+        cell(`${homeN}&Yok`,o.h_n), cell('X&Yok',o.x_n), cell(`${awayN}&Yok`,o.a_n),
+      ]);
+    }
+    /* 1Y Alt/Üst */
+    ['ht_ou05','ht_ou15','ht_ou25'].forEach(k => {
+      if (!mk[k]) return;
+      const n = k.replace('ht_ou','').replace(/(\d)(\d)/,'$1.$2');
+      g3 += marketRow(`1Y ${n} Gol Alt/Üst`, [cell(`Alt ${n}`,mk[k].under), cell(`Üst ${n}`,mk[k].over)]);
+    });
+    if (mk['ht_odd_even']) {
+      g3 += marketRow('1Y Tek / Çift', [cell('Tek',mk['ht_odd_even'].odd), cell('Çift',mk['ht_odd_even'].even)]);
+    }
+    if (mk['both_half_u15']) {
+      g3 += marketRow('İki Yarı da 1.5 Alt', [cell('Evet',mk['both_half_u15'].yes), cell('Hayır',mk['both_half_u15'].no)]);
+    }
+    if (mk['both_half_o15']) {
+      g3 += marketRow('İki Yarı da 1.5 Üst', [cell('Evet',mk['both_half_o15'].yes), cell('Hayır',mk['both_half_o15'].no)]);
+    }
+    if (mk['more_goals_half']) {
+      const o = mk['more_goals_half'];
+      g3 += marketRow('En Çok Gol Olacak Yarı', [cell('1. Yarı',o.first), cell('Eşit',o.equal), cell('2. Yarı',o.second)]);
+    }
+    if (g3) html += group('🕐', 'Yarı Marketleri', g3);
+  }
+
+  /* ══════════════════════════════════════
+     GRUP 4: GOL
+  ══════════════════════════════════════ */
+  {
+    let g4 = '';
+    if (mk['btts']) {
+      g4 += marketRow('Karşılıklı Gol', [cell('Var',mk['btts'].yes), cell('Yok',mk['btts'].no)]);
+    }
+    if (mk['ht_btts']) {
+      g4 += marketRow('1Y Karşılıklı Gol', [cell('Var',mk['ht_btts'].yes), cell('Yok',mk['ht_btts'].no)]);
+    }
+    if (mk['2h_btts']) {
+      g4 += marketRow('2Y Karşılıklı Gol', [cell('Var',mk['2h_btts'].yes), cell('Yok',mk['2h_btts'].no)]);
+    }
+    if (mk['halves_btts']) {
+      const o = mk['halves_btts'];
+      g4 += marketRow('1Y/2Y Karşılıklı Gol', [cell('Evet/Evet',o.yy), cell('Evet/Hayır',o.yn), cell('Hayır/Evet',o.ny), cell('Hayır/Hayır',o.nn)]);
+    }
+    if (mk['first_goal']) {
+      const o = mk['first_goal'];
+      g4 += marketRow('İlk Golü Kim Atar', [cell(homeN,o.home), cell('Olmaz',o.none), cell(awayN,o.away)]);
+    }
+    if (mk['home_score_both']) {
+      g4 += marketRow(`${homeN} Her İki Yarıda Gol`, [cell('Atar',mk['home_score_both'].yes), cell('Atmaz',mk['home_score_both'].no)]);
+    }
+    if (mk['away_score_both']) {
+      g4 += marketRow(`${awayN} Her İki Yarıda Gol`, [cell('Atar',mk['away_score_both'].yes), cell('Atmaz',mk['away_score_both'].no)]);
+    }
+    if (mk['home_more_goals_half']) {
+      const o = mk['home_more_goals_half'];
+      g4 += marketRow(`${homeN} Hangi Yarıda Daha Çok Gol`, [cell('1. Yarı',o.first), cell('Eşit',o.equal), cell('2. Yarı',o.second)]);
+    }
+    if (mk['away_more_goals_half']) {
+      const o = mk['away_more_goals_half'];
+      g4 += marketRow(`${awayN} Hangi Yarıda Daha Çok Gol`, [cell('1. Yarı',o.first), cell('Eşit',o.equal), cell('2. Yarı',o.second)]);
+    }
+    if (g4) html += group('🎯', 'Gol Marketleri', g4);
+  }
+
+  /* ══════════════════════════════════════
+     GRUP 5: TARAF ALT/ÜST
+  ══════════════════════════════════════ */
+  {
+    let g5 = '';
+    [
+      ['h_ou05',`${homeN} 0.5`], ['h_ou15',`${homeN} 1.5`], ['h_ou25',`${homeN} 2.5`],
+      ['a_ou05',`${awayN} 0.5`], ['a_ou15',`${awayN} 1.5`], ['a_ou25',`${awayN} 2.5`],
+      ['h_ht_ou05',`${homeN} 1Y 0.5`], ['a_ht_ou05',`${awayN} 1Y 0.5`],
+    ].forEach(([k, lbl]) => {
+      if (!mk[k]) return;
+      g5 += marketRow(`${lbl} Gol Alt/Üst`, [cell('Alt',mk[k].under), cell('Üst',mk[k].over)]);
+    });
+    if (g5) html += group('⚖️', 'Taraf Alt / Üst', g5);
+  }
+
+  html += `</div>`; /* or2-wrap */
+} else {
+  html += `<div class="empty"><div class="empty-t">Oran verisi henüz mevcut değil</div></div>`;
+}
+html += `</div>`; /* d-or panel */
 
   html += `<div class="d-panel" id="d-lu">`;
   const ld = lus?.data;
