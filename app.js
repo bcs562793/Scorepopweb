@@ -888,6 +888,7 @@ async function loadDetail(id, isLive) {
       { data: lus  },
       { data: h2h  },
       { data: pred },
+      { data: odds },
     ] = await Promise.all([
       sq(S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time')),
       sq(S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle()),
@@ -897,6 +898,7 @@ sq(S.sb.from('match_h2h').select('*')
   .limit(1)
   .then(r => ({ data: r.data?.[0] ?? null, error: r.error }))
 ),      sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
+      sq(S.sb.from('match_odds').select('*').eq('fixture_id', id).maybeSingle()),
     ]);
 
     buildDetail(m, evs||[], stats, lus, h2h, pred);
@@ -989,6 +991,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
     <div class="d-tabs">
       <div class="d-tab active" onclick="switchTab('ev',this)">Olaylar</div>
       <div class="d-tab" onclick="switchTab('st',this)">İstatistik</div>
+      <div class="d-tab" onclick="switchTab('or',this)">Oranlar</div>
       <div class="d-tab" onclick="switchTab('lu',this)">Kadro</div>
       <div class="d-tab" onclick="switchTab('h2',this)">H2H</div>
       <div class="d-tab" onclick="switchTab('fr',this)">Forum</div>
@@ -1052,6 +1055,128 @@ function buildDetail(m, evs, stats, lus, h2h, pred) {
     html += `<div class="empty"><div class="empty-t">İstatistik mevcut değil</div></div>`;
   }
   html += `</div>`;
+
+  /* ── ORANLAR PANELİ ────────────────────────── */
+  html += `<div class="d-panel" id="d-or">`;
+  const od = odds?.odds_data;
+  if (od && od.markets) {
+    const mk = od.markets;
+    const src = od.source || 'İddaa';
+    const updAt = odds.updated_at ? new Date(odds.updated_at).toLocaleString('tr-TR',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'}) : '';
+    const homeN = esc(m.home_team || '');
+    const awayN = esc(m.away_team || '');
+
+    html += `<div class="or-wrap">`;
+    html += `<div class="or-src-bar"><span class="or-src-name">${src}</span>${updAt ? `<span class="or-src-upd">🕐 ${updAt}</span>` : ''}</div>`;
+
+    /* 1X2 */
+    if (mk['1x2']) {
+      const o = mk['1x2'];
+      html += `
+        <div class="or-market">
+          <div class="or-mkt-title">Maç Sonucu</div>
+          <div class="or-cells">
+            <div class="or-cell">
+              <div class="or-cell-lbl">${homeN}</div>
+              <div class="or-cell-val">${(+o.home||0).toFixed(2)}</div>
+            </div>
+            <div class="or-cell">
+              <div class="or-cell-lbl">Beraberlik</div>
+              <div class="or-cell-val">${(+o.draw||0).toFixed(2)}</div>
+            </div>
+            <div class="or-cell">
+              <div class="or-cell-lbl">${awayN}</div>
+              <div class="or-cell-val">${(+o.away||0).toFixed(2)}</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    /* Çifte Şans */
+    if (mk['dc']) {
+      const o = mk['dc'];
+      html += `
+        <div class="or-market">
+          <div class="or-mkt-title">Çifte Şans</div>
+          <div class="or-cells">
+            <div class="or-cell">
+              <div class="or-cell-lbl">1X</div>
+              <div class="or-cell-val">${(+o['1x']||0).toFixed(2)}</div>
+            </div>
+            <div class="or-cell">
+              <div class="or-cell-lbl">12</div>
+              <div class="or-cell-val">${(+o['12']||0).toFixed(2)}</div>
+            </div>
+            <div class="or-cell">
+              <div class="or-cell-lbl">X2</div>
+              <div class="or-cell-val">${(+o['x2']||0).toFixed(2)}</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    /* Alt/Üst 2.5 */
+    if (mk['ou25']) {
+      const o = mk['ou25'];
+      html += `
+        <div class="or-market">
+          <div class="or-mkt-title">Alt / Üst 2.5</div>
+          <div class="or-cells or-cells-2">
+            <div class="or-cell">
+              <div class="or-cell-lbl">Alt 2.5</div>
+              <div class="or-cell-val">${(+o.under||0).toFixed(2)}</div>
+            </div>
+            <div class="or-cell">
+              <div class="or-cell-lbl">Üst 2.5</div>
+              <div class="or-cell-val">${(+o.over||0).toFixed(2)}</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    /* Alt/Üst 3.5 */
+    if (mk['ou35']) {
+      const o = mk['ou35'];
+      html += `
+        <div class="or-market">
+          <div class="or-mkt-title">Alt / Üst 3.5</div>
+          <div class="or-cells or-cells-2">
+            <div class="or-cell">
+              <div class="or-cell-lbl">Alt 3.5</div>
+              <div class="or-cell-val">${(+o.under||0).toFixed(2)}</div>
+            </div>
+            <div class="or-cell">
+              <div class="or-cell-lbl">Üst 3.5</div>
+              <div class="or-cell-val">${(+o.over||0).toFixed(2)}</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    /* Karşılıklı Gol */
+    if (mk['btts']) {
+      const o = mk['btts'];
+      html += `
+        <div class="or-market">
+          <div class="or-mkt-title">Karşılıklı Gol</div>
+          <div class="or-cells or-cells-2">
+            <div class="or-cell">
+              <div class="or-cell-lbl">Var</div>
+              <div class="or-cell-val">${(+o.yes||0).toFixed(2)}</div>
+            </div>
+            <div class="or-cell">
+              <div class="or-cell-lbl">Yok</div>
+              <div class="or-cell-val">${(+o.no||0).toFixed(2)}</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    html += `</div>`; /* or-wrap */
+  } else {
+    html += `<div class="empty"><div class="empty-t">Oran verisi henüz mevcut değil</div></div>`;
+  }
+  html += `</div>`; /* d-or panel */
 
   html += `<div class="d-panel" id="d-lu">`;
   const ld = lus?.data;
