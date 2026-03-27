@@ -7,7 +7,6 @@
 <title>ScorePop — Canlı Maç Sonuçları</title>
 <meta name="description" content="Canlı maç skorları, anlık sonuçlar ve istatistikler."/>
 <meta name="robots" content="index,follow"/>
-  <meta name="msvalidate.01" content="128BDBDD8061D1D007A764609E3769B5" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
@@ -156,7 +155,20 @@
 <div id="overlay" onclick="toggleSidebar()"></div>
 
   <script>
-    window.PAYMENT_EDGE_URL = "BURAYA_PAYMENT_URL";
+    window.PAYMENT_EDGE_URL   = "BURAYA_PAYMENT_URL";
+
+    /* ── Canlı indeksleme ayarları ──────────────────────────────────────
+       INDEXING_EDGE_URL : Google Indexing API'yi proxy eden Edge Function URL'si
+                           (Supabase Edge Function veya Cloudflare Worker)
+                           Örnek: https://xyz.supabase.co/functions/v1/google-index
+       INDEXNOW_KEY      : IndexNow doğrulama anahtarı (bing/yandex için)
+                           Örnek: "a1b2c3d4e5f6..."
+                           Bu anahtarı /a1b2c3...txt dosyası olarak sitenize koyun.
+       SITE_BASE_URL     : Sitenizin tam adresi (canonical için)
+    ─────────────────────────────────────────────────────────────────── */
+    window.INDEXING_EDGE_URL  = "BURAYA_INDEXING_EDGE_URL";
+    window.INDEXNOW_KEY       = "BURAYA_INDEXNOW_KEY";
+    window.SITE_BASE_URL      = "https://scorepop.com.tr";
 </script>
 
 <script>
@@ -174,6 +186,7 @@ window._watchdog = setTimeout(function() {
 <script src="auth.js?v=2"></script>
 <script src="forum.js?v=2"></script>
 <script src="payment.js?v=2"></script>
+<script src="indexing.js?v=1"></script>
 <script src="app.js?v=2"></script>
 
 <!-- 🗑 SİL — İLK 1000 ÜYE KAMPANYASI SAYAÇ BAŞLANGICI -->
