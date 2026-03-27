@@ -140,13 +140,17 @@ const Router = (() => {
     _setOG('og:site_name',   'ScorePop');
   }
 
+  /* Canlı sayılan status kodları — app.js / statusInfo ile senkron tutulmalı */
+  const _LIVE_STATUS_CODES = new Set(['1H','2H','HT','ET','BT','P','LIVE']);
+
   function setMatchMeta(homeTeam, awayTeam, homeScore, awayScore, league, status, fixtureId, kickoffTime, homeLogo, awayLogo) {
     const hasScore = homeScore != null && awayScore != null;
     const scoreStr = hasScore ? `${homeScore}-${awayScore}` : 'vs';
 
+    const isLiveStatus = _LIVE_STATUS_CODES.has(status);
     let stLabel = '';
-    if (status === 'live' || status === 'inprogress') stLabel = '🔴 CANLI | ';
-    else if (status === 'ht') stLabel = '⏸ Devre Arası | ';
+    if (isLiveStatus && status !== 'HT') stLabel = '🔴 CANLI | ';
+    else if (status === 'HT') stLabel = '⏸ Devre Arası | ';
 
     const title = `${stLabel}${homeTeam} ${scoreStr} ${awayTeam}`;
     const desc  = `${stLabel}${homeTeam} ${scoreStr} ${awayTeam} canlı skor, dakika dakika anlatım ve istatistikler.${league ? ' (' + league + ')' : ''}`;
@@ -158,6 +162,42 @@ const Router = (() => {
 
     const imageUrl = homeLogo || awayLogo || 'https://scorepop.com.tr/logo.png';
 
+    /* ── LiveBlogPosting schema (sadece canlı maçlar için) ─────────────
+       Google bu schema'yı görünce sayfayı "Canlı" etiketiyle
+       arama sonuçlarında öne çıkarır ve daha hızlı indeksler.
+    ───────────────────────────────────────────────────────────────── */
+    if (isLiveStatus) {
+      _setLiveBlogJsonLD({
+        '@context': 'https://schema.org',
+        '@type': 'LiveBlogPosting',
+        'headline': title,
+        'description': desc,
+        'url': window.location.href,
+        'datePublished': startDateISO,
+        'dateModified': new Date().toISOString(),
+        'coverageStartTime': startDateISO,
+        'coverageEndTime': endDateISO,
+        'image': imageUrl,
+        'publisher': {
+          '@type': 'Organization',
+          'name': 'ScorePop',
+          'logo': { '@type': 'ImageObject', 'url': 'https://scorepop.com.tr/logo.png' },
+        },
+        'author': { '@type': 'Organization', 'name': 'ScorePop' },
+        'about': {
+          '@type': 'SportsEvent',
+          'name': `${homeTeam} - ${awayTeam}`,
+          'sport': 'Soccer',
+          'startDate': startDateISO,
+        },
+      });
+    } else {
+      /* Canlı değilse LiveBlogPosting bloğunu kaldır */
+      const old = document.getElementById('sp-liveblog-jsonld');
+      if (old) old.remove();
+    }
+
+    /* ── SportsEvent schema (her durumda) ── */
     _setJsonLD({
       '@context': 'https://schema.org',
       '@type': 'SportsEvent',
@@ -173,7 +213,9 @@ const Router = (() => {
         'name': 'Futbol Stadyumu',
         'address': '',
       },
-      'eventStatus': 'https://schema.org/EventScheduled',
+      'eventStatus': isLiveStatus
+        ? 'https://schema.org/EventScheduled'
+        : 'https://schema.org/EventScheduled',
       'organizer': {
         '@type': 'SportsOrganization',
         'name': league || 'Football',
@@ -199,6 +241,17 @@ const Router = (() => {
       } : {}),
       ...(fixtureId ? { 'identifier': String(fixtureId) } : {}),
     });
+  }
+
+  function _setLiveBlogJsonLD(data) {
+    let el = document.getElementById('sp-liveblog-jsonld');
+    if (!el) {
+      el = document.createElement('script');
+      el.id   = 'sp-liveblog-jsonld';
+      el.type = 'application/ld+json';
+      document.head.appendChild(el);
+    }
+    try { el.textContent = JSON.stringify(data); } catch(e) {}
   }
 
   function _setJsonLD(data) {

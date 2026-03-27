@@ -946,7 +946,29 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds) {
     if (typeof Router !== 'undefined') {
       Router.goMatch(m.fixture_id, m.home_team, m.away_team);
       const kickoff = m.kickoff_time || m.fixture_date || m.match_date || m.event_date || null;
-      Router.setMatchMeta(m.home_team, m.away_team, m.home_score, m.away_score, m.league_name, null, m.fixture_id, kickoff, m.home_logo, m.away_logo);
+      /* status_short doğrudan iletiliyor — LiveBlogPosting ve CANLI etiketi için gerekli */
+      Router.setMatchMeta(m.home_team, m.away_team, m.home_score, m.away_score, m.league_name, m.status_short || null, m.fixture_id, kickoff, m.home_logo, m.away_logo);
+    }
+  } catch(e) {}
+
+  /* ── Anlık indeksleme sinyali ───────────────────────────────────────
+     Canlı maçlarda Google Indexing API + IndexNow'a ping gönderir.
+     Indexing nesnesi yüklü değilse (INDEXING_EDGE_URL / INDEXNOW_KEY
+     ayarlanmamışsa) sessizce atlanır.
+  ──────────────────────────────────────────────────────────────────── */
+  try {
+    if (typeof Indexing !== 'undefined') {
+      const slug = (m.home_team && m.away_team)
+        ? [m.home_team, m.away_team]
+            .join('-vs-')
+            .toLowerCase()
+            .replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s')
+            .replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '')
+            .slice(0, 80)
+        : null;
+      Indexing.pingMatchPage(m.fixture_id, m.status_short, slug);
     }
   } catch(e) {}
 
