@@ -118,13 +118,11 @@ const Indexing = (() => {
 
     for (const endpoint of endpoints) {
       try {
-        await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body,
-          mode: 'no-cors',
-          signal: AbortSignal.timeout(5000),
-        });
+        await fetch(`${endpoint}?url=${encodeURIComponent(url)}&key=${key}`, {
+  method: 'GET',
+  mode: 'no-cors',
+  signal: AbortSignal.timeout(5000),
+});
         console.info(`[Indexing] IndexNow → ${endpoint} ✓`);
       } catch (e) {
         console.warn(`[Indexing] IndexNow ${endpoint} hatası:`, e.message);
