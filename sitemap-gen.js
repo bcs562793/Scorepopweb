@@ -14,6 +14,14 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const BASE_URL     = 'https://scorepop.com.tr';
 
+/* ── Canlı indeksleme ayarları ─────────────────────────────────────────
+   GitHub Actions secrets olarak tanımlayın:
+     GOOGLE_SA_JSON    — Service Account JSON (string, base64 veya raw)
+     INDEXNOW_KEY      — IndexNow doğrulama anahtarı
+─────────────────────────────────────────────────────────────────────── */
+const INDEXNOW_KEY  = process.env.INDEXNOW_KEY  || '';
+const GOOGLE_SA_JSON = process.env.GOOGLE_SA_JSON || '';
+
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('SUPABASE_URL ve SUPABASE_KEY env değişkenleri gerekli');
   process.exit(1);
@@ -128,6 +136,118 @@ ${urls.join('\n')}
 
   fs.writeFileSync('sitemap.xml', xml, 'utf8');
   console.log(`✅ sitemap.xml güncellendi — ${matches.length} maç, ${urls.length} URL`);
+
+  /* ── Canlı maçlara anlık indeksleme pingi gönder ─────────────────── */
+  const liveMatches = matches.filter(m =>
+    ['1H','2H','HT','ET','BT','P','LIVE'].includes(m.status_short)
+  );
+
+  const liveUrls = liveMatches.map(m => {
+    const slug = `${slugify(m.home_team)}-vs-${slugify(m.away_team)}`;
+    return `${BASE_URL}/mac/${m.fixture_id}-${slug}`;
+  });
+
+  if (liveUrls.length > 0) {
+    console.log(`📡 ${liveUrls.length} canlı maç için ping gönderiliyor...`);
+    await pingIndexNow(liveUrls);
+    await pingGoogleIndexingAPI(liveUrls);
+  } else {
+    console.log('ℹ️  Şu an canlı maç yok — indeksleme pingleri atlandı.');
+  }
+}
+
+/* ── IndexNow (Bing + Yandex) ───────────────────────────────────────── */
+async function pingIndexNow(urlList) {
+  if (!INDEXNOW_KEY) {
+    console.warn('⚠️  INDEXNOW_KEY tanımlanmamış — IndexNow atlandı.');
+    return;
+  }
+
+  const host = new URL(BASE_URL).hostname;
+  const body = JSON.stringify({
+    host,
+    key: INDEXNOW_KEY,
+    keyLocation: `${BASE_URL}/${INDEXNOW_KEY}.txt`,
+    urlList,
+  });
+
+  const endpoints = [
+    { host: 'www.bing.com',    path: '/indexnow' },
+    { host: 'yandex.com',      path: '/indexnow' },
+  ];
+
+  for (const ep of endpoints) {
+    await new Promise(resolve => {
+      const req = https.request(
+        { host: ep.host, path: ep.path, method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8',
+                     'Content-Length': Buffer.byteLength(body) } },
+        res => {
+          console.log(`  IndexNow → ${ep.host}: HTTP ${res.status || res.statusCode}`);
+          res.resume();
+          resolve();
+        }
+      );
+      req.on('error', e => { console.warn(`  IndexNow ${ep.host} hata:`, e.message); resolve(); });
+      req.write(body);
+      req.end();
+    });
+  }
+}
+
+/* ── Google Indexing API ─────────────────────────────────────────────
+   Service Account JSON'unu GOOGLE_SA_JSON ortam değişkenine koyun.
+   Gerekli npm paketi: google-auth-library
+   GitHub Actions'da: npm install google-auth-library
+─────────────────────────────────────────────────────────────────────── */
+async function pingGoogleIndexingAPI(urlList) {
+  if (!GOOGLE_SA_JSON) {
+    console.warn('⚠️  GOOGLE_SA_JSON tanımlanmamış — Google Indexing API atlandı.');
+    return;
+  }
+
+  let auth;
+  try {
+    const { google } = require('googleapis');  // isteğe bağlı bağımlılık
+    const credentials = JSON.parse(GOOGLE_SA_JSON);
+    auth = new google.auth.GoogleAuth({
+      credentials,
+      scopes: ['https://www.googleapis.com/auth/indexing'],
+    });
+  } catch (e) {
+    console.warn('⚠️  Google auth başlatılamadı (googleapis yüklü mü?):', e.message);
+    return;
+  }
+
+  const accessToken = await auth.getAccessToken().catch(e => {
+    console.warn('⚠️  Google access token alınamadı:', e.message);
+    return null;
+  });
+  if (!accessToken) return;
+
+  let ok = 0, fail = 0;
+  for (const url of urlList) {
+    const body = JSON.stringify({ url, type: 'URL_UPDATED' });
+    await new Promise(resolve => {
+      const req = https.request(
+        { host: 'indexing.googleapis.com', path: '/v3/urlNotifications:publish',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json',
+                     'Authorization': `Bearer ${accessToken}`,
+                     'Content-Length': Buffer.byteLength(body) } },
+        res => {
+          if (res.statusCode === 200) ok++;
+          else fail++;
+          res.resume();
+          resolve();
+        }
+      );
+      req.on('error', e => { fail++; resolve(); });
+      req.write(body);
+      req.end();
+    });
+  }
+  console.log(`  Google Indexing API: ${ok} başarılı, ${fail} başarısız`);
 }
 
 generate().catch(e => { console.error(e); process.exit(1); });
