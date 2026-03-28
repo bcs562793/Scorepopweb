@@ -2155,3 +2155,26 @@ img { display: block; }
 .or2-val.high  { color: #4ade80; }
 .or2-val.mid   { color: #ff6b00; }
 .or2-val.low   { color: var(--tx2); }
+
+.match-info-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--bg2);
+  border-radius: 8px;
+  margin: 12px 16px 4px;
+  border: 1px solid var(--b1);   /* --border değil --b1 */
+}
+
+.mic-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--tx2);             /* --fg2 değil --tx2 */
+  white-space: nowrap;
+}
+
+.mic-icon { font-size: 13px; }
+.mic-text { color: var(--tx1); font-weight: 500; }  /* --fg1 değil --tx1 */
