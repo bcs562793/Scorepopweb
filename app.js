@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v4.1 — Arşiv Desteği)
+   SCOREPOP — app.js  (v4.2 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -396,8 +396,12 @@ async function loadToday() {
   }
 
   // ─── 1. live_matches: canlı + NS (worker tarafından takip edilenler) ───
+  const isToday = S.date === todayStr();
+
   const [liveRes, futureRes] = await Promise.all([
-    S.sb.from('live_matches').select('*').order('league_name'),
+    isToday
+      ? S.sb.from('live_matches').select('*').order('league_name')
+      : Promise.resolve({ data: [], error: null }),
     S.sb.from('future_matches').select('*').eq('date', S.date).limit(300),
   ]);
 
