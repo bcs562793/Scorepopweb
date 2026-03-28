@@ -1064,6 +1064,9 @@ try {
   city    = raw?.fixture?.venue?.city || null;
 } catch(e) {}
 
+   console.log('[MIC] kickoff:', m.kickoff_time, 'referee:', referee, 'venue:', venue, 'raw_data var mı:', !!m.raw_data);
+
+
 html += `<div class="match-info-card">
   ${kickoffFmt ? `<div class="mic-item">
     <span class="mic-icon">🕐</span>
