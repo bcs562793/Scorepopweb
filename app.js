@@ -388,42 +388,61 @@ async function loadLive(silent = false) {
 }
 
 async function loadToday() {
-  _fetchLiveCount();   /* sayaç her zaman güncel kalsın */
+  _fetchLiveCount();
 
-  /* Geçmiş tarih seçildiyse GitHub arşivinden yükle */
   if (S.date < todayStr()) {
     await loadArchive(S.date);
     return;
   }
 
-  const { data, error } = await S.sb.from('live_matches')
-    .select('*')
-    .order('league_name');
+  // ─── 1. live_matches: canlı + NS (worker tarafından takip edilenler) ───
+  const [liveRes, futureRes] = await Promise.all([
+    S.sb.from('live_matches').select('*').order('league_name'),
+    S.sb.from('future_matches').select('*').eq('date', S.date).limit(300),
+  ]);
 
-  if (error) {
-    console.error("Maçlar çekilemedi:", error.message);
-    return;
+  if (liveRes.error)  console.error("live_matches hatası:", liveRes.error.message);
+  if (futureRes.error) console.error("future_matches hatası:", futureRes.error.message);
+
+  // fixture_id bazlı dedupe — live_matches öncelikli (gerçek zamanlı skor içeriyor)
+  const seen = new Set();
+  const rows = [];
+
+  function parseRows(list) {
+    (list || []).forEach(r => {
+      if (r.raw_data) {
+        try {
+          const parsed = JSON.parse(r.raw_data);
+          const norm = normFix({ ...r, ...parsed });
+          if (norm.fixture_id && !seen.has(norm.fixture_id)) {
+            seen.add(norm.fixture_id);
+            rows.push(norm);
+          }
+          return;
+        } catch(e) {}
+      }
+      if (r.data && typeof r.data === 'object') {
+        const list2 = Array.isArray(r.data) ? r.data : [r.data];
+        list2.forEach(m => {
+          const norm = normFix({ ...r, ...m });
+          if (norm.fixture_id && !seen.has(norm.fixture_id)) {
+            seen.add(norm.fixture_id);
+            rows.push(norm);
+          }
+        });
+        return;
+      }
+      const norm = normFix(r);
+      if (norm.fixture_id && !seen.has(norm.fixture_id)) {
+        seen.add(norm.fixture_id);
+        rows.push(norm);
+      }
+    });
   }
 
-  const rows = [];
-  (data || []).forEach(r => {
-    /* 1. raw_data TEXT kolonu — live_matches saati buraya koyuyor */
-    if (r.raw_data) {
-      try {
-        const parsed = JSON.parse(r.raw_data);
-        rows.push(normFix({ ...r, ...parsed }));
-        return;
-      } catch(e) {}
-    }
-    /* 2. data JSONB kolonu */
-    if (r.data && typeof r.data === 'object') {
-      const list = Array.isArray(r.data) ? r.data : [r.data];
-      list.forEach(m => rows.push(normFix({ ...r, ...m })));
-      return;
-    }
-    /* 3. Düz satır */
-    rows.push(normFix(r));
-  });
+  // Önce live_matches (öncelikli), sonra future_matches (ek NS maçlar)
+  parseRows(liveRes.data);
+  parseRows(futureRes.data);
 
   render(rows, false);
 }
@@ -534,7 +553,9 @@ async function loadUpcoming() {
   const { data, error } = await S.sb
     .from('future_matches')
     .select('*')
-    .limit(100);
+    .gt('date', S.date)    // bugün dahil değil — bugün loadToday'de gösteriliyor
+    .order('date')
+    .limit(200);
 
   if (error) {
     console.error("Gelecek maçlar yüklenemedi:", error.message);
