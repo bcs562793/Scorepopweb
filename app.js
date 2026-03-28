@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v4.2 — Arşiv Desteği)
+   SCOREPOP — app.js  (v4.3 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -630,8 +630,8 @@ function normFix(m) {
     away_logo:    m.teams?.away?.logo || m.away_logo   || '',
     home_team_id: m.teams?.home?.id   || m.home_team_id || null,
     away_team_id: m.teams?.away?.id   || m.away_team_id || null,
-    home_score:   m.goals?.home  ?? m.home_score  ?? null,
-    away_score:   m.goals?.away  ?? m.away_score  ?? null,
+    home_score: m.home_score  ?? m.goals?.home  ?? null,
+    away_score: m.away_score  ?? m.goals?.away  ?? null,
     status_short: fx?.status?.short   || m.status_short  || 'NS',
     elapsed_time: fx?.status?.elapsed || m.elapsed_time  || null,
     kickoff_time: kt,
