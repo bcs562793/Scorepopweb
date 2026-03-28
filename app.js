@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v4.3 — Arşiv Desteği)
+   SCOREPOP — app.js  (v4.4 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -1045,6 +1045,36 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds) {
     </div>`;
 
   html += `<div class="d-panel active" id="d-ev">`;
+
+   // ── MAÇ BİLGİ KARTI ── buraya ekle
+const kickoff = m.kickoff_time || null;
+const kickoffFmt = kickoff ? new Date(kickoff).toLocaleString('tr-TR', {
+  day:'2-digit', month:'long', hour:'2-digit', minute:'2-digit',
+  timeZone:'Europe/Istanbul'
+}) : null;
+let referee = null, venue = null, city = null;
+try {
+  const raw = m.raw_data ? JSON.parse(m.raw_data) : null;
+  referee = raw?.fixture?.referee || null;
+  venue   = raw?.fixture?.venue?.name || null;
+  city    = raw?.fixture?.venue?.city || null;
+} catch(e) {}
+
+html += `<div class="match-info-card">
+  ${kickoffFmt ? `<div class="mic-item">
+    <span class="mic-icon">🕐</span>
+    <span class="mic-text">${kickoffFmt}</span>
+  </div>` : ''}
+  ${referee ? `<div class="mic-item">
+    <span class="mic-icon">🟡</span>
+    <span class="mic-text">${esc(referee)}</span>
+  </div>` : ''}
+  ${venue ? `<div class="mic-item">
+    <span class="mic-icon">🏟️</span>
+    <span class="mic-text">${esc(venue)}${city ? `, ${esc(city)}` : ''}</span>
+  </div>` : ''}
+</div>`;
+   
   if (!evs.length) {
     html += `<div class="ev-list"><div class="ev-none">Henüz olay yok</div></div>`;
   } else {
