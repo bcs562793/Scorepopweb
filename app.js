@@ -458,7 +458,11 @@ async function loadArchive(date) {
   setMatchesHTML(`<div class="empty"><div class="empty-i">⏳</div><div class="empty-t">${date} arşivi yükleniyor…</div></div>`);
 
   try {
-    const res = await fetch(`${ARCHIVE_BASE}/${date}.json`);
+    // Önce .json.gz dene, olmadığında .json'a düş
+     let res = await fetch(`${ARCHIVE_BASE}/${date}.json.gz`);
+     if (!res.ok) {
+     res = await fetch(`${ARCHIVE_BASE}/${date}.json`);
+   }
 
     if (!res.ok) {
       setMatchesHTML(`<div class="empty"><div class="empty-i">📂</div><div class="empty-t">${date} tarihine ait arşiv bulunamadı</div></div>`);
