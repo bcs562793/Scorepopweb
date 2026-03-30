@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — router.js v1.1
+   SCOREPOP — router.js v1.2
    Hash tabanlı SEO dostu URL yönetimi
 ════════════════════════════════════════════════ */
 'use strict';
@@ -79,20 +79,16 @@ const Router = (() => {
     }
 
     if (ROUTES.hakkimizda.test(path)) {
-      setTimeout(function() {
-        if (typeof window.__openPage === 'function') {
-          window.__openPage('page-hakkimizda', '/hakkimizda');
-        }
-      }, 0);
+      window.__pendingPage = 'page-hakkimizda';
+      window.__pendingPath = '/hakkimizda';
+      _waitAndOpen();
       return;
     }
 
     if (ROUTES.iletisim.test(path)) {
-      setTimeout(function() {
-        if (typeof window.__openPage === 'function') {
-          window.__openPage('page-iletisim', '/iletisim');
-        }
-      }, 0);
+      window.__pendingPage = 'page-iletisim';
+      window.__pendingPath = '/iletisim';
+      _waitAndOpen();
       return;
     }
 
@@ -103,6 +99,21 @@ const Router = (() => {
     }
 
     if (typeof navigate === 'function') navigate('live');
+  }
+
+  function _waitAndOpen() {
+    var attempts = 0;
+    var interval = setInterval(function() {
+      attempts++;
+      if (typeof window.__openPage === 'function' && window.__pendingPage) {
+        clearInterval(interval);
+        var id   = window.__pendingPage;
+        var path = window.__pendingPath;
+        window.__pendingPage = null;
+        window.__openPage(id, path);
+      }
+      if (attempts > 50) clearInterval(interval); // 5 sn sonra vazgeç
+    }, 100);
   }
 
   function goLive() {
