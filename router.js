@@ -88,6 +88,12 @@ const Router = (() => {
       return;
     }
 
+    // Uzantılı statik dosyalar (örn. BingSiteAuth.xml, robots.txt, sitemap.xml)
+    if (/\.[a-z0-9]+$/i.test(path)) {
+      window.location.replace(path);
+      return;
+    }
+
     if (typeof navigate === 'function') navigate('live');
   }
 
