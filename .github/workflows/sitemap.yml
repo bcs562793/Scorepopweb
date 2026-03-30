@@ -21,6 +21,9 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Bağımlılıkları kur
+        run: npm install googleapis
+
       - name: Sitemap oluştur
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
