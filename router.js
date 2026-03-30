@@ -7,10 +7,12 @@
 const Router = (() => {
 
   const ROUTES = {
-    live:     /^\/?(?:canli|live)?$/i,
-    today:    /^\/?(?:bugun|today)(?:\/(\d{4}-\d{2}-\d{2}))?$/i,
-    upcoming: /^\/?(?:yakin|upcoming|yarin)(?:\/(\d{4}-\d{2}-\d{2}))?$/i,
-    match:    /^\/?mac\/(\d+)(?:-[^/]+)?$/i,
+    live:       /^\/?(?:canli|live)?$/i,
+    today:      /^\/?(?:bugun|today)(?:\/(\d{4}-\d{2}-\d{2}))?$/i,
+    upcoming:   /^\/?(?:yakin|upcoming|yarin)(?:\/(\d{4}-\d{2}-\d{2}))?$/i,
+    match:      /^\/?mac\/(\d+)(?:-[^/]+)?$/i,
+    hakkimizda: /^\/?hakkimizda\/?$/i,
+    iletisim:   /^\/?iletisim\/?$/i,
   };
 
   let _busy = false;
@@ -73,6 +75,16 @@ const Router = (() => {
     if (upMatch) {
       if (upMatch[1]) S.date = upMatch[1];
       if (typeof navigate === 'function') navigate('upcoming');
+      return;
+    }
+
+    if (ROUTES.hakkimizda.test(path)) {
+      window.location.replace('/hakkimizda/');
+      return;
+    }
+
+    if (ROUTES.iletisim.test(path)) {
+      window.location.replace('/iletisim/');
       return;
     }
 
