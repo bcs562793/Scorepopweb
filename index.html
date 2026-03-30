@@ -25,7 +25,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
-<link rel="stylesheet" href="style.css?v=1774878794"/>
+<link rel="stylesheet" href="style.css?v=1774878852"/>
 <!-- 404.html redirect trick: ?p=/mac/123 → gerçek URL -->
 <script>
 (function() {
@@ -206,13 +206,13 @@ window._watchdog = setTimeout(function() {
   }
 }, 15000);
 </script>
-<script src="config.js?v=1774878794"></script>
-<script src="router.js?v=1774878794"></script>
-<script src="auth.js?v=1774878794"></script>
-<script src="forum.js?v=1774878794"></script>
-<script src="payment.js?v=1774878794"></script>
-<script src="indexing.js?v=1774878794"></script>
-<script src="app.js?v=1774878794"></script>
+<script src="config.js?v=1774878852"></script>
+<script src="router.js?v=1774878852"></script>
+<script src="auth.js?v=1774878852"></script>
+<script src="forum.js?v=1774878852"></script>
+<script src="payment.js?v=1774878852"></script>
+<script src="indexing.js?v=1774878852"></script>
+<script src="app.js?v=1774878852"></script>
 
 <!-- 🗑 SİL — İLK 1000 ÜYE KAMPANYASI SAYAÇ BAŞLANGICI -->
 <script>
@@ -246,5 +246,401 @@ window._watchdog = setTimeout(function() {
 })();
 </script>
 <!-- 🗑 SİL — İLK 1000 ÜYE KAMPANYASI SAYAÇ BİTİŞİ -->
+
+<!-- HAKKIMIZDA SAYFASI -->
+<div id="page-hakkimizda" style="display:none;position:fixed;inset:0;z-index:9999;overflow-y:auto;background:#0b0d11">
+  <div style="max-width:900px;margin:0 auto;padding:24px 16px">
+    <button onclick="window.__closePage()" style="margin-bottom:16px;background:rgba(255,255,255,.1);border:none;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:14px">← Geri</button>
+    <!-- TOPBAR -->
+  <nav class="topbar">
+    <a class="topbar-brand" href="/">
+      <div class="topbar-mark">
+        <img src="https://i.hizliresim.com/gbleupf.png" alt="ScorePop Logo"/>
+      </div>
+      <span class="topbar-name">SCORE<em>POP</em></span>
+    </a>
+    <div class="topbar-sep"></div>
+    <a class="topbar-back" href="/">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M8.5 3L5 7l3.5 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Ana Sayfaya Dön
+    </a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge">⚽ Hakkımızda</div>
+    <h1>Futbolu <span>Canlı</span> Takip Et</h1>
+    <p>ScorePop, tüm dünyadan canlı maç sonuçları, anlık istatistikler ve derinlemesine analizler sunar.</p>
+  </section>
+
+  <!-- MAIN CONTENT -->
+  <div class="container">
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num">1.000+</div>
+        <div class="stat-lbl">Günlük Maç</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">100+</div>
+        <div class="stat-lbl">Lig & Turnuva</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">30sn</div>
+        <div class="stat-lbl">Güncelleme Aralığı</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">7/24</div>
+        <div class="stat-lbl">Kesintisiz Yayın</div>
+      </div>
+    </div>
+
+    <!-- Mission -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-icon">🎯</div>
+        Misyonumuz
+      </div>
+      <p>ScorePop, futbol tutkunlarına dünyanın dört bir yanındaki maçları anlık ve doğru şekilde takip edebilecekleri bir platform sunmak amacıyla kuruldu.</p>
+      <p>Karmaşık arayüzler yerine sade, hızlı ve güvenilir bir deneyim sunmayı hedefliyoruz. Her gün binlerce maç, gerçek zamanlı skorlar ve detaylı istatistiklerle sporseverler yanımızda.</p>
+    </div>
+
+    <!-- Features -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-icon">✨</div>
+        Özelliklerimiz
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🔴</div>
+          <div class="feature-body">
+            <h3>Canlı Skorlar</h3>
+            <p>Maçlar dakika dakika, 30 saniyede bir otomatik güncelleme ile takibinizde.</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <div class="feature-body">
+            <h3>Detaylı İstatistikler</h3>
+            <p>Top kontrolü, şut sayısı, korner ve daha fazlası her maç için anlık.</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌍</div>
+          <div class="feature-body">
+            <h3>100+ Lig</h3>
+            <p>Premier Lig'den Süper Lig'e, Şampiyonlar Ligi'nden küçük liglere kadar.</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <div class="feature-body">
+            <h3>Hızlı & Hafif</h3>
+            <p>Optimize edilmiş arayüz sayesinde yavaş bağlantılarda bile sorunsuz.</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💬</div>
+          <div class="feature-body">
+            <h3>Maç Yorumları</h3>
+            <p>Maç sayfasında diğer taraftarlarla anlık yorum ve tartışma imkânı.</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📱</div>
+          <div class="feature-body">
+            <h3>Mobil Uyumlu</h3>
+            <p>Her cihazda mükemmel görüntü; telefon, tablet veya bilgisayar.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Story -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-icon">📖</div>
+        Hikayemiz
+      </div>
+      <p>ScorePop, futbol sevgisi taşıyan küçük bir ekip tarafından Türkiye'de hayata geçirildi. Mevcut skor takip uygulamalarının ya çok karmaşık ya da çok yavaş olduğunu fark ettik ve alternatif bir yol aradık.</p>
+      <p>Sade tasarım, hız ve doğruluk üçgeninde kullanıcı deneyimini ön plana alan bir platform inşa etmeye karar verdik. ScorePop bugün, her gün büyüyen topluluğuyla futbolseverlerin vazgeçilmez adresi olmaya devam ediyor.</p>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="page-footer">
+    <span>© 2026 ScorePop</span>
+    <a href="/">Ana Sayfa</a>
+    <a href="/hakkimizda">Hakkımızda</a>
+    <a href="/iletisim">İletişim</a>
+    <a href="/privacy.html">Gizlilik Politikası</a>
+  </footer>
+  </div>
+</div>
+
+<!-- İLETİŞİM SAYFASI -->
+<div id="page-iletisim" style="display:none;position:fixed;inset:0;z-index:9999;overflow-y:auto;background:#0b0d11">
+  <div style="max-width:900px;margin:0 auto;padding:24px 16px">
+    <button onclick="window.__closePage()" style="margin-bottom:16px;background:rgba(255,255,255,.1);border:none;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:14px">← Geri</button>
+    <!-- TOPBAR -->
+  <nav class="topbar">
+    <a class="topbar-brand" href="/">
+      <div class="topbar-mark">
+        <img src="https://i.hizliresim.com/gbleupf.png" alt="ScorePop Logo"/>
+      </div>
+      <span class="topbar-name">SCORE<em>POP</em></span>
+    </a>
+    <div class="topbar-sep"></div>
+    <a class="topbar-back" href="/">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M8.5 3L5 7l3.5 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Ana Sayfaya Dön
+    </a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge">✉️ İletişim</div>
+    <h1>Bize <span>Ulaşın</span></h1>
+    <p>Soru, öneri veya geri bildirimlerinizi duymak isteriz. Size en kısa sürede dönüş yaparız.</p>
+  </section>
+
+  <!-- MAIN -->
+  <div class="container">
+    <div class="two-col">
+
+      <!-- Contact Info -->
+      <div class="contact-list">
+
+        <a class="contact-card" href="mailto:scorepopapp@gmail.com">
+          <div class="contact-card-icon">📧</div>
+          <div class="contact-card-body">
+            <div class="contact-card-lbl">E-Posta</div>
+            <div class="contact-card-val">scorepopapp@gmail.com</div>
+          </div>
+          <svg class="contact-card-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+
+        <div class="contact-card" style="cursor:default;">
+          <div class="contact-card-icon">⏱️</div>
+          <div class="contact-card-body">
+            <div class="contact-card-lbl">Yanıt Süresi</div>
+            <div class="contact-card-val">Genellikle 24-48 saat içinde</div>
+          </div>
+        </div>
+
+        <div class="contact-card" style="cursor:default;">
+          <div class="contact-card-icon">🌍</div>
+          <div class="contact-card-body">
+            <div class="contact-card-lbl">Platform</div>
+            <div class="contact-card-val">scorepop.com.tr</div>
+          </div>
+        </div>
+
+        <div class="contact-card" style="cursor:default;">
+          <div class="contact-card-icon">🇹🇷</div>
+          <div class="contact-card-body">
+            <div class="contact-card-lbl">Dil</div>
+            <div class="contact-card-val">Türkçe & İngilizce</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Contact Form -->
+      <div class="form-card">
+        <h2><span>💬</span> Mesaj Gönder</h2>
+
+        <div class="form-group">
+          <label>Adınız</label>
+          <input type="text" id="f-name" placeholder="Adınızı girin" autocomplete="name"/>
+        </div>
+
+        <div class="form-group">
+          <label>E-Posta</label>
+          <input type="email" id="f-email" placeholder="email@ornek.com" autocomplete="email"/>
+        </div>
+
+        <div class="form-group">
+          <label>Konu</label>
+          <select id="f-subject">
+            <option value="">Konu seçin…</option>
+            <option value="bug">Hata Bildirimi</option>
+            <option value="feature">Özellik Önerisi</option>
+            <option value="account">Hesap Problemi</option>
+            <option value="data">Veri Hatası</option>
+            <option value="other">Diğer</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Mesajınız</label>
+          <textarea id="f-message" placeholder="Mesajınızı buraya yazın…"></textarea>
+        </div>
+
+        <button class="form-submit" onclick="handleSubmit()">Gönder →</button>
+
+        <div class="form-success" id="form-success">
+          ✅ Mesajınız alındı! En kısa sürede dönüş yapacağız.
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="faq-section">
+      <div class="faq-title">
+        <span style="display:inline-flex;width:32px;height:32px;background:var(--or2);border-radius:8px;align-items:center;justify-content:center;font-size:16px;">❓</span>
+        Sıkça Sorulan Sorular
+      </div>
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            Skorlar ne sıklıkla güncelleniyor?
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-a">Canlı maç skorları her 30 saniyede bir otomatik olarak yenilenmektedir. Sayfa yenilemesine gerek kalmadan anlık takip edebilirsiniz.</div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            Üyelik ücretsiz mi?
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-a">Temel skor ve istatistik takibi tamamen ücretsizdir. Premium özellikler için kredi sistemi kullanılmaktadır. İlk 1.000 üyeye 1.000 kredi hediye edilmektedir.</div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            Maç skoru hatalı görünüyor, ne yapmalıyım?
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-a">Veri hatalarını yukarıdaki form aracılığıyla bize bildirebilirsiniz. Konu olarak "Veri Hatası" seçip maç adını ve doğru skoru belirtin, en kısa sürede inceliyoruz.</div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            Hangi ligler destekleniyor?
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="faq-a">Süper Lig, Premier Lig, La Liga, Serie A, Bundesliga, Ligue 1, Şampiyonlar Ligi başta olmak üzere 100'den fazla lig ve turnuva desteklenmektedir.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="page-footer">
+    <span>© 2026 ScorePop</span>
+    <a href="/">Ana Sayfa</a>
+    <a href="/hakkimizda">Hakkımızda</a>
+    <a href="/iletisim">İletişim</a>
+    <a href="/privacy.html">Gizlilik Politikası</a>
+  </footer>
+
+  <script>
+    function toggleFaq(btn) {
+      const item = btn.closest('.faq-item');
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+      if (!isOpen) item.classList.add('open');
+    }
+
+    function handleSubmit() {
+      const name    = document.getElementById('f-name').value.trim();
+      const email   = document.getElementById('f-email').value.trim();
+      const subject = document.getElementById('f-subject').value;
+      const message = document.getElementById('f-message').value.trim();
+
+      if (!name || !email || !subject || !message) {
+        alert('Lütfen tüm alanları doldurun.');
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        alert('Lütfen geçerli bir e-posta adresi girin.');
+        return;
+      }
+
+      // mailto fallback — sunucu tarafı form yoksa e-posta istemcisini açar
+      const subjectMap = {
+        bug: 'Hata Bildirimi', feature: 'Özellik Önerisi',
+        account: 'Hesap Problemi', data: 'Veri Hatası', other: 'Diğer'
+      };
+      const mailSubject = encodeURIComponent('[ScorePop] ' + (subjectMap[subject] || subject));
+      const mailBody    = encodeURIComponent(`Ad: ${name}\n\n${message}`);
+      window.location.href = `mailto:scorepopapp@gmail.com?subject=${mailSubject}&body=${mailBody}`;
+
+      document.getElementById('form-success').classList.add('show');
+      document.getElementById('f-name').value = '';
+      document.getElementById('f-email').value = '';
+      document.getElementById('f-subject').value = '';
+      document.getElementById('f-message').value = '';
+    }
+  </script>
+  </div>
+</div>
+
+<script>
+window.__openPage = function(id, path) {
+  document.querySelectorAll('[id^="page-"]').forEach(function(el){ el.style.display='none'; });
+  var el = document.getElementById(id);
+  if(el) { el.style.display='block'; el.scrollTop=0; }
+  history.pushState(null, '', path);
+};
+window.__closePage = function() {
+  document.querySelectorAll('[id^="page-"]').forEach(function(el){ el.style.display='none'; });
+  history.pushState(null, '', '/canli');
+  if(typeof navigate==='function') navigate('live');
+};
+(function(){
+    function toggleFaq(btn) {
+      const item = btn.closest('.faq-item');
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+      if (!isOpen) item.classList.add('open');
+    }
+
+    function handleSubmit() {
+      const name    = document.getElementById('f-name').value.trim();
+      const email   = document.getElementById('f-email').value.trim();
+      const subject = document.getElementById('f-subject').value;
+      const message = document.getElementById('f-message').value.trim();
+
+      if (!name || !email || !subject || !message) {
+        alert('Lütfen tüm alanları doldurun.');
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        alert('Lütfen geçerli bir e-posta adresi girin.');
+        return;
+      }
+
+      // mailto fallback — sunucu tarafı form yoksa e-posta istemcisini açar
+      const subjectMap = {
+        bug: 'Hata Bildirimi', feature: 'Özellik Önerisi',
+        account: 'Hesap Problemi', data: 'Veri Hatası', other: 'Diğer'
+      };
+      const mailSubject = encodeURIComponent('[ScorePop] ' + (subjectMap[subject] || subject));
+      const mailBody    = encodeURIComponent(`Ad: ${name}\n\n${message}`);
+      window.location.href = `mailto:scorepopapp@gmail.com?subject=${mailSubject}&body=${mailBody}`;
+
+      document.getElementById('form-success').classList.add('show');
+      document.getElementById('f-name').value = '';
+      document.getElementById('f-email').value = '';
+      document.getElementById('f-subject').value = '';
+      document.getElementById('f-message').value = '';
+    }
+  })();
+</script>
+
 </body>
 </html>
