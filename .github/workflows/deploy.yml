@@ -40,3 +40,11 @@ jobs:
           publish_dir: .
           publish_branch: gh-pages
           exclude_assets: '.github,*.yml,*.md'
+
+      - name: Cloudflare Cache Purge
+        run: |
+          curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CF_ZONE_ID }}/purge_cache" \
+            -H "Authorization: Bearer ${{ secrets.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}'
+            
