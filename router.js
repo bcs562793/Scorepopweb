@@ -162,60 +162,36 @@ const Router = (() => {
 
     const imageUrl = homeLogo || awayLogo || 'https://scorepop.com.tr/logo.png';
 
-    /* ── LiveBlogPosting schema (sadece canlı maçlar için) ─────────────
-       Google bu schema'yı görünce sayfayı "Canlı" etiketiyle
-       arama sonuçlarında öne çıkarır ve daha hızlı indeksler.
-    ───────────────────────────────────────────────────────────────── */
-    if (isLiveStatus) {
-      _setLiveBlogJsonLD({
-        '@context': 'https://schema.org',
-        '@type': 'LiveBlogPosting',
-        'headline': title,
-        'description': desc,
-        'url': window.location.href,
-        'datePublished': startDateISO,
-        'dateModified': new Date().toISOString(),
-        'coverageStartTime': startDateISO,
-        'coverageEndTime': endDateISO,
-        'image': imageUrl,
-        'publisher': {
-          '@type': 'Organization',
-          'name': 'ScorePop',
-          'logo': { '@type': 'ImageObject', 'url': 'https://scorepop.com.tr/logo.png' },
-        },
-        'author': { '@type': 'Organization', 'name': 'ScorePop' },
-        'about': {
-          '@type': 'SportsEvent',
-          'name': `${homeTeam} - ${awayTeam}`,
-          'sport': 'Soccer',
-          'startDate': startDateISO,
-        },
-      });
-    } else {
-      /* Canlı değilse LiveBlogPosting bloğunu kaldır */
-      const old = document.getElementById('sp-liveblog-jsonld');
-      if (old) old.remove();
-    }
+    /* ── Doğru eventStatus: canlıda EventLive, bittiyse EventCompleted ── */
+    const DONE_STATUSES = new Set(['FT','AET','PEN']);
+    const eventStatus = isLiveStatus
+      ? 'https://schema.org/EventLive'
+      : DONE_STATUSES.has(status)
+        ? 'https://schema.org/EventCompleted'
+        : 'https://schema.org/EventScheduled';
+
+    /* ── SportsEvent @id tanımla — LiveBlogPosting.about buraya referans verecek ── */
+    const matchUrl = window.location.href;
+    const sportsEventId = `${matchUrl}#event`;
 
     /* ── SportsEvent schema (her durumda) ── */
     _setJsonLD({
       '@context': 'https://schema.org',
       '@type': 'SportsEvent',
+      '@id': sportsEventId,
       'name': `${homeTeam} - ${awayTeam}`,
       'sport': 'Soccer',
       'description': desc,
-      'url': window.location.href,
+      'url': matchUrl,
       'startDate': startDateISO,
       'endDate': endDateISO,
       'image': imageUrl,
       'location': {
         '@type': 'Place',
         'name': 'Futbol Stadyumu',
-        'address': '',
+        /* address boş bırakılmıyor — eksik ama zorunlu değil, bloğu kaldır */
       },
-      'eventStatus': isLiveStatus
-        ? 'https://schema.org/EventScheduled'
-        : 'https://schema.org/EventScheduled',
+      'eventStatus': eventStatus,
       'organizer': {
         '@type': 'SportsOrganization',
         'name': league || 'Football',
@@ -231,7 +207,8 @@ const Router = (() => {
         'price': '0',
         'priceCurrency': 'TRY',
         'availability': 'https://schema.org/InStock',
-        'url': window.location.href,
+        'url': matchUrl,
+        'validFrom': startDateISO,   /* eksik "validFrom" uyarısı giderildi */
       },
       'homeTeam': { '@type': 'SportsTeam', 'name': homeTeam },
       'awayTeam': { '@type': 'SportsTeam', 'name': awayTeam },
@@ -241,6 +218,37 @@ const Router = (() => {
       } : {}),
       ...(fixtureId ? { 'identifier': String(fixtureId) } : {}),
     });
+
+    /* ── LiveBlogPosting schema (sadece canlı maçlar için) ─────────────
+       about alanında yeni SportsEvent yaratma — @id ile referans ver.
+       Böylece Google iki ayrı SportsEvent görmez, tek birleşik obje görür.
+    ───────────────────────────────────────────────────────────────── */
+    if (isLiveStatus) {
+      _setLiveBlogJsonLD({
+        '@context': 'https://schema.org',
+        '@type': 'LiveBlogPosting',
+        'headline': title,
+        'description': desc,
+        'url': matchUrl,
+        'datePublished': startDateISO,
+        'dateModified': new Date().toISOString(),
+        'coverageStartTime': startDateISO,
+        'coverageEndTime': endDateISO,
+        'image': imageUrl,
+        'publisher': {
+          '@type': 'Organization',
+          'name': 'ScorePop',
+          'logo': { '@type': 'ImageObject', 'url': 'https://scorepop.com.tr/logo.png' },
+        },
+        'author': { '@type': 'Organization', 'name': 'ScorePop' },
+        /* about: yeni SportsEvent değil, yukarıdaki @id'ye referans */
+        'about': { '@id': sportsEventId },
+      });
+    } else {
+      /* Canlı değilse LiveBlogPosting bloğunu kaldır */
+      const old = document.getElementById('sp-liveblog-jsonld');
+      if (old) old.remove();
+    }
   }
 
   function _setLiveBlogJsonLD(data) {
