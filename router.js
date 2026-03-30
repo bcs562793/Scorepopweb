@@ -79,17 +79,17 @@ const Router = (() => {
     }
 
     if (ROUTES.hakkimizda.test(path)) {
-      window.location.replace('/hakkimizda/');
+      window.location.href = '/hakkimizda.html';
       return;
     }
 
     if (ROUTES.iletisim.test(path)) {
-      window.location.replace('/iletisim/');
+      window.location.href = '/iletisim.html';
       return;
     }
 
-    // Uzantılı statik dosyalar (örn. BingSiteAuth.xml, robots.txt, sitemap.xml)
-    if (/\.[a-z0-9]+$/i.test(path)) {
+    // Uzantılı statik dosyalar — .html hariç (döngüye girer)
+    if (/\.(?!html?)[a-z0-9]+$/i.test(path)) {
       window.location.replace(path);
       return;
     }
