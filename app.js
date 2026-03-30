@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v4.6 — Arşiv Desteği)
+   SCOREPOP — app.js  (v4.8 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -925,7 +925,21 @@ async function loadDetail(id, isLive) {
 
     if (m.data && typeof m.data === 'object') {
       const nested = Array.isArray(m.data) ? m.data[0] : m.data;
-      if (nested) m = { ...m, ...normFix(nested) };
+      if (nested) {
+        m = { ...m, ...normFix(nested) };
+        /* fixture objesini koru — buildDetail kart için venue/referee okur */
+        if (nested.fixture && typeof nested.fixture === 'object') {
+          m._fixture = nested.fixture;
+        }
+      }
+    }
+    /* Ayrıca data string ise parse et ve fixture'ı sakla */
+    if (!m._fixture && m.data && typeof m.data === 'string') {
+      try {
+        const parsed = JSON.parse(m.data);
+        const d = Array.isArray(parsed) ? parsed[0] : parsed;
+        if (d?.fixture) m._fixture = d.fixture;
+      } catch(e) {}
     }
 
     const sq = async (query) => {
@@ -1007,6 +1021,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds) {
       try {
         let fx = null;
         if (m.raw_data) fx = JSON.parse(m.raw_data)?.fixture || null;
+        if (!fx && m._fixture) fx = m._fixture;
         if (!fx && m.fixture && typeof m.fixture === 'object') fx = m.fixture;
         if (!fx && m.data) {
           const d = typeof m.data === 'string' ? JSON.parse(m.data) : m.data;
@@ -1107,6 +1122,7 @@ try {
     fx = raw?.fixture || null;
     if (!fx && raw?.referee) { referee = raw.referee; }
   }
+  if (!fx && m._fixture) fx = m._fixture;
   if (!fx && m.fixture && typeof m.fixture === 'object') fx = m.fixture;
   if (!fx && m.data) {
     const d = typeof m.data === 'string' ? JSON.parse(m.data) : m.data;
