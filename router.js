@@ -143,7 +143,7 @@ const Router = (() => {
   /* Canlı sayılan status kodları — app.js / statusInfo ile senkron tutulmalı */
   const _LIVE_STATUS_CODES = new Set(['1H','2H','HT','ET','BT','P','LIVE']);
 
-  function setMatchMeta(homeTeam, awayTeam, homeScore, awayScore, league, status, fixtureId, kickoffTime, homeLogo, awayLogo) {
+  function setMatchMeta(homeTeam, awayTeam, homeScore, awayScore, league, status, fixtureId, kickoffTime, homeLogo, awayLogo, venueInfo) {
     const hasScore = homeScore != null && awayScore != null;
     const scoreStr = hasScore ? `${homeScore}-${awayScore}` : 'vs';
 
@@ -188,8 +188,12 @@ const Router = (() => {
       'image': imageUrl,
       'location': {
         '@type': 'Place',
-        'name': 'Futbol Stadyumu',
-        /* address boş bırakılmıyor — eksik ama zorunlu değil, bloğu kaldır */
+        'name': venueInfo?.name || 'Futbol Stadyumu',
+        'address': {
+          '@type': 'PostalAddress',
+          ...(venueInfo?.city ? { 'addressLocality': venueInfo.city } : {}),
+          'addressCountry': 'TR',
+        },
       },
       'eventStatus': eventStatus,
       'organizer': {
