@@ -25,6 +25,8 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
+          GOOGLE_SA_JSON: ${{ secrets.GOOGLE_SA_JSON }}
         run: node sitemap-gen.js
 
       - name: Değişiklikleri commit et
@@ -32,5 +34,34 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add sitemap.xml
-          git diff --staged --quiet || git commit -m "chore: sitemap güncellendi "
+          git diff --staged --quiet || git commit -m "chore: sitemap güncellendi"
           git push
+
+      # ── Deploy: github-actions[bot] commit'i deploy.yml'i tetiklemez,
+      #    bu yüzden deploy adımını buraya da ekliyoruz ──────────────────
+      - name: Credentials enjekte et
+        run: |
+          sed -i "s|BURAYA_URL|${{ secrets.SUPABASE_URL }}|g" config.js
+          sed -i "s|BURAYA_KEY|${{ secrets.SUPABASE_KEY }}|g" config.js
+          sed -i "s|BURAYA_PAYMENT_URL|${{ secrets.PAYMENT_EDGE_URL }}|g" index.html
+
+      - name: Cache busting
+        run: |
+          BUILD=$(date +%s)
+          sed -i "s/app\.js?v=[^\"']*/app.js?v=${BUILD}/g" index.html
+          sed -i "s/style\.css?v=[^\"']*/style.css?v=${BUILD}/g" index.html
+          sed -i "s/config\.js?v=[^\"']*/config.js?v=${BUILD}/g" index.html
+          sed -i "s/router\.js?v=[^\"']*/router.js?v=${BUILD}/g" index.html
+          sed -i "s/auth\.js?v=[^\"']*/auth.js?v=${BUILD}/g" index.html
+          sed -i "s/forum\.js?v=[^\"']*/forum.js?v=${BUILD}/g" index.html
+          sed -i "s/payment\.js?v=[^\"']*/payment.js?v=${BUILD}/g" index.html
+          sed -i "s/indexing\.js?v=[^\"']*/indexing.js?v=${BUILD}/g" index.html
+          touch .nojekyll
+
+      - name: gh-pages'e deploy et
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          publish_branch: gh-pages
+          exclude_assets: '.github,*.yml,*.md'
