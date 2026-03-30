@@ -1002,13 +1002,21 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds) {
     if (typeof Router !== 'undefined') {
       Router.goMatch(m.fixture_id, m.home_team, m.away_team);
       const kickoff = m.kickoff_time || m.fixture_date || m.match_date || m.event_date || null;
-      /* venue bilgisini raw_data'dan çek — schema location için */
+      /* venue bilgisini raw_data / fixture / data'dan çek — schema location için */
       let venueInfo = null;
       try {
-        const raw = m.raw_data ? JSON.parse(m.raw_data) : null;
-        const vName = raw?.fixture?.venue?.name || null;
-        const vCity = raw?.fixture?.venue?.city || null;
-        if (vName) venueInfo = { name: vName, city: vCity };
+        let fx = null;
+        if (m.raw_data) fx = JSON.parse(m.raw_data)?.fixture || null;
+        if (!fx && m.fixture && typeof m.fixture === 'object') fx = m.fixture;
+        if (!fx && m.data) {
+          const d = typeof m.data === 'string' ? JSON.parse(m.data) : m.data;
+          fx = (Array.isArray(d) ? d[0] : d)?.fixture || null;
+        }
+        if (fx) {
+          const vName = fx.venue?.name || null;
+          const vCity = fx.venue?.city || null;
+          if (vName || vCity) venueInfo = { name: vName, city: vCity };
+        }
       } catch(e) {}
       Router.setMatchMeta(m.home_team, m.away_team, m.home_score, m.away_score, m.league_name, m.status_short || null, m.fixture_id, kickoff, m.home_logo, m.away_logo, venueInfo);
     }
@@ -1092,10 +1100,23 @@ const kickoffFmt = kickoff ? new Date(kickoff).toLocaleString('tr-TR', {
 }) : null;
 let referee = null, venue = null, city = null;
 try {
-  const raw = m.raw_data ? JSON.parse(m.raw_data) : null;
-  referee = raw?.fixture?.referee || null;
-  venue   = raw?.fixture?.venue?.name || null;
-  city    = raw?.fixture?.venue?.city || null;
+  /* raw_data: live_matches; fixture: normFix'ten; data: future_matches */
+  let fx = null;
+  if (m.raw_data) {
+    const raw = JSON.parse(m.raw_data);
+    fx = raw?.fixture || null;
+    if (!fx && raw?.referee) { referee = raw.referee; }
+  }
+  if (!fx && m.fixture && typeof m.fixture === 'object') fx = m.fixture;
+  if (!fx && m.data) {
+    const d = typeof m.data === 'string' ? JSON.parse(m.data) : m.data;
+    fx = (Array.isArray(d) ? d[0] : d)?.fixture || null;
+  }
+  if (fx) {
+    referee = fx.referee || null;
+    venue   = fx.venue?.name || null;
+    city    = fx.venue?.city || null;
+  }
 } catch(e) {}
 
 if (kickoffFmt || referee || venue) {
