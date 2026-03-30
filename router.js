@@ -79,12 +79,12 @@ const Router = (() => {
     }
 
     if (ROUTES.hakkimizda.test(path)) {
-      window.location.href = '/hakkimizda.html';
+      window.location.href = '/hakkimizda/';
       return;
     }
 
     if (ROUTES.iletisim.test(path)) {
-      window.location.href = '/iletisim.html';
+      window.location.href = '/iletisim/';
       return;
     }
 
