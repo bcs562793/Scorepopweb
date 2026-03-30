@@ -1084,7 +1084,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds) {
 
   html += `<div class="d-panel active" id="d-ev">`;
 
-   // ── MAÇ BİLGİ KARTI ── buraya ekle
+  // ── MAÇ BİLGİ KARTI ── sadece veri varsa göster
 const kickoff = m.kickoff_time || null;
 const kickoffFmt = kickoff ? new Date(kickoff).toLocaleString('tr-TR', {
   day:'2-digit', month:'long', hour:'2-digit', minute:'2-digit',
@@ -1098,10 +1098,8 @@ try {
   city    = raw?.fixture?.venue?.city || null;
 } catch(e) {}
 
-   console.log('[MIC] kickoff:', m.kickoff_time, 'referee:', referee, 'venue:', venue, 'raw_data var mı:', !!m.raw_data);
-
-
-html += `<div class="match-info-card">
+if (kickoffFmt || referee || venue) {
+  html += `<div class="match-info-card">
   ${kickoffFmt ? `<div class="mic-item">
     <span class="mic-icon">🕐</span>
     <span class="mic-text">${kickoffFmt}</span>
@@ -1115,6 +1113,7 @@ html += `<div class="match-info-card">
     <span class="mic-text">${esc(venue)}${city ? `, ${esc(city)}` : ''}</span>
   </div>` : ''}
 </div>`;
+}
    
   if (!evs.length) {
     html += `<div class="ev-list"><div class="ev-none">Henüz olay yok</div></div>`;
