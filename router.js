@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — router.js
+   SCOREPOP — router.js v1.0
    Hash tabanlı SEO dostu URL yönetimi
 ════════════════════════════════════════════════ */
 'use strict';
@@ -79,12 +79,18 @@ const Router = (() => {
     }
 
     if (ROUTES.hakkimizda.test(path)) {
-      window.location.href = '/hakkimizda/';
+      if (typeof window.__openPage === 'function') {
+        window.__openPage('page-hakkimizda', '/hakkimizda');
+      }
       return;
     }
 
     if (ROUTES.iletisim.test(path)) {
-      window.location.href = '/iletisim/';
+      if (typeof window.__openPage === 'function') {
+        window.__openPage('page-iletisim', '/iletisim');
+      }
+      return;
+    }
       return;
     }
 
