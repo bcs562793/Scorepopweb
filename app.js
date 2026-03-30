@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v4.6 — Arşiv Desteği)
+   SCOREPOP — app.js  (v4.7 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -369,7 +369,12 @@ async function loadLive(silent = false) {
     .in('status_short',['1H','2H','HT','ET','BT','P','LIVE'])
     .limit(120).order('league_name');
   if (error) throw error;
-  const rows = data || [];
+
+  /* normFix üzerinden geçir — stale dedektörü otomatik FT'ye çeker */
+  const rows = (data || []).map(r => normFix(r)).filter(m => {
+    const LIVE_SET = new Set(['1H','2H','HT','ET','BT','P','LIVE']);
+    return LIVE_SET.has(m.status_short); // stale → FT olmuş → canlı listesinden düşer
+  });
   updLiveCt(rows.length);
    if (silent) {
     /* Artık canlı olmayan maçları DOM'dan temizle */
@@ -400,7 +405,7 @@ async function loadToday() {
 
   const [liveRes, futureRes] = await Promise.all([
     isToday
-      ? S.sb.from('live_matches').select('*').order('league_name')
+      ? S.sb.from('live_matches').select('*').order('league_name')   // updated_at dahil (stale dedektörü için)
       : Promise.resolve({ data: [], error: null }),
     S.sb.from('future_matches').select('*').eq('date', S.date).limit(300),
   ]);
@@ -621,6 +626,27 @@ function normFix(m) {
         || null;
   /* NOT: m.date kasıtlı atlandı — "2026-03-15" gibi saat içermeyen tarih */
 
+  /* ── DB kolonu her zaman raw_data'ya karşı önceliklidir ──
+     Örn: raw_data "1H @ 90'" gösterse bile DB status_short "FT" ise FT'yi kullan */
+  const dbStatus  = m.status_short || null;        // DB kolonu (en güvenilir)
+  const rawStatus = fx?.status?.short || null;     // raw_data snapshot (stale olabilir)
+  let resolvedStatus = dbStatus || rawStatus || 'NS';
+
+  /* ── Takılı maç dedektörü: 1H / 2H ama updated_at çok eski ──
+     Eğer worker DB'yi güncellemediyse, elapsed ≥ 90 olan "canlı" maçı
+     45+ dakikadır güncellenmemişse otomatik MS say */
+  const LIVE_SET = new Set(['1H','2H','HT','ET','BT','P','LIVE']);
+  if (LIVE_SET.has(resolvedStatus) && m.updated_at) {
+    const elapsed = m.elapsed_time ?? fx?.status?.elapsed ?? 0;
+    const updatedAt = new Date(m.updated_at).getTime();
+    const staleMins = (Date.now() - updatedAt) / 60000;
+    /* 1H @ 90+ dakika ve 45 dk'dır güncelleme yoksa → FT say */
+    if (elapsed >= 90 && staleMins > 45) {
+      console.warn(`[normFix] Stale live match detected: fixture ${m.fixture_id}, elapsed ${elapsed}', stale ${Math.round(staleMins)} min → forcing FT`);
+      resolvedStatus = 'FT';
+    }
+  }
+
   return {
     fixture_id:    fx?.id              || m.fixture_id,
     league_id:     m.league?.id        || m.league_id    || 0,
@@ -636,7 +662,7 @@ function normFix(m) {
     away_team_id: m.teams?.away?.id   || m.away_team_id || null,
     home_score: m.home_score  ?? m.goals?.home  ?? null,
     away_score: m.away_score  ?? m.goals?.away  ?? null,
-    status_short: m.status_short || fx?.status?.short || 'NS',
+    status_short: resolvedStatus,
     elapsed_time: m.elapsed_time ?? fx?.status?.elapsed ?? null,
     kickoff_time: kt,
     visual_url:   m.visual_url || null,
@@ -1607,14 +1633,16 @@ async function silentUpdateDetail() {
   if (!S.detail) return;
   const { data } = await S.sb
     .from('live_matches')
-    .select('home_score,away_score,elapsed_time,status_short')
+    .select('home_score,away_score,elapsed_time,status_short,updated_at,fixture_id')
     .eq('fixture_id', S.detail)
     .maybeSingle();
   if (!data) return;
-  const st = statusInfo(data);
+  /* normFix üzerinden geçir — stale dedektörü buraya da etki eder */
+  const m = normFix(data);
+  const st = statusInfo(m);
   const nums = document.querySelectorAll('.d-score-n');
-  if (nums[0]) nums[0].textContent = data.home_score ?? '-';
-  if (nums[1]) nums[1].textContent = data.away_score ?? '-';
+  if (nums[0]) nums[0].textContent = m.home_score ?? '-';
+  if (nums[1]) nums[1].textContent = m.away_score ?? '-';
   const ste = document.querySelector('.d-status');
   if (ste) ste.textContent = st.live ? `⚡ ${st.label}` : st.label;
 }
@@ -1728,6 +1756,8 @@ function startRealtime() {
         const ste = document.querySelector('.d-status');
         const st = statusInfo(m);
         if (ste) ste.textContent = st.live ? `⚡ ${st.label}` : st.label;
+        /* Maç FT/AET/PEN'e geçtiyse arka planda listeyi de güncelle (90' takılmasını önler) */
+        if (!st.live) loadMatches(true);
         return;
       }
 
