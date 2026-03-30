@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v4.8 — Arşiv Desteği)
+   SCOREPOP — app.js  (v4.9 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -942,6 +942,27 @@ async function loadDetail(id, isLive) {
       } catch(e) {}
     }
 
+    /* ── live_matches'te venue/referee yoksa future_matches'ten tamamla ──
+       Bilyoner/Nesine kaynağında fixture.venue ve referee null gelir.
+       future_matches.data'sında gerçek fixture verisi olabilir.        */
+    if (!m._fixture?.referee && !m._fixture?.venue?.name && !m._fixture?.venue?.city) {
+      try {
+        const { data: futData } = await S.sb
+          .from('future_matches')
+          .select('data')
+          .eq('fixture_id', id)
+          .maybeSingle();
+        if (futData?.data) {
+          const fd = typeof futData.data === 'string'
+            ? JSON.parse(futData.data) : futData.data;
+          const fx = (Array.isArray(fd) ? fd[0] : fd)?.fixture || null;
+          if (fx && (fx.referee || fx.venue?.name || fx.venue?.city)) {
+            m._fixture = { ...(m._fixture || {}), ...fx };
+          }
+        }
+      } catch(e) {}
+    }
+
     const sq = async (query) => {
       try {
         const res = await query;
@@ -1108,14 +1129,10 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds) {
   html += `<div class="d-panel active" id="d-ev">`;
 
   // ── MAÇ BİLGİ KARTI ── sadece veri varsa göster
-const kickoff = m.kickoff_time || null;
-const kickoffFmt = kickoff ? new Date(kickoff).toLocaleString('tr-TR', {
-  day:'2-digit', month:'long', hour:'2-digit', minute:'2-digit',
-  timeZone:'Europe/Istanbul'
-}) : null;
 let referee = null, venue = null, city = null;
+let _kickoffFromRaw = null;
 try {
-  /* raw_data: live_matches; fixture: normFix'ten; data: future_matches */
+  /* raw_data: live_matches; _fixture: future_matches parse; fixture: diğer */
   let fx = null;
   if (m.raw_data) {
     const raw = JSON.parse(m.raw_data);
@@ -1129,11 +1146,18 @@ try {
     fx = (Array.isArray(d) ? d[0] : d)?.fixture || null;
   }
   if (fx) {
-    referee = fx.referee || null;
-    venue   = fx.venue?.name || null;
-    city    = fx.venue?.city || null;
+    referee        = fx.referee      || null;
+    venue          = fx.venue?.name  || null;
+    city           = fx.venue?.city  || null;
+    _kickoffFromRaw = fx.date        || null; /* live_matches'te kickoff_time yok */
   }
 } catch(e) {}
+/* kickoff_time yoksa raw_data'daki fixture.date'i kullan */
+const kickoff = m.kickoff_time || _kickoffFromRaw || null;
+const kickoffFmt = kickoff ? new Date(kickoff).toLocaleString('tr-TR', {
+  day:'2-digit', month:'long', hour:'2-digit', minute:'2-digit',
+  timeZone:'Europe/Istanbul'
+}) : null;
 
 if (kickoffFmt || referee || venue) {
   html += `<div class="match-info-card">
