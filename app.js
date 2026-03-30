@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v4.7 — Arşiv Desteği)
+   SCOREPOP — app.js  (v4.6 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -666,6 +666,7 @@ function normFix(m) {
     elapsed_time: m.elapsed_time ?? fx?.status?.elapsed ?? null,
     kickoff_time: kt,
     visual_url:   m.visual_url || null,
+    raw_data:     m.raw_data   || null,   /* venue + referee için buildDetail'e gerekli */
   };
 }
 
@@ -1001,8 +1002,15 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds) {
     if (typeof Router !== 'undefined') {
       Router.goMatch(m.fixture_id, m.home_team, m.away_team);
       const kickoff = m.kickoff_time || m.fixture_date || m.match_date || m.event_date || null;
-      /* status_short doğrudan iletiliyor — LiveBlogPosting ve CANLI etiketi için gerekli */
-      Router.setMatchMeta(m.home_team, m.away_team, m.home_score, m.away_score, m.league_name, m.status_short || null, m.fixture_id, kickoff, m.home_logo, m.away_logo);
+      /* venue bilgisini raw_data'dan çek — schema location için */
+      let venueInfo = null;
+      try {
+        const raw = m.raw_data ? JSON.parse(m.raw_data) : null;
+        const vName = raw?.fixture?.venue?.name || null;
+        const vCity = raw?.fixture?.venue?.city || null;
+        if (vName) venueInfo = { name: vName, city: vCity };
+      } catch(e) {}
+      Router.setMatchMeta(m.home_team, m.away_team, m.home_score, m.away_score, m.league_name, m.status_short || null, m.fixture_id, kickoff, m.home_logo, m.away_logo, venueInfo);
     }
   } catch(e) {}
 
