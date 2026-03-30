@@ -73,15 +73,8 @@ async function generate() {
     console.log('live_matches yanit:', JSON.stringify(live).slice(0, 200));
     if (Array.isArray(live)) matches.push(...live);
 
-    /* ── DÜZELTME 2: daily_matches'e tarih filtresi ekle ── */
-    for (const date of [fmt(yesterday), fmt(today), fmt(tomorrow)]) {
-      const daily = await fetchJson(
-        `daily_matches?select=fixture_id,home_team,away_team,league_name,home_score,away_score,status_short` +
-        `&date=eq.${date}&order=fixture_id.desc&limit=400`
-      );
-      console.log(`daily_matches [${date}]:`, JSON.stringify(daily).slice(0, 100));
-      if (Array.isArray(daily)) matches.push(...daily);
-    }
+    /* daily_matches: date kolonu yok, fixture_id bazlı arşiv tablosu.
+       Bugünkü maçlar live_matches + future_matches ile tam kapsanıyor. */
 
     /* ── DÜZELTME 3: future_matches bugün + yarın dahil et ──
        Planlanmış maçların URL'lerini Google öğrenmeden izleyemez */
@@ -167,7 +160,8 @@ async function pingIndexNow(urlList) {
   if (!INDEXNOW_KEY) { console.warn('⚠️  INDEXNOW_KEY tanımlanmamış — IndexNow atlandı.'); return; }
   const host = new URL(BASE_URL).hostname;
   const body = JSON.stringify({ host, key: INDEXNOW_KEY, keyLocation: `${BASE_URL}/${INDEXNOW_KEY}.txt`, urlList });
-  for (const ep of [{ host: 'www.bing.com', path: '/indexnow' }, { host: 'yandex.com', path: '/indexnow' }]) {
+  /* api.indexnow.org = evrensel endpoint, Bing+Yandex+diğerlerine iletir, 403 önler */
+  for (const ep of [{ host: 'api.indexnow.org', path: '/indexnow' }]) {
     await new Promise(resolve => {
       const req = https.request(
         { host: ep.host, path: ep.path, method: 'POST',
