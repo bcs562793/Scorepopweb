@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v5.1 — Arşiv Desteği)
+   SCOREPOP — app.js  (v5.2 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -966,7 +966,9 @@ async function loadDetail(id, isLive) {
       const stats = archiveAdaptStats(cached.stats);
       const lus  = archiveAdaptLineups(cached.lineups, cached);
       const h2h  = archiveAdaptH2H(cached.h2h);
-      buildDetail(m, evs, stats, lus, h2h, null, null);
+      const matchDate = (m.kickoff_time || m.date || S.date || '').slice(0,10);
+      const gzOdds = await fetchGzOdds(matchDate, m.home_team, m.away_team);
+      buildDetail(m, evs, stats, lus, h2h, null, gzOdds);
       return;
     }
 
@@ -1216,6 +1218,236 @@ function _sofaTo1x2(sofaMarkets) {
     }
   }
   return null;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GZ DOSYALARI YÜKLEME + BENZERİ ORAN ANALİZİ
+   ══════════════════════════════════════════════════════════════ */
+
+const ORANCEK_API  = 'https://api.github.com/repos/bcs562793/orancek/contents/data';
+let   _gzAllCache  = null;   /* tüm gz maçları birleşik dizi */
+let   _gzLoadingP  = null;   /* singleton promise */
+
+async function _loadAllGz() {
+  if (_gzAllCache) return _gzAllCache;
+  if (_gzLoadingP) return _gzLoadingP;
+
+  _gzLoadingP = (async () => {
+    /* 1. Repo'daki data/ dosya listesini çek */
+    const listResp = await fetch(ORANCEK_API);
+    if (!listResp.ok) throw new Error('GitHub API erişilemedi');
+    const files = await listResp.json();
+    const gzFiles = files
+      .filter(f => f.name.startsWith('odds_') && f.name.endsWith('.json.gz'))
+      .map(f => f.download_url);
+
+    /* 2. Tüm gz'leri paralel yükle */
+    const all = [];
+    await Promise.all(gzFiles.map(async url => {
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) return;
+        const buf = await resp.arrayBuffer();
+        const ds  = new DecompressionStream('gzip');
+        const w   = ds.writable.getWriter();
+        w.write(new Uint8Array(buf)); w.close();
+        const out = await new Response(ds.readable).arrayBuffer();
+        const arr = JSON.parse(new TextDecoder().decode(out));
+        arr.forEach(m => all.push(m));
+      } catch(e) { console.warn('[gz load]', url, e); }
+    }));
+
+    _gzAllCache = all;
+    return all;
+  })();
+
+  return _gzLoadingP;
+}
+
+function _inRange(val, ref, delta) {
+  if (val == null || ref == null) return false;
+  return Math.abs(val - ref) <= delta;
+}
+
+function _getResult(m) {
+  const h = m.home_score, a = m.away_score;
+  if (h == null || a == null) return null;
+  if (h > a) return '1';
+  if (h === a) return 'X';
+  return '2';
+}
+
+function _getOddsChange(m) {
+  /* sofascore_markets'ten 1X2 change bilgisi */
+  for (const sm of (m.sofascore_markets || [])) {
+    if (['Full time','1X2'].includes(sm.market_name)) {
+      const res = {};
+      for (const c of (sm.choices || [])) {
+        res[c.name] = c.change ?? 0; /* -1/0/1 */
+      }
+      return res;
+    }
+  }
+  return null;
+}
+
+function _getMacOdds(m, marketName, outcomeName) {
+  for (const mk of (m.mackolik_markets || [])) {
+    if (mk.market_name === marketName) {
+      const oc = (mk.outcomes || []).find(o => o.name === outcomeName);
+      return oc?.odds ?? null;
+    }
+  }
+  return null;
+}
+
+async function runSimAnalysis(fixtureId, cur1x2, curOu25, curHt) {
+  const resultEl = document.getElementById('sim-result-' + fixtureId);
+  const wrapEl   = document.getElementById('sim-wrap-'   + fixtureId);
+  if (!resultEl) return;
+
+  resultEl.innerHTML = '<div class="sim-loading">⏳ Geçmiş maçlar yükleniyor…</div>';
+
+  let all;
+  try { all = await _loadAllGz(); }
+  catch(e) {
+    resultEl.innerHTML = '<div class="sim-err">❌ Veri yüklenemedi: ' + e.message + '</div>';
+    return;
+  }
+
+  /* ── Filtreleme ── */
+  const DELTA_START = 0.20;
+
+  function filter1x2(arr, delta) {
+    return arr.filter(m => {
+      const h = _getMacOdds(m, 'Maç Sonucu', '1');
+      const x = _getMacOdds(m, 'Maç Sonucu', 'X');
+      const a = _getMacOdds(m, 'Maç Sonucu', '2');
+      return _inRange(h, cur1x2.home, delta)
+          && _inRange(x, cur1x2.draw, delta)
+          && _inRange(a, cur1x2.away, delta);
+    }).filter(m => _getResult(m) !== null); /* sadece biten maçlar */
+  }
+
+  function filterOu25(arr) {
+    if (!curOu25) return arr;
+    return arr.filter(m => {
+      const u = _getMacOdds(m, '2,5 Alt/Üst', 'Alt');
+      const o = _getMacOdds(m, '2,5 Alt/Üst', 'Üst');
+      return _inRange(u, curOu25.under, 0.15) && _inRange(o, curOu25.over, 0.15);
+    });
+  }
+
+  function filterHt(arr) {
+    if (!curHt) return arr;
+    return arr.filter(m => {
+      const h = _getMacOdds(m, '1. Yarı Sonucu', '1');
+      const x = _getMacOdds(m, '1. Yarı Sonucu', 'X');
+      const a = _getMacOdds(m, '1. Yarı Sonucu', '2');
+      return _inRange(h, curHt.home, 0.20)
+          && _inRange(x, curHt.draw, 0.20)
+          && _inRange(a, curHt.away, 0.20);
+    });
+  }
+
+  /* Aşamalı daralma */
+  let matches = filter1x2(all, DELTA_START);
+  let filterDesc = `1X2 ±${DELTA_START}`;
+
+  if (matches.length > 20 && curOu25) {
+    const narrowed = filterOu25(matches);
+    if (narrowed.length >= 3) { matches = narrowed; filterDesc += ' + 2.5 A/Ü'; }
+  }
+  if (matches.length > 20 && curHt) {
+    const narrowed = filterHt(matches);
+    if (narrowed.length >= 3) { matches = narrowed; filterDesc += ' + 1Y'; }
+  }
+  /* Dar bir delta ile tekrar dene (eşik düşür) */
+  if (matches.length > 30) {
+    const tight = filter1x2(all, 0.10);
+    if (tight.length >= 3) { matches = tight; filterDesc = '1X2 ±0.10'; }
+  }
+
+  if (matches.length < 3) {
+    resultEl.innerHTML = '<div class="sim-empty">🔍 Yeterli benzer maç bulunamadı (min. 3 gerekli)</div>';
+    return;
+  }
+
+  /* ── İstatistik ── */
+  const total = matches.length;
+  const cnt = {'1':0,'X':0,'2':0};
+  const changeCnt = {
+    '1': {up:0,upW:0,dn:0,dnW:0,eq:0,eqW:0},
+    'X': {up:0,upW:0,dn:0,dnW:0,eq:0,eqW:0},
+    '2': {up:0,upW:0,dn:0,dnW:0,eq:0,eqW:0},
+  };
+
+  matches.forEach(m => {
+    const res = _getResult(m);
+    if (!res) return;
+    cnt[res]++;
+
+    const ch = _getOddsChange(m);
+    if (ch) {
+      ['1','X','2'].forEach(k => {
+        const dir = ch[k] === 1 ? 'up' : ch[k] === -1 ? 'dn' : 'eq';
+        changeCnt[k][dir]++;
+        if (res === k) changeCnt[k][dir+'W']++;
+      });
+    }
+  });
+
+  const pct = n => total > 0 ? Math.round(n/total*100) : 0;
+  const bar = (n, t, cls) => {
+    const w = t > 0 ? Math.round(n/t*100) : 0;
+    return `<div class="sim-bar-wrap"><div class="sim-bar ${cls}" style="width:${w}%"></div><span>${n} (%${w})</span></div>`;
+  };
+
+  /* ── Change tablosu ── */
+  const chRow = (label, key) => {
+    const d = changeCnt[key];
+    const rows = [];
+    if (d.up+d.dn+d.eq === 0) return '';
+    if (d.up > 0)  rows.push(`<tr><td>↑ Yükseldi</td><td>${d.up}</td><td>${d.upW}/${d.up} (%${Math.round(d.upW/d.up*100)})</td></tr>`);
+    if (d.dn > 0)  rows.push(`<tr><td>↓ Düştü</td><td>${d.dn}</td><td>${d.dnW}/${d.dn} (%${Math.round(d.dnW/d.dn*100)})</td></tr>`);
+    if (d.eq > 0)  rows.push(`<tr><td>→ Sabit</td><td>${d.eq}</td><td>${d.eqW}/${d.eq} (%${Math.round(d.eqW/d.eq*100)})</td></tr>`);
+    if (!rows.length) return '';
+    return `<div class="sim-ch-section">
+      <div class="sim-ch-title">${label} oranı değişimi → Kazanma</div>
+      <table class="sim-ch-tbl"><tr><th>Yön</th><th>Maç</th><th>Kazandı</th></tr>${rows.join('')}</table>
+    </div>`;
+  };
+
+  const hasChange = matches.some(m => _getOddsChange(m));
+
+  resultEl.innerHTML = `
+    <div class="sim-card">
+      <div class="sim-header">
+        <span class="sim-count">${total} Benzer Maç</span>
+        <span class="sim-filter">Filtre: ${filterDesc}</span>
+      </div>
+      <div class="sim-results">
+        <div class="sim-col">
+          <div class="sim-col-lbl">🏠 Ev Kazandı</div>
+          ${bar(cnt['1'], total, 'bar-1')}
+        </div>
+        <div class="sim-col">
+          <div class="sim-col-lbl">🤝 Beraberlik</div>
+          ${bar(cnt['X'], total, 'bar-x')}
+        </div>
+        <div class="sim-col">
+          <div class="sim-col-lbl">✈️ Dep Kazandı</div>
+          ${bar(cnt['2'], total, 'bar-2')}
+        </div>
+      </div>
+      ${hasChange ? `
+      <div class="sim-change">
+        <div class="sim-ch-hdr">📈 Oran Hareketi → Sonuç İlişkisi</div>
+        ${chRow('Ev (1)', '1')}
+        ${chRow('Beraberlik (X)', 'X')}
+        ${chRow('Deplasman (2)', '2')}
+      </div>` : ''}
+    </div>`;
 }
 
 async function fetchGzOdds(date, homeTeam, awayTeam) {
@@ -1777,6 +2009,23 @@ if (od && od.markets) {
   }
 
   html += `</div>`; /* or2-wrap */
+
+  /* ── BENZERİ ORANLARIN ANALİZİ ── */
+  {
+    const cur1x2 = od?.markets?.['1x2'];
+    const curOu25 = od?.markets?.['ou25'];
+    const curHt   = od?.markets?.['ht_1x2'];
+    if (cur1x2) {
+      html += `
+        <div class="sim-wrap" id="sim-wrap-${m.fixture_id}">
+          <button class="sim-btn" onclick="runSimAnalysis(${m.fixture_id}, ${JSON.stringify(cur1x2).replace(/"/g,'&quot;')}, ${JSON.stringify(curOu25||null).replace(/"/g,'&quot;')}, ${JSON.stringify(curHt||null).replace(/"/g,'&quot;')})">
+            📊 Benzer Oranlı Geçmiş Maçları Analiz Et
+          </button>
+          <div class="sim-result" id="sim-result-${m.fixture_id}"></div>
+        </div>`;
+    }
+  }
+
 } else {
   html += `<div class="empty"><div class="empty-t">Oran verisi henüz mevcut değil</div></div>`;
 }
