@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — style.css v1.3
+   SCOREPOP — style.css v1.4
    Layout: Fixed sidebar 240px + fluid main
    Match row: Home→Score←Away (Mackolik style)
    Palette: Near-black + Electric Orange accent
@@ -2186,6 +2186,79 @@ img { display: block; }
 .sofa-arrow.sofa-up { color: #4ade80; }
 .sofa-arrow.sofa-dn { color: #f87171; }
 .sofa-arrow.sofa-eq { color: var(--tx2); }
+
+/* ── Benzer Oran Analizi ── */
+.sim-wrap {
+  padding: 10px 8px 4px;
+}
+.sim-btn {
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(135deg, rgba(255,107,0,.15), rgba(255,107,0,.05));
+  border: 1px solid rgba(255,107,0,.3);
+  border-radius: 8px;
+  color: #ff6b00;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+}
+.sim-btn:hover { background: rgba(255,107,0,.25); border-color: rgba(255,107,0,.5); }
+.sim-loading, .sim-empty, .sim-err {
+  text-align: center; padding: 12px; color: var(--tx2); font-size: 13px;
+}
+.sim-card {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.sim-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 14px;
+  background: rgba(255,107,0,.08);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.sim-count { font-size: 14px; font-weight: 700; color: #ff6b00; }
+.sim-filter { font-size: 11px; color: var(--tx2); }
+.sim-results {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 8px;
+  padding: 12px;
+}
+.sim-col { display: flex; flex-direction: column; gap: 4px; }
+.sim-col-lbl { font-size: 11px; color: var(--tx2); font-weight: 600; }
+.sim-bar-wrap {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700;
+}
+.sim-bar {
+  height: 6px; border-radius: 3px; min-width: 4px;
+  transition: width .4s ease;
+}
+.bar-1 { background: #4ade80; }
+.bar-x { background: #facc15; }
+.bar-2 { background: #f87171; }
+.sim-change {
+  padding: 10px 12px 12px;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+.sim-ch-hdr {
+  font-size: 12px; font-weight: 700; color: var(--tx2);
+  margin-bottom: 8px;
+}
+.sim-ch-section { margin-bottom: 10px; }
+.sim-ch-title {
+  font-size: 11px; font-weight: 600; color: var(--tx);
+  margin-bottom: 4px;
+}
+.sim-ch-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.sim-ch-tbl th {
+  text-align: left; color: var(--tx2); font-weight: 600;
+  padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.sim-ch-tbl td { padding: 4px 6px; }
+.sim-ch-tbl tr:hover td { background: rgba(255,255,255,.03); }
 
 .match-info-card {
   display: flex;
