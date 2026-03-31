@@ -1045,6 +1045,7 @@ async function loadDetail(id, isLive) {
   { data: stats },
   { data: lus  },
   { data: pred },
+  { data: dbOdds },  // ← EKLENMELİ    
 ] = await Promise.all([
   sq(S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time')),
   sq(S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle()),
