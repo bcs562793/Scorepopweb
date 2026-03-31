@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v5.4 — Arşiv Desteği)
+   SCOREPOP — app.js  (v5.5 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -1063,11 +1063,8 @@ if (m.home_team_id && m.away_team_id) {
   h2h = h2hRes?.data?.[0] ?? null;
 }
 
-    /* ── GitHub gz'den oran verisi çek ── */
-    const matchDate = (m.kickoff_time || m.date || S.date || '').slice(0,10);
-    const gzOdds = await fetchGzOdds(matchDate, m.home_team, m.away_team);
-
-    buildDetail(m, evs||[], stats, lus, h2h, pred, gzOdds);
+    // ✅ oranlar direkt match_odds'tan gelir, gz sadece sim analizi için
+       buildDetail(m, evs||[], stats, lus, h2h, pred, dbOdds || null);
   } catch (e) {
     console.error(e);
     setDetailHTML(`<div class="empty"><div class="empty-t">Hata: ${esc(e.message)}</div></div>`);
