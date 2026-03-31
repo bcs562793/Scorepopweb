@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v5.3 — Arşiv Desteği)
+   SCOREPOP — app.js  (v5.4 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -1046,7 +1046,6 @@ async function loadDetail(id, isLive) {
       { data: lus  },
       { data: h2h  },
       { data: pred },
-      { data: odds },
     ] = await Promise.all([
       sq(S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time')),
       sq(S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle()),
