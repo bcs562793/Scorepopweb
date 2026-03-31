@@ -1051,6 +1051,7 @@ async function loadDetail(id, isLive) {
   sq(S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle()),
   sq(S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle()),
   sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
+  sq(S.sb.from('match_odds').select('*').eq('fixture_id', id).maybeSingle()) // <-- EKSİK OLAN SORGUNU BURAYA EKLE
 ]);
 
 /* H2H ayrı — .then() zinciri sq() ile uyumsuz olduğu için */
