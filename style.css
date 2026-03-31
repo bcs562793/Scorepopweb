@@ -2156,6 +2156,37 @@ img { display: block; }
 .or2-val.mid   { color: #ff6b00; }
 .or2-val.low   { color: var(--tx2); }
 
+/* ── Sofascore Oran Değişimi ── */
+.sofa-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 8px 6px;
+}
+.sofa-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px 4px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 8px;
+}
+.sofa-cell.sofa-win  { border-color: rgba(74,222,128,.3); background: rgba(74,222,128,.05); }
+.sofa-cell.sofa-lose { opacity: .55; }
+.sofa-lbl {
+  font-size: 9px; font-weight: 600; color: var(--tx2);
+  text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.sofa-odds {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.sofa-open  { color: var(--tx2); font-size: 12px; }
+.sofa-close { color: var(--tx); }
+.sofa-arrow { font-size: 12px; font-weight: 900; }
+.sofa-arrow.sofa-up { color: #4ade80; }
+.sofa-arrow.sofa-dn { color: #f87171; }
+.sofa-arrow.sofa-eq { color: var(--tx2); }
+
 .match-info-card {
   display: flex;
   flex-wrap: wrap;
