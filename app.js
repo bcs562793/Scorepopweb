@@ -1194,7 +1194,7 @@ function _macToSite(markets) {
       const ahMatch = name.match(/^Handikaplı Maç Sonucu \((\d+):(\d+)\)$/);
       if (ahMatch) {
         const [h, a] = [ahMatch[1], ahMatch[2]];
-        const key = parseInt(h) > parseInt(a) ? \`ah_p\${h}_\${a}\` : \`ah_m\${h}_\${a}\`;
+        const key = parseInt(h) > parseInt(a) ? `ah_p${h}_${a}` : `ah_m${h}_${a}`;
         mk[key] = { home: o('1'), draw: o('X'), away: o('2'), line: \`\${h}:\${a}\` };
       }
     }
