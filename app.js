@@ -1195,7 +1195,7 @@ function _macToSite(markets) {
       if (ahMatch) {
         const [h, a] = [ahMatch[1], ahMatch[2]];
         const key = parseInt(h) > parseInt(a) ? `ah_p${h}_${a}` : `ah_m${h}_${a}`;
-        mk[key] = { home: o('1'), draw: o('X'), away: o('2'), line: \`\${h}:\${a}\` };
+        mk[key] = { home: o('1'), draw: o('X'), away: o('2'), line: `${h}:${a}` };
       }
     }
   }
@@ -1456,7 +1456,7 @@ async function fetchGzOdds(date, homeTeam, awayTeam) {
 
   /* Cache'te yoksa GitHub'dan çek */
   if (!S.gzOddsCache[d]) {
-    const url = \`\${ORANCEK_BASE}/odds_\${d}.json.gz\`;
+    const url = `${ORANCEK_BASE}/odds_${d}.json.gz`;
     try {
       const resp = await fetch(url);
       if (!resp.ok) { S.gzOddsCache[d] = []; return null; }
