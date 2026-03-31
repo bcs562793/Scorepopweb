@@ -1041,21 +1041,27 @@ async function loadDetail(id, isLive) {
     console.log('[H2H] home_team_id:', m.home_team_id, 'away_team_id:', m.away_team_id);
 
     const [
-      { data: evs  },
-      { data: stats },
-      { data: lus  },
-      { data: h2h  },
-      { data: pred },
-    ] = await Promise.all([
-      sq(S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time')),
-      sq(S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle()),
-      sq(S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle()),
-sq(S.sb.from('match_h2h').select('*')
-  .or(`h2h_key.eq.${m.home_team_id}-${m.away_team_id},h2h_key.eq.${m.away_team_id}-${m.home_team_id}`)
-  .limit(1)
-  .then(r => ({ data: r.data?.[0] ?? null, error: r.error }))
-),      sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
-    ]);
+  { data: evs  },
+  { data: stats },
+  { data: lus  },
+  { data: pred },
+] = await Promise.all([
+  sq(S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time')),
+  sq(S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle()),
+  sq(S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle()),
+  sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
+]);
+
+/* H2H ayrı — .then() zinciri sq() ile uyumsuz olduğu için */
+let h2h = null;
+if (m.home_team_id && m.away_team_id) {
+  const h2hRes = await sq(
+    S.sb.from('match_h2h').select('*')
+      .or(`h2h_key.eq.${m.home_team_id}-${m.away_team_id},h2h_key.eq.${m.away_team_id}-${m.home_team_id}`)
+      .limit(1)
+  );
+  h2h = h2hRes?.data?.[0] ?? null;
+}
 
     /* ── GitHub gz'den oran verisi çek ── */
     const matchDate = (m.kickoff_time || m.date || S.date || '').slice(0,10);
