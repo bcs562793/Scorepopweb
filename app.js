@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v4.9 — Arşiv Desteği)
+   SCOREPOP — app.js  (v5.0 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -34,56 +34,107 @@ const S = {
    Aynı tier içinde order küçük olan önce gelir.
 */
 const LEAGUE_TIERS = [
-  /* ─── TIER 1: ÜST LİGLER ─── */
-  /* country kısıtı: eşleşme garantisi için var ama Mackolik TR isim verebilir,
-     bu yüzden TR karşılıklar da keyword listesine eklendi                     */
+  /* ─── TIER 0: BÜYÜK ULUSLARARASI TURNUVALAR (HER ZAMAN EN ÜSTTE) ─── */
+  { tier: 0, order: 1,  keywords: ['world cup', 'dünya kupası', 'fifa world cup', 'wc qualifier', 'world cup qualifier', 'dünya kupası eleme', 'coupe du monde', 'weltmeisterschaft'] },
+  { tier: 0, order: 2,  keywords: ['euro 2024', 'euro 2025', 'euro 2026', 'euro 2027', 'avrupa şampiyonası', 'uefa european championship', 'european championship qualifier', 'euro qualifier', 'avrupa şampiyonası eleme', 'uefa euro'] },
+  { tier: 0, order: 3,  keywords: ['nations league', 'uluslar ligi', 'uefa nations', 'league a', 'league b', 'league c', 'league d'] },
+  { tier: 0, order: 4,  keywords: ['copa america', 'copa américa', 'conmebol', 'south america championship'] },
+  { tier: 0, order: 5,  keywords: ['africa cup', 'afcon', 'can 20', 'africa nations'] },
+  { tier: 0, order: 6,  keywords: ['asian cup', 'afc asian cup', 'asya kupası', 'asian championship'] },
+  { tier: 0, order: 7,  keywords: ['gold cup', 'concacaf gold', 'concacaf championship'] },
 
+  /* ─── TIER 1: ÜST LİGLER (ülke önceliğiyle) ─── */
+  /* 1. Türkiye */
   { tier: 1, order: 1,  keywords: ['süper lig', 'super lig', 'trendyol süper', 'türkiye 1.', 'spor toto süper'], country: 'turkey' },
-
+  /* 2. İngiltere */
   { tier: 1, order: 2,  keywords: ['premier league', 'ingiltere premier', 'england premier', 'premier lig'], country: 'england' },
-
+  /* 3. İspanya */
   { tier: 1, order: 3,  keywords: ['la liga', 'laliga', 'ispanya 1.', 'primera división', 'primera division'], country: 'spain' },
-
-  { tier: 1, order: 4,  keywords: ['serie a', 'italya 1.', 'serie a tim'], country: 'italy' },
-
-  { tier: 1, order: 5,  keywords: ['bundesliga', 'almanya 1.', '1. bundesliga'], country: 'germany' },
-
-  { tier: 1, order: 6,  keywords: ['ligue 1', 'fransa 1.', 'ligue 1 mcdonald'], country: 'france' },
-
+  /* 4. Almanya */
+  { tier: 1, order: 4,  keywords: ['bundesliga', 'almanya 1.', '1. bundesliga'], country: 'germany' },
+  /* 5. Fransa */
+  { tier: 1, order: 5,  keywords: ['ligue 1', 'fransa 1.', 'ligue 1 mcdonald'], country: 'france' },
+  /* 6. İtalya */
+  { tier: 1, order: 6,  keywords: ['serie a', 'italya 1.', 'serie a tim'], country: 'italy' },
+  /* 7. Portekiz */
   { tier: 1, order: 7,  keywords: ['primeira liga', 'liga portugal', 'portekiz 1.', 'liga nos'], country: 'portugal' },
-
+  /* 8. Hollanda */
   { tier: 1, order: 8,  keywords: ['eredivisie', 'hollanda 1.', 'netherlands 1.'], country: 'netherlands' },
+  /* 9. Belçika */
+  { tier: 1, order: 9,  keywords: ['jupiler', 'pro league', 'belgian pro', 'belçika 1.', 'first division a'], country: 'belgium' },
+  /* 10. Çekya */
+  { tier: 1, order: 10, keywords: ['chance liga', '1. liga', 'czech 1.', 'çekya 1.', 'fortuna liga'], country: 'czech' },
+  /* 11. İskoçya */
+  { tier: 1, order: 11, keywords: ['scottish premiership', 'scotland premier', 'premiership scotland'], country: 'scotland' },
+  /* 12. İsviçre */
+  { tier: 1, order: 12, keywords: ['super league', 'swiss super', 'swiss league'], country: 'switzerland' },
+  /* 13. Avusturya */
+  { tier: 1, order: 13, keywords: ['bundesliga', 'austrian bundesliga', 'admiral bundesliga', 'avusturya 1.', 'österreichische'], country: 'austria' },
+  /* 14. Norveç */
+  { tier: 1, order: 14, keywords: ['eliteserien', 'norveç 1.', 'norway 1.'], country: 'norway' },
+  /* 15. Yunanistan */
+  { tier: 1, order: 15, keywords: ['super league', 'yunanistan 1.', 'greek super', 'super league 1', 'super league greece'], country: 'greece' },
+  /* 16. Danimarka */
+  { tier: 1, order: 16, keywords: ['superliga', 'danimarka 1.', 'danish superliga'], country: 'denmark' },
+  /* 17. İsrail */
+  { tier: 1, order: 17, keywords: ['premier league', 'ligat ha\'al', 'israel premier', 'israeli premier'], country: 'israel' },
+  /* 18. Ukrayna */
+  { tier: 1, order: 18, keywords: ['premier league', 'ukrainian premier', 'ukrayna premier', 'upl'], country: 'ukraine' },
+  /* 19. Sırbistan */
+  { tier: 1, order: 19, keywords: ['superliga', 'srpska superliga', 'serbia superliga', 'super liga'], country: 'serbia' },
+  /* 20. Hırvatistan */
+  { tier: 1, order: 20, keywords: ['hnl', 'hrvatska nogometna', 'croatian football', 'supersport hnl'], country: 'croatia' },
+  /* 21. Polonya */
+  { tier: 1, order: 21, keywords: ['ekstraklasa', 'polish ekstraklasa'], country: 'poland' },
+  /* 22. Kıbrıs */
+  { tier: 1, order: 22, keywords: ['premier league', 'cyprus first', 'cyta championship', 'cyprus championship', 'first division'], country: 'cyprus' },
+  /* 23. Macaristan */
+  { tier: 1, order: 23, keywords: ['nemzeti bajnokság', 'nb i', 'otp bank liga', 'hungarian nb'], country: 'hungary' },
+  /* 24. İsveç */
+  { tier: 1, order: 24, keywords: ['allsvenskan', 'swedish allsvenskan'], country: 'sweden' },
+  /* 25. Romanya */
+  { tier: 1, order: 25, keywords: ['liga i', 'liga 1', 'superliga', 'romanian liga'], country: 'romania' },
 
-  { tier: 1, order: 9,  keywords: ['champions league', 'şampiyonlar ligi', 'ucl'] },
-  { tier: 1, order: 10, keywords: ['europa league', 'avrupa ligi', 'uel'] },
-  { tier: 1, order: 11, keywords: ['conference league', 'konferans ligi', 'uecl'] },
+  /* Avrupa Kulüp Kupaları — ülke liglerinden sonra */
+  { tier: 1, order: 90, keywords: ['champions league', 'şampiyonlar ligi', 'ucl'] },
+  { tier: 1, order: 91, keywords: ['europa league', 'avrupa ligi', 'uel'] },
+  { tier: 1, order: 92, keywords: ['conference league', 'konferans ligi', 'uecl'] },
 
-  /* ─── TIER 2: 2. LİGLER ─── */
+  /* ─── TIER 2: 2. LİGLER (aynı ülke sıralamasıyla) ─── */
   { tier: 2, order: 1,  keywords: ['1. lig', 'tff 1', 'türkiye 2.'], country: 'turkey' },
-
   { tier: 2, order: 2,  keywords: ['championship', 'ingiltere 2.', 'efl championship'], country: 'england' },
-
   { tier: 2, order: 3,  keywords: ['la liga 2', 'segunda', 'laliga2', 'ispanya 2.'], country: 'spain' },
-
-  { tier: 2, order: 4,  keywords: ['serie b', 'italya 2.'], country: 'italy' },
-
-  { tier: 2, order: 5,  keywords: ['2. bundesliga', 'almanya 2.'], country: 'germany' },
-
-  { tier: 2, order: 6,  keywords: ['ligue 2', 'fransa 2.'], country: 'france' },
-
+  { tier: 2, order: 4,  keywords: ['2. bundesliga', 'almanya 2.'], country: 'germany' },
+  { tier: 2, order: 5,  keywords: ['ligue 2', 'fransa 2.'], country: 'france' },
+  { tier: 2, order: 6,  keywords: ['serie b', 'italya 2.'], country: 'italy' },
   { tier: 2, order: 7,  keywords: ['portekiz 2.', 'liga sabseg', 'segunda liga'], country: 'portugal' },
-
   { tier: 2, order: 8,  keywords: ['eerste divisie', 'hollanda 2.', 'keuken kampioen'], country: 'netherlands' },
+  { tier: 2, order: 9,  keywords: ['proximus league', 'first division b', 'belçika 2.', 'belgian 2.'], country: 'belgium' },
+  { tier: 2, order: 10, keywords: ['czech 2.', 'çekya 2.', 'fnl czech'], country: 'czech' },
+  { tier: 2, order: 11, keywords: ['scottish championship', 'championship scotland'], country: 'scotland' },
+  { tier: 2, order: 12, keywords: ['challenge league', 'swiss challenge'], country: 'switzerland' },
+  { tier: 2, order: 13, keywords: ['2. liga', 'austrian 2.', 'avusturya 2.'], country: 'austria' },
+  { tier: 2, order: 14, keywords: ['obos-ligaen', '1. divisjon', 'norveç 2.'], country: 'norway' },
+  { tier: 2, order: 15, keywords: ['super league 2', 'yunanistan 2.', 'greek 2.'], country: 'greece' },
+  { tier: 2, order: 16, keywords: ['1. division', 'danimarka 2.'], country: 'denmark' },
+  { tier: 2, order: 17, keywords: ['liga leumit', 'israeli national', 'leumit'], country: 'israel' },
+  { tier: 2, order: 18, keywords: ['persha liha', 'ukrayna 2.'], country: 'ukraine' },
+  { tier: 2, order: 19, keywords: ['prva liga srbije', 'sırbistan 2.'], country: 'serbia' },
+  { tier: 2, order: 20, keywords: ['hnl 2', 'hırvatistan 2.', 'prva nl'], country: 'croatia' },
+  { tier: 2, order: 21, keywords: ['i liga', 'polonya 2.', 'polish i liga'], country: 'poland' },
+  { tier: 2, order: 22, keywords: ['cyprus 2.', 'kıbrıs 2.', 'cyprus second'], country: 'cyprus' },
+  { tier: 2, order: 23, keywords: ['nb ii', 'macaristan 2.', 'hungarian nb ii'], country: 'hungary' },
+  { tier: 2, order: 24, keywords: ['superettan', 'isveç 2.', 'swedish superettan'], country: 'sweden' },
+  { tier: 2, order: 25, keywords: ['liga ii', 'romanya 2.', 'romanian liga ii'], country: 'romania' },
 
-  { tier: 2, order: 9,  keywords: ['league one', 'efl league one'], country: 'england' },
-  { tier: 2, order: 10, keywords: ['league two', 'efl league two'], country: 'england' },
-  { tier: 2, order: 11, keywords: ['2. lig', 'tff 2'], country: 'turkey' },
-  { tier: 2, order: 12, keywords: ['3. lig', 'tff 3'], country: 'turkey' },
-  { tier: 2, order: 13, keywords: ['jupiler', 'pro league'], country: 'belgium' },
-  { tier: 2, order: 14, keywords: ['super league', 'swiss super'], country: 'switzerland' },
-  { tier: 2, order: 15, keywords: ['scottish premiership'], country: 'scotland' },
-  { tier: 2, order: 16, keywords: ['ekstraklasa'], country: 'poland' },
-  { tier: 2, order: 17, keywords: ['süper kupa', 'super cup'] },
+  /* İngiltere alt ligler */
+  { tier: 2, order: 30, keywords: ['league one', 'efl league one'], country: 'england' },
+  { tier: 2, order: 31, keywords: ['league two', 'efl league two'], country: 'england' },
+  /* Türkiye alt ligler */
+  { tier: 2, order: 32, keywords: ['2. lig', 'tff 2'], country: 'turkey' },
+  { tier: 2, order: 33, keywords: ['3. lig', 'tff 3'], country: 'turkey' },
+  /* Süper Kupa */
+  { tier: 2, order: 99, keywords: ['süper kupa', 'super cup'] },
 ];
 
 /* Favori ligler — localStorage'dan oku/yaz */
@@ -125,8 +176,26 @@ const COUNTRY_TR_MAP = {
   'hollanda':  'netherlands',
   'belçika':   'belgium',
   'isviçre':   'switzerland',
+  'İsviçre':   'switzerland',
   'iskocya':   'scotland',
+  'İskoçya':   'scotland',
   'polonya':   'poland',
+  'çekya':     'czech',
+  'çek cumhuriyeti': 'czech',
+  'avusturya': 'austria',
+  'norveç':    'norway',
+  'yunanistan':'greece',
+  'danimarka': 'denmark',
+  'İsrail':    'israel',
+  'israil':    'israel',
+  'ukrayna':   'ukraine',
+  'sırbistan': 'serbia',
+  'hırvatistan':'croatia',
+  'kıbrıs':   'cyprus',
+  'macaristan':'hungary',
+  'İsveç':     'sweden',
+  'isveç':     'sweden',
+  'romanya':   'romania',
 };
 
 function _normalizeCountry(country) {
@@ -138,28 +207,23 @@ function _matchLeagueTier(leagueName, country) {
   const lower = (leagueName || '').toLowerCase().trim();
   const lowerCountry = _normalizeCountry(country);
 
-  let bestMatch = null;
-
   for (const entry of LEAGUE_TIERS) {
     for (const kw of entry.keywords) {
       if (lower.includes(kw)) {
-        /* Ülke kısıtı yok → doğrudan eşleş */
+        /* Tier 0 (uluslararası turnuvalar) ve ülke kısıtı olmayanlar → doğrudan eşleş */
         if (!entry.country) {
           return { tier: entry.tier, order: entry.order };
         }
-        /* Ülke kısıtı var ve ülke bilgisi de var → tam eşleşme gerekli */
+        /* Ülke kısıtı var → ülke bilgisi kesin eşleşmeli, yoksa geç */
         if (lowerCountry && lowerCountry.includes(entry.country)) {
           return { tier: entry.tier, order: entry.order };
         }
-        /* Ülke bilgisi YOK ama keyword eşleşti → yedek olarak sakla */
-        if (!lowerCountry && !bestMatch) {
-          bestMatch = { tier: entry.tier, order: entry.order };
-        }
+        /* Ülke bilgisi YOK veya eşleşmedi → bu entry'i atla, Singapur vb. yanlış sıraya girmesin */
       }
     }
   }
 
-  return bestMatch || { tier: 3, order: 999 };  /* Tanımsız → en sona */
+  return { tier: 3, order: 999 };  /* Tanımsız → en sona */
 }
 
 /*  Grup sıralama anahtarı: favori(0/1) → tier → order → alfabe  */
