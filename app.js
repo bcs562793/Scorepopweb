@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v5.6 — Arşiv Desteği)
+   SCOREPOP — app.js  (v5.7 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -1768,6 +1768,22 @@ if (od && od.markets) {
       ${updAt ? `<span class="or2-upd">🕐 ${updAt}</span>` : ''}
     </div>`;
 
+     /* ── BENZERİ ORANLARIN ANALİZİ ── */
+  {
+    const cur1x2 = od?.markets?.['1x2'];
+    const curOu25 = od?.markets?.['ou25'];
+    const curHt   = od?.markets?.['ht_1x2'];
+    if (cur1x2) {
+      html += `
+        <div class="sim-wrap" id="sim-wrap-${m.fixture_id}">
+          <button class="sim-btn" onclick="runSimAnalysis(${m.fixture_id}, ${JSON.stringify(cur1x2).replace(/"/g,'&quot;')}, ${JSON.stringify(curOu25||null).replace(/"/g,'&quot;')}, ${JSON.stringify(curHt||null).replace(/"/g,'&quot;')})">
+            📊 Benzer Oranlı Geçmiş Maçları Analiz Et
+          </button>
+          <div class="sim-result" id="sim-result-${m.fixture_id}"></div>
+        </div>`;
+    }
+  }
+
   /* ══════════════════════════════════════
      GRUP 1: MAÇ SONUCU
   ══════════════════════════════════════ */
@@ -2013,22 +2029,6 @@ if (od && od.markets) {
   }
 
   html += `</div>`; /* or2-wrap */
-
-  /* ── BENZERİ ORANLARIN ANALİZİ ── */
-  {
-    const cur1x2 = od?.markets?.['1x2'];
-    const curOu25 = od?.markets?.['ou25'];
-    const curHt   = od?.markets?.['ht_1x2'];
-    if (cur1x2) {
-      html += `
-        <div class="sim-wrap" id="sim-wrap-${m.fixture_id}">
-          <button class="sim-btn" onclick="runSimAnalysis(${m.fixture_id}, ${JSON.stringify(cur1x2).replace(/"/g,'&quot;')}, ${JSON.stringify(curOu25||null).replace(/"/g,'&quot;')}, ${JSON.stringify(curHt||null).replace(/"/g,'&quot;')})">
-            📊 Benzer Oranlı Geçmiş Maçları Analiz Et
-          </button>
-          <div class="sim-result" id="sim-result-${m.fixture_id}"></div>
-        </div>`;
-    }
-  }
 
 } else {
   html += `<div class="empty"><div class="empty-t">Oran verisi henüz mevcut değil</div></div>`;
