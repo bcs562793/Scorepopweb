@@ -24,6 +24,7 @@ const S = {
   allLeagues:   [],
   lastGoals:    {},   /* fixture_id (string) → { events: [...] } */
   archiveCache: {},   /* fixture_id (string) → tam maç objesi (arşivden) */
+  gzOddsCache: {},    /* YYYY-MM-DD → parsed gz array */
 };
 
 /* ── LİG ÖNCELİK SİSTEMİ ───────────────────── */
@@ -1053,10 +1054,13 @@ sq(S.sb.from('match_h2h').select('*')
   .limit(1)
   .then(r => ({ data: r.data?.[0] ?? null, error: r.error }))
 ),      sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
-      sq(S.sb.from('match_odds').select('*').eq('fixture_id', Number(id)).maybeSingle()),
     ]);
 
-    buildDetail(m, evs||[], stats, lus, h2h, pred, odds);
+    /* ── GitHub gz'den oran verisi çek ── */
+    const matchDate = (m.kickoff_time || m.date || S.date || '').slice(0,10);
+    const gzOdds = await fetchGzOdds(matchDate, m.home_team, m.away_team);
+
+    buildDetail(m, evs||[], stats, lus, h2h, pred, gzOdds);
   } catch (e) {
     console.error(e);
     setDetailHTML(`<div class="empty"><div class="empty-t">Hata: ${esc(e.message)}</div></div>`);
@@ -1091,6 +1095,179 @@ function scaleVisualIframe() {
 function _scheduleVisualScale() {
   // pushState sonrası layout gecikmesi için daha uzun süreler
   [50, 200, 600, 1500].forEach(function(ms) { setTimeout(scaleVisualIframe, ms); });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GitHub orancek repo'sundan gz oran verisi çek ve maçı eşleştir
+   ══════════════════════════════════════════════════════════════ */
+
+const ORANCEK_BASE = 'https://raw.githubusercontent.com/bcs562793/orancek/main/data';
+
+function _normTeam(name) {
+  return (name || '').toLowerCase()
+    .replace(/[çc]/g,'c').replace(/[ğg]/g,'g').replace(/[ıi]/g,'i')
+    .replace(/[öo]/g,'o').replace(/[şs]/g,'s').replace(/[üu]/g,'u')
+    .replace(/(fc|fk|sk|bk|afc|cf|sc|ac|as)/g,'')
+    .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function _sim(a, b) {
+  const ta = new Set(_normTeam(a).split(' ').filter(Boolean));
+  const tb = new Set(_normTeam(b).split(' ').filter(Boolean));
+  if (!ta.size || !tb.size) return 0;
+  let inter = 0;
+  ta.forEach(t => { if (tb.has(t)) inter++; });
+  return inter / Math.max(ta.size, tb.size);
+}
+
+function _macToSite(markets) {
+  const mk = {};
+  for (const m of (markets || [])) {
+    const name = m.market_name || '';
+    const oc   = m.outcomes   || [];
+    const o = (n) => oc.find(x => x.name === n)?.odds ?? null;
+    const ou = () => ({ under: o('Alt'), over: o('Üst') });
+
+    if (name === 'Maç Sonucu')
+      mk['1x2'] = { home: o('1'), draw: o('X'), away: o('2') };
+    else if (name === 'Çifte Şans')
+      mk['dc']  = { '1x': o('1-X'), '12': o('1-2'), 'x2': o('X-2') };
+    else if (name === 'Karşılıklı Gol')
+      mk['btts'] = { yes: o('Var'), no: o('Yok') };
+    else if (name === '1. Yarı Sonucu')
+      mk['ht_1x2'] = { home: o('1'), draw: o('X'), away: o('2') };
+    else if (name === '1. Yarı Çifte Şans')
+      mk['ht_dc'] = { '1x': o('1-X'), '12': o('1-2'), 'x2': o('X-2') };
+    else if (name === '2. Yarı Sonucu')
+      mk['2h_1x2'] = { home: o('1'), draw: o('X'), away: o('2') };
+    else if (name === 'Tek/Çift')
+      mk['odd_even'] = { odd: o('Tek'), even: o('Çift') };
+    else if (name === 'Toplam Gol Aralığı')
+      mk['goal_range'] = { '0_1': o('0-1 Gol'), '2_3': o('2-3 Gol'), '4_5': o('4-5 Gol'), '6p': o('6+ Gol') };
+    else if (name === 'Daha Çok Gol Olacak Yarı')
+      mk['more_goals_half'] = { first: o('1.Y'), equal: o('Eşit'), second: o('2.Y') };
+    else if (name === 'İlk Gol')
+      mk['first_goal'] = { home: o('1'), none: o('Olmaz'), away: o('2') };
+    else if (name === 'İlk Yarı/Maç Sonucu')
+      mk['ht_ft'] = Object.fromEntries(oc.map(x => [x.name, x.odds]));
+    else if (name === 'Evsahibi İki Yarıda da Gol')
+      mk['home_score_both'] = { yes: o('Atar'), no: o('Atamaz') };
+    else if (name === 'Deplasman İki Yarıda da Gol')
+      mk['away_score_both'] = { yes: o('Atar'), no: o('Atamaz') };
+    else {
+      /* Alt/Üst ailesi */
+      const auMatch = name.match(/^([\d,]+) Alt\/Üst$/);
+      if (auMatch) {
+        const n = auMatch[1].replace(',','.');
+        const keyMap = {'0.5':'ou05','1.5':'ou15','2.5':'ou25','3.5':'ou35','4.5':'ou45','5.5':'ou55'};
+        if (keyMap[n]) mk[keyMap[n]] = ou();
+      }
+      const htAuMatch = name.match(/^1\. Yarı ([\d,]+) Alt\/Üst$/);
+      if (htAuMatch) {
+        const n = htAuMatch[1].replace(',','.');
+        const keyMap = {'0.5':'ht_ou05','1.5':'ht_ou15','2.5':'ht_ou25'};
+        if (keyMap[n]) mk[keyMap[n]] = ou();
+      }
+      const msAuMatch = name.match(/^Maç Sonucu ve \(([\d,]+)\) Alt\/Üst$/);
+      if (msAuMatch) {
+        const n = msAuMatch[1].replace(',','.');
+        const keyMap = {'1.5':'ms_ou15','2.5':'ms_ou25','3.5':'ms_ou35','4.5':'ms_ou45'};
+        if (keyMap[n]) mk[keyMap[n]] = {
+          h_u: o('1 ve Alt'), x_u: o('X ve Alt'), a_u: o('2 ve Alt'),
+          h_o: o('1 ve Üst'), x_o: o('X ve Üst'), a_o: o('2 ve Üst'),
+        };
+      }
+      const hAuMatch = name.match(/^Evsahibi ([\d,]+) Alt\/Üst$/);
+      if (hAuMatch) {
+        const n = hAuMatch[1].replace(',','.');
+        const keyMap = {'0.5':'h_ou05','1.5':'h_ou15','2.5':'h_ou25','3.5':'h_ou35'};
+        if (keyMap[n]) mk[keyMap[n]] = ou();
+      }
+      const aAuMatch = name.match(/^Deplasman ([\d,]+) Alt\/Üst$/);
+      if (aAuMatch) {
+        const n = aAuMatch[1].replace(',','.');
+        const keyMap = {'0.5':'a_ou05','1.5':'a_ou15','2.5':'a_ou25','3.5':'a_ou35'};
+        if (keyMap[n]) mk[keyMap[n]] = ou();
+      }
+      const ahMatch = name.match(/^Handikaplı Maç Sonucu \((\d+):(\d+)\)$/);
+      if (ahMatch) {
+        const [h, a] = [ahMatch[1], ahMatch[2]];
+        const key = parseInt(h) > parseInt(a) ? \`ah_p\${h}_\${a}\` : \`ah_m\${h}_\${a}\`;
+        mk[key] = { home: o('1'), draw: o('X'), away: o('2'), line: \`\${h}:\${a}\` };
+      }
+    }
+  }
+  return mk;
+}
+
+function _sofaTo1x2(sofaMarkets) {
+  for (const sm of (sofaMarkets || [])) {
+    if (['Full time','1X2','Maç Sonucu'].includes(sm.market_name)) {
+      const res = {};
+      for (const c of (sm.choices || [])) {
+        res[c.name.toLowerCase()] = {
+          opening: c.opening_odds,
+          closing: c.closing_odds,
+          change:  c.change ?? 0,
+          winning: c.winning,
+        };
+      }
+      return Object.keys(res).length ? res : null;
+    }
+  }
+  return null;
+}
+
+async function fetchGzOdds(date, homeTeam, awayTeam) {
+  if (!date || date.length < 10) return null;
+  const d = date.slice(0,10);
+
+  /* Cache'te yoksa GitHub'dan çek */
+  if (!S.gzOddsCache[d]) {
+    const url = \`\${ORANCEK_BASE}/odds_\${d}.json.gz\`;
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) { S.gzOddsCache[d] = []; return null; }
+      const buf  = await resp.arrayBuffer();
+      const ds   = new DecompressionStream('gzip');
+      const writer = ds.writable.getWriter();
+      writer.write(new Uint8Array(buf));
+      writer.close();
+      const out  = await new Response(ds.readable).arrayBuffer();
+      S.gzOddsCache[d] = JSON.parse(new TextDecoder().decode(out));
+    } catch(e) {
+      console.warn('[gz odds] fetch hatası:', e);
+      S.gzOddsCache[d] = [];
+      return null;
+    }
+  }
+
+  const arr = S.gzOddsCache[d];
+  if (!arr.length) return null;
+
+  /* Takım adı benzerliğiyle eşleştir */
+  let best = null, bestScore = 0;
+  for (const m of arr) {
+    const h = _sim(homeTeam, m.home_team);
+    const a = _sim(awayTeam, m.away_team);
+    const score = (h + a) / 2;
+    if (score > bestScore && score >= 0.50) { bestScore = score; best = m; }
+  }
+  if (!best) return null;
+
+  /* buildDetail'in beklediği formata çevir */
+  return {
+    odds_data: {
+      source:   'Mackolik + Sofascore',
+      markets:  _macToSite(best.mackolik_markets),
+      sofa_1x2: _sofaTo1x2(best.sofascore_markets),
+      home_score:    best.home_score,
+      away_score:    best.away_score,
+      ht_home_score: best.ht_home_score,
+      ht_away_score: best.ht_away_score,
+    },
+    updated_at: null,
+  };
 }
 
 function buildDetail(m, evs, stats, lus, h2h, pred, odds) {
@@ -1564,6 +1741,39 @@ if (od && od.markets) {
       g5 += marketRow(`${lbl} Gol Alt/Üst`, [cell('Alt',mk[k].under), cell('Üst',mk[k].over)]);
     });
     if (g5) html += group('⚖️', 'Taraf Alt / Üst', g5);
+  }
+
+  /* ══════════════════════════════════════
+     GRUP 6: SOFASCORE ORAN DEĞİŞİMİ
+  ══════════════════════════════════════ */
+  {
+    const s1x2 = od.sofa_1x2;
+    if (s1x2) {
+      const arrow = ch => ch === 1 ? '↑' : ch === -1 ? '↓' : '→';
+      const arrowCls = ch => ch === 1 ? 'sofa-up' : ch === -1 ? 'sofa-dn' : 'sofa-eq';
+      const sofaCell = (lbl, d) => {
+        if (!d) return '';
+        const op = d.opening != null ? d.opening.toFixed(2) : '-';
+        const cl = d.closing != null ? d.closing.toFixed(2) : '-';
+        const ar = arrow(d.change ?? 0);
+        const arCls = arrowCls(d.change ?? 0);
+        const winCls = d.winning === true ? 'sofa-win' : d.winning === false ? 'sofa-lose' : '';
+        return `<div class="sofa-cell ${winCls}">
+          <div class="sofa-lbl">${lbl}</div>
+          <div class="sofa-odds">
+            <span class="sofa-open">${op}</span>
+            <span class="sofa-arrow ${arCls}">${ar}</span>
+            <span class="sofa-close">${cl}</span>
+          </div>
+        </div>`;
+      };
+      const g6 = `<div class="sofa-row">
+        ${sofaCell(homeN, s1x2['1'])}
+        ${sofaCell('X', s1x2['x'])}
+        ${sofaCell(awayN, s1x2['2'])}
+      </div>`;
+      html += group('📈', 'Oran Değişimi (Sofascore)', g6);
+    }
   }
 
   html += `</div>`; /* or2-wrap */
