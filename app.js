@@ -1331,152 +1331,280 @@ function _getMacOdds(m, marketName, outcomeName) {
   return null;
 }
 
-async function runSimAnalysis(fixtureId, cur1x2, curOu25, curHt) {
+ async function runSimAnalysis(fixtureId, cur1x2, curOu25, curHt) {
   const resultEl = document.getElementById('sim-result-' + fixtureId);
-  const wrapEl   = document.getElementById('sim-wrap-'   + fixtureId);
   if (!resultEl) return;
 
-  resultEl.innerHTML = '<div class="sim-loading">⏳ Geçmiş maçlar yükleniyor…</div>';
+  resultEl.innerHTML = '<div class="sim-loading">⏳ En iyi filtre kombinasyonu aranıyor...</div>';
 
   let all;
   try { all = await _loadAllGz(); }
-  catch(e) {
-    resultEl.innerHTML = '<div class="sim-err">❌ Veri yüklenemedi: ' + e.message + '</div>';
-    return;
+  catch(e) { resultEl.innerHTML = '<div class="sim-err">❌ Veri yüklenemedi</div>'; return; }
+  if (!all.length) { resultEl.innerHTML = '<div class="sim-err">❌ Arşiv boş</div>'; return; }
+
+  // ── Yardımcılar ───────────────────────────────────────────────────────────
+
+  function getMac(m, market, outcome) {
+    for (const mk of (m.mackolik_markets || [])) {
+      if (mk.market_name === market) {
+        const oc = (mk.outcomes || []).find(o => o.name === outcome);
+        return oc?.odds ?? null;
+      }
+    }
+    return null;
   }
 
-  /* ── Filtreleme ── */
-  const DELTA_START = 0.20;
-
-  function filter1x2(arr, delta) {
-    return arr.filter(m => {
-      const h = _getMacOdds(m, 'Maç Sonucu', '1');
-      const x = _getMacOdds(m, 'Maç Sonucu', 'X');
-      const a = _getMacOdds(m, 'Maç Sonucu', '2');
-      return _inRange(h, cur1x2.home, delta)
-          && _inRange(x, cur1x2.draw, delta)
-          && _inRange(a, cur1x2.away, delta);
-    }).filter(m => _getResult(m) !== null); /* sadece biten maçlar */
+  function ok(val, ref, tol) {
+    return val != null && ref != null && Math.abs(val - ref) <= tol;
   }
 
-  function filterOu25(arr) {
-    if (!curOu25) return arr;
-    return arr.filter(m => {
-      const u = _getMacOdds(m, '2,5 Alt/Üst', 'Alt');
-      const o = _getMacOdds(m, '2,5 Alt/Üst', 'Üst');
-      return _inRange(u, curOu25.under, 0.15) && _inRange(o, curOu25.over, 0.15);
-    });
+  function getResult(m) {
+    const h = m.home_score, a = m.away_score;
+    if (h == null || a == null) return null;
+    return h > a ? '1' : h === a ? 'X' : '2';
   }
 
-  function filterHt(arr) {
-    if (!curHt) return arr;
-    return arr.filter(m => {
-      const h = _getMacOdds(m, '1. Yarı Sonucu', '1');
-      const x = _getMacOdds(m, '1. Yarı Sonucu', 'X');
-      const a = _getMacOdds(m, '1. Yarı Sonucu', '2');
-      return _inRange(h, curHt.home, 0.20)
-          && _inRange(x, curHt.draw, 0.20)
-          && _inRange(a, curHt.away, 0.20);
-    });
+  function getOddsChange(m) {
+    for (const sm of (m.sofascore_markets || [])) {
+      if (['Full time','1X2'].includes(sm.market_name)) {
+        const res = {};
+        for (const c of (sm.choices || [])) res[c.name] = c.change ?? 0;
+        return res;
+      }
+    }
+    return null;
   }
 
-  /* Aşamalı daralma */
-  let matches = filter1x2(all, DELTA_START);
-  let filterDesc = `1X2 ±${DELTA_START}`;
+  // ── Filtre havuzu — her filtre birden fazla tolerans seviyesine sahip ─────
+  // [tolerans, etiket, fn] formatında — geniş→dar sırada
+  //
+  // Akıllı sistem şu şekilde çalışır:
+  //   Her adımda HAVUZDAN bir (filtre, tolerans) çifti seçilir.
+  //   Seçim kriteri: hedefe (TARGET) en yakın sonucu veren, MIN altına düşmeyen.
+  //   Filtre bir kez seçilince bir sonraki dar toleransına geçilir.
 
-  if (matches.length > 20 && curOu25) {
-    const narrowed = filterOu25(matches);
-    if (narrowed.length >= 3) { matches = narrowed; filterDesc += ' + 2.5 A/Ü'; }
+  const TARGET_MIN = 5;
+  const TARGET_MAX = 12;
+
+  // Ev1.5 ve Dep1.5 için beklenen değer hesapla
+  const expEv15  = cur1x2 ? (cur1x2.home < 1.70 ? 1.35 : cur1x2.home < 2.00 ? 1.50 : cur1x2.home < 2.50 ? 1.70 : 1.90) : null;
+  const expDep15 = cur1x2 ? (cur1x2.away < 2.00 ? 1.80 : cur1x2.away < 2.50 ? 1.60 : cur1x2.away < 3.00 ? 1.45 : 1.30) : null;
+
+  // Her filtre: { id, levels: [{tol, label}], fn(arr, tol), skip }
+  const FILTER_POOL = [
+    {
+      id: 'MS', skip: !cur1x2,
+      levels: [
+        { tol: 0.20, label: 'MS'      },
+        { tol: 0.15, label: 'MS±0.15' },
+        { tol: 0.10, label: 'MS±0.10' },
+        { tol: 0.07, label: 'MS±0.07' },
+        { tol: 0.05, label: 'MS±0.05' },
+      ],
+      fn: (arr, tol) => arr.filter(m =>
+        ok(getMac(m,'Maç Sonucu','1'), cur1x2.home, tol) &&
+        ok(getMac(m,'Maç Sonucu','X'), cur1x2.draw, tol) &&
+        ok(getMac(m,'Maç Sonucu','2'), cur1x2.away, tol)
+      ),
+    },
+    {
+      id: 'İY', skip: !curHt,
+      levels: [
+        { tol: 0.20, label: 'İY'      },
+        { tol: 0.15, label: 'İY±0.15' },
+        { tol: 0.10, label: 'İY±0.10' },
+        { tol: 0.07, label: 'İY±0.07' },
+      ],
+      fn: (arr, tol) => arr.filter(m =>
+        ok(getMac(m,'1. Yarı Sonucu','1'), curHt.home, tol) &&
+        ok(getMac(m,'1. Yarı Sonucu','X'), curHt.draw, tol) &&
+        ok(getMac(m,'1. Yarı Sonucu','2'), curHt.away, tol)
+      ),
+    },
+    {
+      id: '2.5AÜ', skip: !curOu25,
+      levels: [
+        { tol: 0.15, label: '2.5AÜ'      },
+        { tol: 0.10, label: '2.5AÜ±0.10' },
+        { tol: 0.07, label: '2.5AÜ±0.07' },
+        { tol: 0.05, label: '2.5AÜ±0.05' },
+      ],
+      fn: (arr, tol) => arr.filter(m =>
+        ok(getMac(m,'2,5 Alt/Üst','Alt'), curOu25.under, tol) &&
+        ok(getMac(m,'2,5 Alt/Üst','Üst'), curOu25.over,  tol)
+      ),
+    },
+    {
+      id: 'Ev1.5', skip: !expEv15,
+      levels: [
+        { tol: 0.25, label: 'Ev1.5'      },
+        { tol: 0.18, label: 'Ev1.5±0.18' },
+        { tol: 0.12, label: 'Ev1.5±0.12' },
+      ],
+      fn: (arr, tol) => arr.filter(m =>
+        ok(getMac(m,'Evsahibi 1,5 Alt/Üst','Alt'), expEv15, tol)
+      ),
+    },
+    {
+      id: 'Dep1.5', skip: !expDep15,
+      levels: [
+        { tol: 0.30, label: 'Dep1.5'      },
+        { tol: 0.20, label: 'Dep1.5±0.20' },
+        { tol: 0.12, label: 'Dep1.5±0.12' },
+      ],
+      fn: (arr, tol) => arr.filter(m =>
+        ok(getMac(m,'Deplasman 1,5 Alt/Üst','Alt'), expDep15, tol)
+      ),
+    },
+    {
+      id: 'KG', skip: false,
+      levels: [
+        { tol: 999, label: 'KG' },  // varlık filtresi — tolerans önemsiz
+      ],
+      fn: (arr) => arr.filter(m => getMac(m,'Karşılıklı Gol','Var') != null),
+    },
+  ].filter(f => !f.skip);
+
+  // Her filtrenin mevcut seviye indexi (0 = henüz uygulanmadı)
+  const levelIdx = Object.fromEntries(FILTER_POOL.map(f => [f.id, 0]));
+  // Uygulanan filtreler ve etiketleri
+  const applied  = Object.fromEntries(FILTER_POOL.map(f => [f.id, false]));
+  const labels   = {};
+
+  let matches = all.filter(m => getResult(m) !== null);
+
+  console.group(`🚀 [AKILLI DARALTMA] Fixture ${fixtureId}`);
+  console.log(`📦 Başlangıç: ${matches.length} maç | Hedef: ${TARGET_MIN}-${TARGET_MAX}`);
+
+  let stepCount = 0;
+  const MAX_STEPS = 30; // sonsuz döngü koruması
+
+  while (matches.length > TARGET_MAX && stepCount < MAX_STEPS) {
+    stepCount++;
+
+    // ── Bir sonraki en iyi adımı bul ─────────────────────────────────────
+    // Kriter: TARGET_MIN'e ≥ kalarak hedefe en yakın sonucu veren filtre+tol
+    let bestFilter = null;
+    let bestResult = null;
+    let bestScore  = Infinity; // hedefe uzaklık — küçük = iyi
+
+    for (const filter of FILTER_POOL) {
+      const idx = levelIdx[filter.id];
+      if (idx >= filter.levels.length) continue; // tüm seviyeleri tükendi
+
+      let narrowed;
+      try {
+        narrowed = filter.fn(matches, filter.levels[idx].tol);
+      } catch(e) { continue; }
+
+      if (narrowed.length < TARGET_MIN) continue; // çok daralıyor — atla
+
+      // Hedefe uzaklık: TARGET_MAX içindeyse 0, üstündeyse fark
+      const score = narrowed.length <= TARGET_MAX
+        ? 0                                       // hedefte!
+        : narrowed.length - TARGET_MAX;           // hâlâ fazla — ne kadar?
+
+      // Eşit skorlarda daha az maç bırakanı tercih et
+      const isBetter = score < bestScore ||
+        (score === bestScore && bestResult !== null && narrowed.length < bestResult.length);
+
+      if (isBetter) {
+        bestScore  = score;
+        bestResult = narrowed;
+        bestFilter = filter;
+      }
+    }
+
+    if (!bestFilter) {
+      console.log(`⚠️  Adım ${stepCount}: Daha fazla daraltma yapılamıyor — ${matches.length} maçta kalınıyor`);
+      break;
+    }
+
+    const lvl = bestFilter.levels[levelIdx[bestFilter.id]];
+    labels[bestFilter.id] = lvl.label;
+    applied[bestFilter.id] = true;
+    levelIdx[bestFilter.id]++; // bir sonraki sefere bir dar seviyeye geç
+    matches = bestResult;
+
+    const isInTarget = matches.length <= TARGET_MAX;
+    console.log(`${isInTarget ? '✅' : '🔧'} Adım ${stepCount}: ${lvl.label} → ${matches.length} maç ${isInTarget ? '(HEDEF!)' : ''}`);
+
+    if (isInTarget) break;
   }
-  if (matches.length > 20 && curHt) {
-    const narrowed = filterHt(matches);
-    if (narrowed.length >= 3) { matches = narrowed; filterDesc += ' + 1Y'; }
-  }
-  /* Dar bir delta ile tekrar dene (eşik düşür) */
-  if (matches.length > 30) {
-    const tight = filter1x2(all, 0.10);
-    if (tight.length >= 3) { matches = tight; filterDesc = '1X2 ±0.10'; }
-  }
+
+  // Filtre açıklaması — uygulanan filtreleri sırayla birleştir
+  const filterDesc = FILTER_POOL
+    .filter(f => applied[f.id])
+    .map(f => labels[f.id])
+    .join(' + ') || 'Tüm Maçlar';
+
+  console.log(`🏁 FİNAL: "${filterDesc}" → ${matches.length} maç`);
+  console.groupEnd();
 
   if (matches.length < 3) {
-    resultEl.innerHTML = '<div class="sim-empty">🔍 Yeterli benzer maç bulunamadı (min. 3 gerekli)</div>';
+    resultEl.innerHTML = '<div class="sim-empty">🔍 Yeterli benzer maç bulunamadı (min. 3)</div>';
     return;
   }
 
-  /* ── İstatistik ── */
+  // ── İstatistik ────────────────────────────────────────────────────────────
+
   const total = matches.length;
-  const cnt = {'1':0,'X':0,'2':0};
+  const cnt = { '1':0, 'X':0, '2':0 };
   const changeCnt = {
-    '1': {up:0,upW:0,dn:0,dnW:0,eq:0,eqW:0},
-    'X': {up:0,upW:0,dn:0,dnW:0,eq:0,eqW:0},
-    '2': {up:0,upW:0,dn:0,dnW:0,eq:0,eqW:0},
+    '1':{ up:0,upW:0,dn:0,dnW:0,eq:0,eqW:0 },
+    'X':{ up:0,upW:0,dn:0,dnW:0,eq:0,eqW:0 },
+    '2':{ up:0,upW:0,dn:0,dnW:0,eq:0,eqW:0 },
   };
 
   matches.forEach(m => {
-    const res = _getResult(m);
+    const res = getResult(m);
     if (!res) return;
     cnt[res]++;
-
-    const ch = _getOddsChange(m);
+    const ch = getOddsChange(m);
     if (ch) {
       ['1','X','2'].forEach(k => {
-        const dir = ch[k] === 1 ? 'up' : ch[k] === -1 ? 'dn' : 'eq';
+        const dir = ch[k]===1?'up':ch[k]===-1?'dn':'eq';
         changeCnt[k][dir]++;
-        if (res === k) changeCnt[k][dir+'W']++;
+        if (res===k) changeCnt[k][dir+'W']++;
       });
     }
   });
 
-  const pct = n => total > 0 ? Math.round(n/total*100) : 0;
-  const bar = (n, t, cls) => {
-    const w = t > 0 ? Math.round(n/t*100) : 0;
+  const bar = (n,t,cls) => {
+    const w = t>0?Math.round(n/t*100):0;
     return `<div class="sim-bar-wrap"><div class="sim-bar ${cls}" style="width:${w}%"></div><span>${n} (%${w})</span></div>`;
   };
 
-  /* ── Change tablosu ── */
-  const chRow = (label, key) => {
+  const chRow = (label,key) => {
     const d = changeCnt[key];
     const rows = [];
-    if (d.up+d.dn+d.eq === 0) return '';
-    if (d.up > 0)  rows.push(`<tr><td>↑ Yükseldi</td><td>${d.up}</td><td>${d.upW}/${d.up} (%${Math.round(d.upW/d.up*100)})</td></tr>`);
-    if (d.dn > 0)  rows.push(`<tr><td>↓ Düştü</td><td>${d.dn}</td><td>${d.dnW}/${d.dn} (%${Math.round(d.dnW/d.dn*100)})</td></tr>`);
-    if (d.eq > 0)  rows.push(`<tr><td>→ Sabit</td><td>${d.eq}</td><td>${d.eqW}/${d.eq} (%${Math.round(d.eqW/d.eq*100)})</td></tr>`);
-    if (!rows.length) return '';
+    if(d.up>0) rows.push(`<tr><td>↑ Yükseldi</td><td>${d.up}</td><td>${d.upW}/${d.up} (%${Math.round(d.upW/d.up*100)})</td></tr>`);
+    if(d.dn>0) rows.push(`<tr><td>↓ Düştü</td><td>${d.dn}</td><td>${d.dnW}/${d.dn} (%${Math.round(d.dnW/d.dn*100)})</td></tr>`);
+    if(d.eq>0) rows.push(`<tr><td>→ Sabit</td><td>${d.eq}</td><td>${d.eqW}/${d.eq} (%${Math.round(d.eqW/d.eq*100)})</td></tr>`);
+    if(!rows.length) return '';
     return `<div class="sim-ch-section">
       <div class="sim-ch-title">${label} oranı değişimi → Kazanma</div>
       <table class="sim-ch-tbl"><tr><th>Yön</th><th>Maç</th><th>Kazandı</th></tr>${rows.join('')}</table>
     </div>`;
   };
 
-  const hasChange = matches.some(m => _getOddsChange(m));
+  const hasChange = matches.some(m => getOddsChange(m));
 
   resultEl.innerHTML = `
     <div class="sim-card">
       <div class="sim-header">
         <span class="sim-count">${total} Benzer Maç</span>
-        <span class="sim-filter">Filtre: ${filterDesc}</span>
+        <span class="sim-filter" style="color:#0f0">✅ ${filterDesc}</span>
       </div>
       <div class="sim-results">
-        <div class="sim-col">
-          <div class="sim-col-lbl">🏠 Ev Kazandı</div>
-          ${bar(cnt['1'], total, 'bar-1')}
-        </div>
-        <div class="sim-col">
-          <div class="sim-col-lbl">🤝 Beraberlik</div>
-          ${bar(cnt['X'], total, 'bar-x')}
-        </div>
-        <div class="sim-col">
-          <div class="sim-col-lbl">✈️ Dep Kazandı</div>
-          ${bar(cnt['2'], total, 'bar-2')}
-        </div>
+        <div class="sim-col"><div class="sim-col-lbl">🏠 Ev Kazandı</div>${bar(cnt['1'],total,'bar-1')}</div>
+        <div class="sim-col"><div class="sim-col-lbl">🤝 Beraberlik</div>${bar(cnt['X'],total,'bar-x')}</div>
+        <div class="sim-col"><div class="sim-col-lbl">✈️ Dep Kazandı</div>${bar(cnt['2'],total,'bar-2')}</div>
       </div>
-      ${hasChange ? `
-      <div class="sim-change">
+      ${hasChange?`<div class="sim-change">
         <div class="sim-ch-hdr">📈 Oran Hareketi → Sonuç İlişkisi</div>
-        ${chRow('Ev (1)', '1')}
-        ${chRow('Beraberlik (X)', 'X')}
-        ${chRow('Deplasman (2)', '2')}
-      </div>` : ''}
+        ${chRow('Ev (1)','1')}${chRow('Beraberlik (X)','X')}${chRow('Deplasman (2)','2')}
+      </div>`:''}
     </div>`;
 }
 
