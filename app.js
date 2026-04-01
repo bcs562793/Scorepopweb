@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v5.8 — Arşiv Desteği)
+   SCOREPOP — app.js  (v5.9 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -478,39 +478,42 @@ async function loadToday() {
   if (liveRes.error)  console.error("live_matches hatası:", liveRes.error.message);
   if (futureRes.error) console.error("future_matches hatası:", futureRes.error.message);
 
-  // fixture_id bazlı dedupe — live_matches öncelikli (gerçek zamanlı skor içeriyor)
-  const seen = new Set();
-  const rows = [];
+  // fixture_id bazlı dedupe — Set yerine Map kullanarak verileri birleştireceğiz
+  const matchesMap = new Map();
+
+  // Tekil maçı Map'e ekleyen veya eksik verisini güncelleyen yardımcı fonksiyon
+  function processNorm(norm) {
+    if (!norm.fixture_id) return;
+
+    if (!matchesMap.has(norm.fixture_id)) {
+      matchesMap.set(norm.fixture_id, norm);
+    } else {
+      // Maç zaten live_matches'ten eklenmişse ve saat verisi eksikse, 
+      // future_matches'ten gelen saat verisini (kickoff_time) yamala.
+      const existing = matchesMap.get(norm.fixture_id);
+      if (!existing.kickoff_time && norm.kickoff_time) {
+        existing.kickoff_time = norm.kickoff_time;
+      }
+    }
+  }
 
   function parseRows(list) {
     (list || []).forEach(r => {
       if (r.raw_data) {
         try {
           const parsed = JSON.parse(r.raw_data);
-          const norm = normFix({ ...r, ...parsed });
-          if (norm.fixture_id && !seen.has(norm.fixture_id)) {
-            seen.add(norm.fixture_id);
-            rows.push(norm);
-          }
+          processNorm(normFix({ ...r, ...parsed }));
           return;
         } catch(e) {}
       }
       if (r.data && typeof r.data === 'object') {
         const list2 = Array.isArray(r.data) ? r.data : [r.data];
         list2.forEach(m => {
-          const norm = normFix({ ...r, ...m });
-          if (norm.fixture_id && !seen.has(norm.fixture_id)) {
-            seen.add(norm.fixture_id);
-            rows.push(norm);
-          }
+          processNorm(normFix({ ...r, ...m }));
         });
         return;
       }
-      const norm = normFix(r);
-      if (norm.fixture_id && !seen.has(norm.fixture_id)) {
-        seen.add(norm.fixture_id);
-        rows.push(norm);
-      }
+      processNorm(normFix(r));
     });
   }
 
@@ -518,6 +521,8 @@ async function loadToday() {
   parseRows(liveRes.data);
   parseRows(futureRes.data);
 
+  // Map'in içindeki birleştirilmiş değerleri Diziye (Array) çevir
+  const rows = Array.from(matchesMap.values());
   render(rows, false);
 }
 
