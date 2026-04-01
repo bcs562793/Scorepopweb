@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v5.7 — Arşiv Desteği)
+   SCOREPOP — app.js  (v5.8 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -521,25 +521,33 @@ async function loadToday() {
   render(rows, false);
 }
 
-/* ── ARŞİV: Geçmiş tarih maçları GitHub'dan yükle ─── */
 const ARCHIVE_BASE = 'https://raw.githubusercontent.com/bcs562793/scorepop-worker/main/data';
 
 async function loadArchive(date) {
   setMatchesHTML(`<div class="empty"><div class="empty-i">⏳</div><div class="empty-t">${date} arşivi yükleniyor…</div></div>`);
 
   try {
-    // Önce .json.gz dene, olmadığında .json'a düş
-     let res = await fetch(`${ARCHIVE_BASE}/${date}.json.gz`);
-     if (!res.ok) {
-     res = await fetch(`${ARCHIVE_BASE}/${date}.json`);
-   }
-
-    if (!res.ok) {
-      setMatchesHTML(`<div class="empty"><div class="empty-i">📂</div><div class="empty-t">${date} tarihine ait arşiv bulunamadı</div></div>`);
-      return;
+    let json;
+    let res = await fetch(`${ARCHIVE_BASE}/${date}.json.gz`);
+    
+    // 1. Durum: .json.gz dosyası başarıyla bulunduysa manuel olarak GZIP'ten çıkar
+    if (res.ok) {
+      const ds = new DecompressionStream('gzip');
+      const decompressedStream = res.body.pipeThrough(ds);
+      const decompressedResponse = new Response(decompressedStream);
+      json = await decompressedResponse.json();
+    } 
+    // 2. Durum: .gz bulunamadıysa standart .json dosyasına düş (Fallback)
+    else {
+      res = await fetch(`${ARCHIVE_BASE}/${date}.json`);
+      
+      if (!res.ok) {
+        setMatchesHTML(`<div class="empty"><div class="empty-i">📂</div><div class="empty-t">${date} tarihine ait arşiv bulunamadı</div></div>`);
+        return;
+      }
+      
+      json = await res.json();
     }
-
-    const json = await res.json();
 
     /* JSON formatı: dizi ya da { response: [...] } olabilir */
     const raw = Array.isArray(json) ? json
