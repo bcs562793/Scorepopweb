@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v5.9 — Arşiv Desteği)
+   SCOREPOP — app.js  (v6.0 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -199,13 +199,23 @@ const COUNTRY_TR_MAP = {
   'romanya':   'romania',
 };
 
+/* --- YENİ: Türkçe karakterleri güvenle küçültme yardımcısı --- */
+function _toLowerTr(str) {
+  if (!str) return '';
+  return str
+    .replace(/İ/g, 'i')
+    .replace(/I/g, 'ı')
+    .toLowerCase()
+    .trim();
+}
+
 function _normalizeCountry(country) {
-  const lower = (country || '').toLowerCase().trim();
+  const lower = _toLowerTr(country);
   return COUNTRY_TR_MAP[lower] || lower;   /* Türkçe → İngilizce, yoksa olduğu gibi */
 }
 
 function _matchLeagueTier(leagueName, country) {
-  const lower = (leagueName || '').toLowerCase().trim();
+  const lower = _toLowerTr(leagueName);
   const lowerCountry = _normalizeCountry(country);
 
   for (const entry of LEAGUE_TIERS) {
@@ -219,7 +229,7 @@ function _matchLeagueTier(leagueName, country) {
         if (lowerCountry && lowerCountry.includes(entry.country)) {
           return { tier: entry.tier, order: entry.order };
         }
-        /* Ülke bilgisi YOK veya eşleşmedi → bu entry'i atla, Singapur vb. yanlış sıraya girmesin */
+        /* Ülke bilgisi YOK veya eşleşmedi → bu entry'i atla, diğer kelimelere bak */
       }
     }
   }
@@ -227,11 +237,11 @@ function _matchLeagueTier(leagueName, country) {
   return { tier: 3, order: 999 };  /* Tanımsız → en sona */
 }
 
-/*  Grup sıralama anahtarı: favori(0/1) → tier → order → alfabe  */
+/* Grup sıralama anahtarı: favori(0/1) → tier → order → alfabe  */
 function _leagueSortKey(group) {
   const fav = isFavLeague(group.name) ? 0 : 1;
   const { tier, order } = _matchLeagueTier(group.name, group.country);
-  return { fav, tier, order, name: (group.name || '').toLowerCase() };
+  return { fav, tier, order, name: _toLowerTr(group.name) };
 }
 
 function _sortLeagueGroups(groups) {
