@@ -498,12 +498,15 @@ async function loadToday() {
     if (!matchesMap.has(norm.fixture_id)) {
       matchesMap.set(norm.fixture_id, norm);
     } else {
-      // Maç zaten live_matches'ten eklenmişse ve saat verisi eksikse, 
-      // future_matches'ten gelen saat verisini (kickoff_time) yamala.
+      // Maç zaten live_matches'ten eklenmişse, eksik verilerini (saat, ülke, logo) future_matches'ten yamala
       const existing = matchesMap.get(norm.fixture_id);
-      if (!existing.kickoff_time && norm.kickoff_time) {
-        existing.kickoff_time = norm.kickoff_time;
-      }
+      
+      if (!existing.kickoff_time && norm.kickoff_time) existing.kickoff_time = norm.kickoff_time;
+      
+      // ▼ YENİ: Sıralama ve görsellik için eksik ülke/lig bilgilerini de tamamla ▼
+      if (!existing.league_country && norm.league_country) existing.league_country = norm.league_country;
+      if (!existing.league_flag && norm.league_flag) existing.league_flag = norm.league_flag;
+      if (!existing.league_logo && norm.league_logo) existing.league_logo = norm.league_logo;
     }
   }
 
