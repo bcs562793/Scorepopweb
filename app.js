@@ -1254,7 +1254,7 @@ function _sofaTo1x2(sofaMarkets) {
    GZ DOSYALARI YÜKLEME + BENZERİ ORAN ANALİZİ
    ══════════════════════════════════════════════════════════════ */
 
-const ORANCEK_API  = 'https://api.github.com/repos/bcs562793/orancek/contents/data';
+
 let   _gzAllCache  = null;   /* tüm gz maçları birleşik dizi */
 let   _gzLoadingP  = null;   /* singleton promise */
 
@@ -1263,13 +1263,15 @@ async function _loadAllGz() {
   if (_gzLoadingP) return _gzLoadingP;
 
   _gzLoadingP = (async () => {
-    /* 1. Repo'daki data/ dosya listesini çek */
-    const listResp = await fetch(ORANCEK_API);
-    if (!listResp.ok) throw new Error('GitHub API erişilemedi');
-    const files = await listResp.json();
-    const gzFiles = files
-      .filter(f => f.name.startsWith('odds_') && f.name.endsWith('.json.gz'))
-      .map(f => f.download_url);
+    
+    /* 1. Dosya listesini oranveri.txt'den çek */
+const listResp = await fetch('https://onlinescoreboard.store/oranveri.txt');
+if (!listResp.ok) throw new Error('oranveri.txt erişilemedi');
+const text = await listResp.text();
+const gzFiles = text.split('\n')
+  .map(l => l.trim())
+  .filter(l => l.startsWith('odds_') && l.endsWith('.json.gz'))
+  .map(name => `${ORANCEK_BASE}/${name}`);
 
     /* 2. Tüm gz'leri paralel yükle */
     const all = [];
