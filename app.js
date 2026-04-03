@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v6.0 — Arşiv Desteği)
+   SCOREPOP — app.js  (v6.1 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -1265,7 +1265,7 @@ async function _loadAllGz() {
   _gzLoadingP = (async () => {
     
     /* 1. Dosya listesini oranveri.txt'den çek */
-const listResp = await fetch('https://onlinescoreboard.store/oranveri.txt');
+const listResp = await fetch('https://www.onlinescoreboard.store/oranveri.txt');
 if (!listResp.ok) throw new Error('oranveri.txt erişilemedi');
 const text = await listResp.text();
 const gzFiles = text.split('\n')
