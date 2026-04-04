@@ -221,20 +221,21 @@ function _matchLeagueTier(leagueName, country) {
   for (const entry of LEAGUE_TIERS) {
     for (const kw of entry.keywords) {
       if (lower.includes(kw)) {
-        /* Tier 0 (uluslararası turnuvalar) ve ülke kısıtı olmayanlar → doğrudan eşleş */
         if (!entry.country) {
           return { tier: entry.tier, order: entry.order };
         }
-        /* Ülke kısıtı var → ülke bilgisi kesin eşleşmeli, yoksa geç */
+        // Ülke verisi var ve eşleşiyor → kesin eşleşme
         if (lowerCountry && lowerCountry.includes(entry.country)) {
           return { tier: entry.tier, order: entry.order };
         }
-        /* Ülke bilgisi YOK veya eşleşmedi → bu entry'i atla, diğer kelimelere bak */
+        // Ülke verisi YOK (live_matches'te boş gelir) → keyword yeterli
+        if (!lowerCountry) {
+          return { tier: entry.tier, order: entry.order };
+        }
       }
     }
   }
-
-  return { tier: 3, order: 999 };  /* Tanımsız → en sona */
+  return { tier: 3, order: 999 };
 }
 
 /* Grup sıralama anahtarı: favori(0/1) → tier → order → alfabe  */
@@ -442,7 +443,7 @@ async function loadLive(silent = false) {
   const { data, error } = await S.sb
     .from('live_matches').select('*')
     .in('status_short',['1H','2H','HT','ET','BT','P','LIVE'])
-    .limit(120).order('league_name');
+    .limit(120);
   if (error) throw error;
 
   /* normFix üzerinden geçir — stale dedektörü otomatik FT'ye çeker */
