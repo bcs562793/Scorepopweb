@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v6.3 — Arşiv Desteği)
+   SCOREPOP — app.js  (v6.4 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -283,21 +283,41 @@ function _extractCountryFromName(leagueName) {
   return null;
 }
 
+/* Lig adından { tier, order } döndür — ülke filtresi destekler  */
 function _matchLeagueTier(leagueName, country) {
   const lower        = _toLowerTr(leagueName);
   const lowerCountry = _normalizeCountry(country);
+  const extracted    = _extractCountryFromName(leagueName);
+
   for (const entry of LEAGUE_TIERS) {
     for (const kw of entry.keywords) {
       if (!lower.includes(kw)) continue;
+
+      /* 1. Ülke bağımsız bir turnuvaysa (Şampiyonlar Ligi vb.) direkt eşleşir */
       if (!entry.country) return { tier: entry.tier, order: entry.order };
-      if (lowerCountry && lowerCountry.includes(entry.country))
-        return { tier: entry.tier, order: entry.order };
-      if (!lowerCountry) {
-        const extracted = _extractCountryFromName(leagueName);
-        if (extracted) {
-          if (extracted !== entry.country) continue;
+
+      /* 2. API'den gelen ülke verisi varsa, eşleşmek ZORUNDA */
+      if (lowerCountry) {
+        if (lowerCountry.includes(entry.country)) {
           return { tier: entry.tier, order: entry.order };
         }
+        continue; /* Ülke tutmadıysa diğer keyword/lige geç (Örn: Mısır -> İngiltere'yi atlar) */
+      }
+
+      /* 3. API'de ülke yok ama lig adından ülke (mısır, arjantin vb.) çıkarabildiysek, eşleşmek ZORUNDA */
+      if (extracted) {
+        if (extracted === entry.country) {
+          return { tier: entry.tier, order: entry.order };
+        }
+        continue; /* Çıkarılan ülke tutmadıysa geç */
+      }
+
+      /* 4. Hem ülke boş hem de isimden ülke çıkarılamadıysa (Örn: Sadece "Premier League" yazıyorsa)
+         Eski kod burada direkt ilk bulduğuna (İngiltere) atıyordu, bu da Mısır/Bahreyn gibi
+         ülkesi boş gelen ligleri İngiltere Tier 1 yapıyordu.
+         Artık sadece keyword içinde bizzat ülke adı geçiyorsa eşleştiriyoruz. */
+      const trCountry = Object.keys(COUNTRY_TR_MAP).find(k => COUNTRY_TR_MAP[k] === entry.country);
+      if (kw.includes(entry.country) || (trCountry && kw.includes(trCountry))) {
         return { tier: entry.tier, order: entry.order };
       }
     }
