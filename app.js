@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v6.2 — Arşiv Desteği)
+   SCOREPOP — app.js  (v6.3 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -215,26 +215,71 @@ function _normalizeCountry(country) {
 }
 
 /*  Lig adından { tier, order } döndür — ülke filtresi destekler  */
-
-/* ── YENİ: Lig adından ülkeyi çıkarmaya çalış (boş league_country fallback) ── */
 function _extractCountryFromName(leagueName) {
   const lower = _toLowerTr(leagueName);
-  for (const [trName, enName] of Object.entries(COUNTRY_TR_MAP)) {
-    const trLower = _toLowerTr(trName);
-    if (trLower.length >= 4 && lower.includes(trLower)) return enName;
-  }
-  const EN_NAMES = {
-    turkey:'turkey', england:'england', spain:'spain', italy:'italy',
-    germany:'germany', france:'france', portugal:'portugal',
-    netherlands:'netherlands', belgium:'belgium', scotland:'scotland',
-    switzerland:'switzerland', austria:'austria', norway:'norway',
-    greece:'greece', denmark:'denmark', israel:'israel', ukraine:'ukraine',
-    serbia:'serbia', croatia:'croatia', poland:'poland', cyprus:'cyprus',
-    hungary:'hungary', sweden:'sweden', romania:'romania', czech:'czech',
+
+  /* Türkçe ülke adları — COUNTRY_TR_MAP + ek ülkeler */
+  const TR_EXTRA = {
+    ...COUNTRY_TR_MAP,
+    'arjantin':'argentina','brezilya':'brazil','meksika':'mexico',
+    'abd':'usa','kanada':'canada','avustralya':'australia',
+    'japonya':'japan','cin':'china','rusya':'russia',
+    'bahreyn':'bahrain','suudi':'saudi','katar':'qatar',
+    'misir':'egypt','fas':'morocco','nijerya':'nigeria',
+    'gambiya':'gambia','ruanda':'rwanda','burkina':'burkina',
+    'bosna':'bosnia','karadag':'montenegro','faroe':'faroe',
+    'irak':'iraq','umman':'oman','urdun':'jordan',
+    'kolombiya':'colombia','sili':'chile','uruguay':'uruguay',
+    'peru':'peru','venezuela':'venezuela','ekvador':'ecuador',
+    'bolivya':'bolivia','paraguay':'paraguay','angola':'angola',
+    'kenya':'kenya','bulgaristan':'bulgaria','moldova':'moldova',
+    'slovakya':'slovakia','slovenya':'slovenia','arnavutluk':'albania',
+    'makedonya':'northmacedonia','ermenistan':'armenia',
+    'gurcistan':'georgia','azerbaycan':'azerbaijan',
+    'kazakistan':'kazakhstan','belarus':'belarus',
+    'litvanya':'lithuania','letonya':'latvia','estonya':'estonia',
+    'finlandiya':'finland','luksemburg':'luxembourg','malta':'malta',
+    'bae':'uae','hindistan':'india','endonezya':'indonesia',
+    'tayland':'thailand','vietnam':'vietnam','malezya':'malaysia',
+    'gana':'ghana','kamerun':'cameroon','senegal':'senegal',
+    'fildisi':'cotedivoire','zimbabve':'zimbabwe','zambia':'zambia',
+    'tunisia':'tunisia','tunus':'tunisia','cezayir':'algeria',
+    'libya':'libya','sudan':'sudan','etyopya':'ethiopia',
+    'tanzanya':'tanzania','kongo':'congo','mozambik':'mozambique',
+    'madagaskar':'madagascar','mali':'mali','niger':'niger',
   };
-  for (const [en, val] of Object.entries(EN_NAMES)) {
-    if (lower.includes(en)) return val;
+
+  for (const [trName, enName] of Object.entries(TR_EXTRA)) {
+    const trLower = _toLowerTr(trName);
+    if (trLower.length >= 3 && lower.includes(trLower)) return enName;
   }
+
+  /* İngilizce ülke adları */
+  const EN_NAMES = [
+    'turkey','england','spain','italy','germany','france','portugal',
+    'netherlands','belgium','scotland','switzerland','austria','norway',
+    'greece','denmark','israel','ukraine','serbia','croatia','poland',
+    'cyprus','hungary','sweden','romania','czech','argentina','brazil',
+    'mexico','usa','canada','australia','japan','china','russia',
+    'bahrain','saudi','qatar','egypt','morocco','nigeria','gambia',
+    'rwanda','burkina','bosnia','montenegro','faroe','iraq','oman',
+    'jordan','colombia','chile','uruguay','peru','venezuela','ecuador',
+    'bolivia','paraguay','angola','kenya','bulgaria','moldova',
+    'slovakia','slovenia','albania','macedonia','armenia','georgia',
+    'azerbaijan','kazakhstan','belarus','lithuania','latvia','estonia',
+    'finland','luxembourg','malta','uae','india','indonesia',
+    'thailand','vietnam','malaysia','ghana','cameroon','senegal',
+    'zimbabwe','zambia','tunisia','algeria','libya','sudan',
+    'ethiopia','congo','mozambique','madagascar','mali','niger',
+    'singapore','philippines','myanmar','cambodia','laos',
+    'afghanistan','pakistan','bangladesh','nepal','srilanka',
+    'iran','syria','lebanon','kuwait','yemen','libya',
+  ];
+
+  for (const en of EN_NAMES) {
+    if (lower.includes(en)) return en;
+  }
+
   return null;
 }
 
