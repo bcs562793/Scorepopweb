@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v6.1 — Arşiv Desteği)
+   SCOREPOP — app.js  (v6.2 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -214,24 +214,46 @@ function _normalizeCountry(country) {
   return COUNTRY_TR_MAP[lower] || lower;   /* Türkçe → İngilizce, yoksa olduğu gibi */
 }
 
-function _matchLeagueTier(leagueName, country) {
-  const lower = _toLowerTr(leagueName);
-  const lowerCountry = _normalizeCountry(country);
+/*  Lig adından { tier, order } döndür — ülke filtresi destekler  */
 
+/* ── YENİ: Lig adından ülkeyi çıkarmaya çalış (boş league_country fallback) ── */
+function _extractCountryFromName(leagueName) {
+  const lower = _toLowerTr(leagueName);
+  for (const [trName, enName] of Object.entries(COUNTRY_TR_MAP)) {
+    const trLower = _toLowerTr(trName);
+    if (trLower.length >= 4 && lower.includes(trLower)) return enName;
+  }
+  const EN_NAMES = {
+    turkey:'turkey', england:'england', spain:'spain', italy:'italy',
+    germany:'germany', france:'france', portugal:'portugal',
+    netherlands:'netherlands', belgium:'belgium', scotland:'scotland',
+    switzerland:'switzerland', austria:'austria', norway:'norway',
+    greece:'greece', denmark:'denmark', israel:'israel', ukraine:'ukraine',
+    serbia:'serbia', croatia:'croatia', poland:'poland', cyprus:'cyprus',
+    hungary:'hungary', sweden:'sweden', romania:'romania', czech:'czech',
+  };
+  for (const [en, val] of Object.entries(EN_NAMES)) {
+    if (lower.includes(en)) return val;
+  }
+  return null;
+}
+
+function _matchLeagueTier(leagueName, country) {
+  const lower        = _toLowerTr(leagueName);
+  const lowerCountry = _normalizeCountry(country);
   for (const entry of LEAGUE_TIERS) {
     for (const kw of entry.keywords) {
-      if (lower.includes(kw)) {
-        if (!entry.country) {
+      if (!lower.includes(kw)) continue;
+      if (!entry.country) return { tier: entry.tier, order: entry.order };
+      if (lowerCountry && lowerCountry.includes(entry.country))
+        return { tier: entry.tier, order: entry.order };
+      if (!lowerCountry) {
+        const extracted = _extractCountryFromName(leagueName);
+        if (extracted) {
+          if (extracted !== entry.country) continue;
           return { tier: entry.tier, order: entry.order };
         }
-        // Ülke verisi var ve eşleşiyor → kesin eşleşme
-        if (lowerCountry && lowerCountry.includes(entry.country)) {
-          return { tier: entry.tier, order: entry.order };
-        }
-        // Ülke verisi YOK (live_matches'te boş gelir) → keyword yeterli
-        if (!lowerCountry) {
-          return { tier: entry.tier, order: entry.order };
-        }
+        return { tier: entry.tier, order: entry.order };
       }
     }
   }
