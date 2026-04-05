@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — router.js v1.2
+   SCOREPOP — router.js v1.3
    Hash tabanlı SEO dostu URL yönetimi
+   v1.3 — og:image, Twitter Card ve BreadcrumbList eklendi
 ════════════════════════════════════════════════ */
 'use strict';
 
@@ -175,6 +176,16 @@ const Router = (() => {
     _setOG('og:url',         canon.href);
     _setOG('og:type',        'website');
     _setOG('og:site_name',   'ScorePop');
+    /* Varsayılan og:image — setMatchMeta takım logolarıyla üzerine yazar */
+    _setOG('og:image',       'https://scorepop.com.tr/logo.png');
+    _setOG('og:image:width',  '512');
+    _setOG('og:image:height', '512');
+    /* Twitter Card varsayılan */
+    _setMeta('twitter:card',        'summary');
+    _setMeta('twitter:site',        '@scorepop');
+    _setMeta('twitter:title',       document.title);
+    _setMeta('twitter:description', desc.content);
+    _setMeta('twitter:image',       'https://scorepop.com.tr/logo.png');
   }
 
   /* Canlı sayılan status kodları — app.js / statusInfo ile senkron tutulmalı */
@@ -198,6 +209,19 @@ const Router = (() => {
     const endDateISO = new Date(startDateObj.getTime() + 2 * 60 * 60 * 1000).toISOString();
 
     const imageUrl = homeLogo || awayLogo || 'https://scorepop.com.tr/logo.png';
+
+    /* ── og:image — takım logosuyla güncelle ── */
+    _setOG('og:image',        imageUrl);
+    _setOG('og:image:width',  '512');
+    _setOG('og:image:height', '512');
+    _setOG('og:type',         'article');
+
+    /* ── Twitter Card — maç özelinde güncelle ── */
+    _setMeta('twitter:card',        'summary');
+    _setMeta('twitter:site',        '@scorepop');
+    _setMeta('twitter:title',       title + ' — ScorePop');
+    _setMeta('twitter:description', desc);
+    _setMeta('twitter:image',       imageUrl);
 
     /* ── Doğru eventStatus: canlıda EventLive, bittiyse EventCompleted ── */
     const DONE_STATUSES = new Set(['FT','AET','PEN']);
@@ -290,6 +314,13 @@ const Router = (() => {
       const old = document.getElementById('sp-liveblog-jsonld');
       if (old) old.remove();
     }
+
+    /* ── BreadcrumbList — her maç sayfasında ── */
+    _setBreadcrumbJsonLD([
+      { name: 'Ana Sayfa', url: 'https://scorepop.com.tr/' },
+      { name: league || 'Maç',  url: 'https://scorepop.com.tr/' },
+      { name: `${homeTeam} - ${awayTeam}`, url: window.location.origin + window.location.pathname },
+    ]);
   }
 
   function _setLiveBlogJsonLD(data) {
@@ -344,6 +375,40 @@ const Router = (() => {
       document.head.appendChild(el);
     }
     el.content = content;
+  }
+
+  /* Twitter Card ve diğer name= meta etiketleri için */
+  function _setMeta(name, content) {
+    let el = document.querySelector(`meta[name="${name}"]`);
+    if (!el) {
+      el = document.createElement('meta');
+      el.name = name;
+      document.head.appendChild(el);
+    }
+    el.content = content || '';
+  }
+
+  /* BreadcrumbList JSON-LD — maç sayfalarında hiyerarşiyi Google'a bildirir */
+  function _setBreadcrumbJsonLD(items) {
+    let el = document.getElementById('sp-breadcrumb-jsonld');
+    if (!el) {
+      el = document.createElement('script');
+      el.id   = 'sp-breadcrumb-jsonld';
+      el.type = 'application/ld+json';
+      document.head.appendChild(el);
+    }
+    try {
+      el.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        'itemListElement': items.map((item, i) => ({
+          '@type':    'ListItem',
+          'position': i + 1,
+          'name':     item.name,
+          'item':     item.url,
+        })),
+      });
+    } catch(e) {}
   }
 
   return {
