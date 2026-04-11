@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — router.js v1.3
+   SCOREPOP — router.js v1.5
    Hash tabanlı SEO dostu URL yönetimi
    v1.3 — og:image, Twitter Card ve BreadcrumbList eklendi
 ════════════════════════════════════════════════ */
@@ -94,15 +94,17 @@ const Router = (() => {
       return;
     }
 
-    if (ROUTES.puandurumu.test(path)) {
-      // GitHub Pages: puan-durumu/index.html fiziksel dosyası var,
-      // trailing slash ile direkt servis edilir — döngü olmaz
-      const target = '/puan-durumu/';
-      if (window.location.pathname !== target) {
-        window.location.replace(target);
-      }
-      return;
-    }
+    // router.js dosyası
+if (ROUTES.puandurumu.test(path)) {
+  const target = '/puan-durumu/';
+  if (window.location.pathname !== target) {
+    window.location.replace(target);
+  } else {
+    // SPA yanlışlıkla bu rotayı devraldıysa doğrudan fiziksel HTML dosyasına zorla yönlendir
+    window.location.replace('/puan-durumu/index.html');
+  }
+  return;
+}
 
     // Uzantılı statik dosyalar — .html hariç (döngüye girer)
     if (/\.(?!html?)[a-z0-9]+$/i.test(path)) {
