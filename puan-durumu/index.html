@@ -12,7 +12,6 @@
   <meta property="og:url" content="https://scorepop.com.tr/puan-durumu"/>
   <meta property="og:type" content="website"/>
 
-  <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-JS4J2RCJJ9"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -21,13 +20,11 @@
     gtag('config', 'G-JS4J2RCJJ9');
   </script>
 
-  <!-- AdSense -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6664942674336301" crossorigin="anonymous"></script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 
-  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
   <script src="/config.js"></script>
 
@@ -313,7 +310,6 @@
 </head>
 <body>
 
-<!-- ── TOPBAR ── -->
 <header class="topbar">
   <a class="topbar-brand" href="/">
     <div class="topbar-mark">
@@ -331,10 +327,8 @@
   </nav>
 </header>
 
-<!-- ── MAIN ── -->
 <div class="page-wrap">
 
-  <!-- League Picker -->
   <aside class="league-panel">
     <div class="lp-header">
       <div class="lp-title">Ligler</div>
@@ -345,10 +339,8 @@
     </div>
   </aside>
 
-  <!-- Standings Content -->
   <main class="standings-wrap" id="standingsWrap">
 
-    <!-- Top Ad -->
     <div class="ad-slot">
       <ins class="adsbygoogle"
            style="display:block;width:100%;min-height:90px;"
@@ -365,7 +357,6 @@
       </div>
     </div>
 
-    <!-- Bottom Ad -->
     <div class="ad-slot">
       <ins class="adsbygoogle"
            style="display:block;width:100%;min-height:90px;"
@@ -488,6 +479,13 @@ async function load() {
     }).filter(r => r.raw);
 
     buildLeagueList();
+
+    if (allData.length === 0) {
+      document.getElementById('standingsContent').innerHTML =
+        `<div class="standings-card"><div class="state-box"><div class="icon">📭</div><p>Henüz puan durumu verisi bulunmuyor.</p></div></div>`;
+      return;
+    }
+
     // Select first known league automatically
     const firstKnown = allData.find(r => LEAGUE_NAMES[r.league_id]);
     if (firstKnown) selectLeague(firstKnown.league_id);
@@ -568,7 +566,7 @@ function parseStandings(row) {
   if (!row.raw) return [];
   if (Array.isArray(row.raw)) {
     // Array of team standing objects (single group)
-    return [[row.raw]];  // wrap in groups[][]
+    return [row.raw];
   }
   if (row.raw.response && row.raw.response[0] && row.raw.response[0].league) {
     return row.raw.response[0].league.standings || [];
@@ -702,7 +700,6 @@ load();
 })();
 </script>
 
-<!-- Structured Data -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
