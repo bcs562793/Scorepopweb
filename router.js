@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — router.js v1.6
+   SCOREPOP — router.js v1.7
    Hash tabanlı SEO dostu URL yönetimi
    v1.3 — og:image, Twitter Card ve BreadcrumbList eklendi
 ════════════════════════════════════════════════ */
@@ -94,17 +94,17 @@ const Router = (() => {
       return;
     }
 
-    // router.js dosyası
-if (ROUTES.puandurumu.test(path)) {
-  const target = '/puan-durumu/';
-  if (window.location.pathname !== target) {
-    window.location.replace(target);
-  } else {
-    // SPA yanlışlıkla bu rotayı devraldıysa doğrudan fiziksel HTML dosyasına zorla yönlendir
-    window.location.replace('/puan-durumu/index.html');
-  }
-  return;
-}
+    // puan-durumu sayfası - fiziksel HTML dosyasını göster
+    if (ROUTES.puandurumu.test(path)) {
+      const target = '/puan-durumu/';
+      // Sadece /puan-durumu veya /puan-durumu/ klasörüne girildiğinde index.html'e yönlendir
+      // /puan-durumu/index.html zaten doğru sayfada, yönlendirme YAPMA
+      if (path === target || path === '/puan-durumu') {
+        window.location.replace('/puan-durumu/index.html');
+      }
+      // path zaten /puan-durumu/index.html ise hiçbir şey yapma, sayfayı göster
+      return;
+    }
 
     // Uzantılı statik dosyalar — .html hariç (döngüye girer)
     if (/\.(?!html?)[a-z0-9]+$/i.test(path)) {
