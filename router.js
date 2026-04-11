@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — router.js v1.3
+   SCOREPOP — router.js v1.4
    Hash tabanlı SEO dostu URL yönetimi
    v1.3 — og:image, Twitter Card ve BreadcrumbList eklendi
 ════════════════════════════════════════════════ */
@@ -14,6 +14,7 @@ const Router = (() => {
     match:      /^\/?mac\/(\d+)(?:-[^/]+)?$/i,
     hakkimizda: /^\/?hakkimizda\/?$/i,
     iletisim:   /^\/?iletisim\/?$/i,
+    puandurumu: /^\/?puan-durumu\/?$/i,
   };
 
   let _busy = false;
@@ -90,6 +91,11 @@ const Router = (() => {
       window.__pendingPage = 'page-iletisim';
       window.__pendingPath = '/iletisim';
       _waitAndOpen();
+      return;
+    }
+
+    if (ROUTES.puandurumu.test(path)) {
+      window.location.href = '/puan-durumu/index.html';
       return;
     }
 
