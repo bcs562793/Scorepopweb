@@ -7,11 +7,26 @@
   var path = window.location.pathname;
   var search = window.location.search;
   var hash = window.location.hash;
-  window.location.replace(
-    '/?p=' + encodeURIComponent(path) +
-    (search ? '&' + search.slice(1) : '') +
-    (hash || '')
-  );
+
+  // puan-durumu: GitHub Pages fiziksel klasörü var, trailing slash ile git
+  if (path === '/puan-durumu' || path === '/puan-durumu/') {
+    window.location.replace('/puan-durumu/');
+  }
+  // hakkimizda ve iletisim: klasör içi index.html var
+  else if (path === '/hakkimizda' || path === '/hakkimizda/') {
+    window.location.replace('/hakkimizda/');
+  }
+  else if (path === '/iletisim' || path === '/iletisim/') {
+    window.location.replace('/iletisim/');
+  }
+  // Diğer tüm URL'ler: SPA trick — index.html router'a gönder
+  else {
+    window.location.replace(
+      '/?p=' + encodeURIComponent(path) +
+      (search ? '&' + search.slice(1) : '') +
+      (hash || '')
+    );
+  }
 </script>
 </head>
 <body></body>
