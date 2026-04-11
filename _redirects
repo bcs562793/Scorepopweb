@@ -3,10 +3,10 @@
 /sitemap.xml /sitemap.xml 200
 /robots.txt /robots.txt 200
 /privacy.html /privacy.html 200
-/hakkimizda/* /hakkimizda/index.html 200
 /hakkimizda /hakkimizda/index.html 200
-/iletisim/* /iletisim/index.html 200
+/hakkimizda/ /hakkimizda/index.html 200
 /iletisim /iletisim/index.html 200
-/puan-durumu/* /puan-durumu/index.html 200
+/iletisim/ /iletisim/index.html 200
 /puan-durumu /puan-durumu/index.html 200
+/puan-durumu/ /puan-durumu/index.html 200
 /* /index.html 200
