@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — router.js v1.8
+   SCOREPOP — router.js v1.9
    Hash tabanlı SEO dostu URL yönetimi
    v1.3 — og:image, Twitter Card ve BreadcrumbList eklendi
 ════════════════════════════════════════════════ */
@@ -95,14 +95,14 @@ const Router = (() => {
     }
 
     // puan-durumu sayfası - fiziksel HTML dosyasını göster
+    // Netlify'da /puan-durumu/ klasöre yönlenir ve index.html sunulur
     if (ROUTES.puandurumu.test(path)) {
-      const target = '/puan-durumu/';
-      // Sadece /puan-durumu veya /puan-durumu/ klasörüne girildiğinde index.html'e yönlendir
-      // /puan-durumu/index.html zaten doğru sayfada, yönlendirme YAPMA
-      if (path === target || path === '/puan-durumu') {
+      // Yönlendirme döngüsünü önlemek için /puan-durumu/index.html'e sadece
+      // klasör yolu (/puan-durumu/) üzerinden gelindiğinde yönlendir
+      if (path === '/puan-durumu' || path === '/puan-durumu/') {
         window.location.replace('/puan-durumu/index.html');
       }
-      // path zaten /puan-durumu/index.html ise hiçbir şey yapma, sayfayı göster
+      // path zaten /puan-durumu/index.html ise sayfayı göster
       return;
     }
 
