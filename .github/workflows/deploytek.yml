@@ -1,0 +1,114 @@
+name: DeployTek — Puan Durumu Fix
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      # ── 1. Kodu çek ──────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Credentials enjekte et ─────────────────────────────────────────
+      - name: Inject credentials
+        run: |
+          sed -i "s|BURAYA_URL|${{ secrets.SUPABASE_URL }}|g" config.js
+          sed -i "s|BURAYA_KEY|${{ secrets.SUPABASE_KEY }}|g" config.js
+          sed -i "s|BURAYA_PAYMENT_URL|${{ secrets.PAYMENT_EDGE_URL }}|g" index.html
+
+      # ── 3. Cache busting — index.html + puan-durumu/index.html ────────────
+      - name: Cache busting
+        run: |
+          BUILD=$(date +%s)
+
+          # Ana sayfa
+          sed -i "s/app\.js?v=[^\"']*/app.js?v=${BUILD}/g"       index.html
+          sed -i "s/style\.css?v=[^\"']*/style.css?v=${BUILD}/g" index.html
+          sed -i "s/config\.js?v=[^\"']*/config.js?v=${BUILD}/g" index.html
+          sed -i "s/router\.js?v=[^\"']*/router.js?v=${BUILD}/g" index.html
+          sed -i "s/auth\.js?v=[^\"']*/auth.js?v=${BUILD}/g"     index.html
+          sed -i "s/forum\.js?v=[^\"']*/forum.js?v=${BUILD}/g"   index.html
+          sed -i "s/payment\.js?v=[^\"']*/payment.js?v=${BUILD}/g" index.html
+          sed -i "s/indexing\.js?v=[^\"']*/indexing.js?v=${BUILD}/g" index.html
+
+          # Puan durumu — config.js referansını versiyonla (yoksa ekle)
+          if grep -q 'config\.js?v=' puan-durumu/index.html; then
+            sed -i "s/config\.js?v=[^\"']*/config.js?v=${BUILD}/g" puan-durumu/index.html
+          else
+            sed -i 's|src="/config\.js"|src="/config.js?v='"${BUILD}"'"|g' puan-durumu/index.html
+          fi
+
+          touch .nojekyll
+
+      # ── 4. Cloudflare Cache Rule — puan-durumu için bypass ────────────────
+      - name: Cloudflare - Create cache bypass rule for puan-durumu
+        run: |
+          echo "Mevcut Page Rule'lar kontrol ediliyor..."
+
+          EXISTING=$(curl -s \
+            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CF_ZONE_ID }}/pagerules?status=active" \
+            -H "Authorization: Bearer ${{ secrets.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json")
+
+          # puan-durumu için kural zaten varsa atla
+          if echo "$EXISTING" | grep -q "puan-durumu"; then
+            echo "✅ puan-durumu için Page Rule zaten mevcut, atlanıyor."
+          else
+            echo "➕ puan-durumu Page Rule oluşturuluyor..."
+            RESULT=$(curl -s -X POST \
+              "https://api.cloudflare.com/client/v4/zones/${{ secrets.CF_ZONE_ID }}/pagerules" \
+              -H "Authorization: Bearer ${{ secrets.CF_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data '{
+                "targets": [
+                  {
+                    "target": "url",
+                    "constraint": {
+                      "operator": "matches",
+                      "value": "scorepop.com.tr/puan-durumu*"
+                    }
+                  }
+                ],
+                "actions": [
+                  {
+                    "id": "cache_level",
+                    "value": "bypass"
+                  }
+                ],
+                "priority": 1,
+                "status": "active"
+              }')
+
+            if echo "$RESULT" | grep -q '"success":true'; then
+              echo "✅ Page Rule başarıyla oluşturuldu."
+            else
+              echo "❌ Page Rule oluşturulamadı:"
+              echo "$RESULT"
+              exit 1
+            fi
+          fi
+
+      # ── 5. GitHub Pages'e deploy et ───────────────────────────────────────
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          publish_branch: gh-pages
+          exclude_assets: '.github,*.yml,*.md'
+
+      # ── 6. Cloudflare cache'ini tamamen temizle ───────────────────────────
+      - name: Cloudflare Cache Purge
+        run: |
+          curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CF_ZONE_ID }}/purge_cache" \
+            -H "Authorization: Bearer ${{ secrets.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}'
+
+          echo "✅ Cloudflare cache temizlendi."
