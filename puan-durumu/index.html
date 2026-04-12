@@ -470,7 +470,7 @@ async function load() {
   if (!supabase) return;
   try {
     const { data, error } = await supabase
-      .from('league_standings_rows')
+      .from('league_standings')
       .select('league_id, data, updated_at')
       .order('league_id', { ascending: true });
 
