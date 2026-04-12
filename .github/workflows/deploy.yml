@@ -18,6 +18,10 @@ jobs:
         run: |
           sed -i "s|BURAYA_URL|${{ secrets.SUPABASE_URL }}|g" config.js
           sed -i "s|BURAYA_KEY|${{ secrets.SUPABASE_KEY }}|g" config.js
+          sed -i "s|BURAYA_URL|${{ secrets.SUPABASE_URL }}|g" haberler/index.html
+          sed -i "s|BURAYA_KEY|${{ secrets.SUPABASE_KEY }}|g" haberler/index.html
+          sed -i "s|BURAYA_URL|${{ secrets.SUPABASE_URL }}|g" haber/index.html
+          sed -i "s|BURAYA_KEY|${{ secrets.SUPABASE_KEY }}|g" haber/index.html
           sed -i "s|BURAYA_PAYMENT_URL|${{ secrets.PAYMENT_EDGE_URL }}|g" index.html
 
       - name: Cache busting
@@ -47,4 +51,3 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.CF_API_TOKEN }}" \
             -H "Content-Type: application/json" \
             --data '{"purge_everything":true}'
-            
