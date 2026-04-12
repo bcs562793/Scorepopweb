@@ -14,6 +14,8 @@ const Router = (() => {
     match:      /^\/?mac\/(\d+)(?:-[^/]+)?$/i,
     hakkimizda: /^\/?hakkimizda\/?$/i,
     iletisim:   /^\/?iletisim\/?$/i,
+    haberler:   /^\/?(haberler)\/?$/i,
+    haber:      /^\/?(haber)\/([^/]+)\/?$/i,
     puandurumu: /^\/?puan-durumu(?:\/(?:index\.html)?)?\/?$/i,
   };
 
@@ -91,6 +93,16 @@ const Router = (() => {
       window.__pendingPage = 'page-iletisim';
       window.__pendingPath = '/iletisim';
       _waitAndOpen();
+      return;
+    }
+
+    if (ROUTES.haberler.test(path)) {
+      if (path === '/haberler') { window.location.replace('/haberler/'); return; }
+      return;
+    }
+
+    if (ROUTES.haber.test(path)) {
+      // /haber/slug → haber/index.html dinamik olarak yükler
       return;
     }
 
