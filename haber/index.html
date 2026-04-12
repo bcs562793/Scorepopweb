@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Haber — ScorePop</title>
+  <title>Spor Haberleri v1.0 — ScorePop</title>
+  <meta name="description" content="Futbol dünyasından son dakika spor haberleri ScorePop'ta."/>
   <meta name="robots" content="index,follow"/>
+  <link rel="canonical" href="https://scorepop.com.tr/haberler"/>
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-JS4J2RCJJ9"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-JS4J2RCJJ9');</script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -21,25 +23,33 @@
     .topbar-title em{color:var(--or);font-style:normal}
     .topbar-back{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--tx2);text-decoration:none;font-size:13px;padding:6px 12px;border-radius:6px;border:1px solid var(--b2);transition:all .2s}
     .topbar-back:hover{color:var(--tx1);border-color:var(--b3);background:var(--bg3)}
-    .page-wrap{max-width:800px;margin:0 auto;padding:32px 20px 60px}
-    .hero-img{width:100%;max-height:420px;object-fit:cover;border-radius:12px;margin-bottom:28px;display:block}
-    .haber-meta{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
-    .meta-tag{background:var(--or2);color:var(--or);border:1px solid var(--or);border-radius:20px;padding:3px 12px;font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
-    .meta-date{color:var(--tx2);font-size:13px}
-    .meta-author{color:var(--tx3);font-size:13px}
-    h1{font-family:'Barlow Condensed',sans-serif;font-size:clamp(24px,5vw,38px);font-weight:800;line-height:1.2;margin-bottom:16px;color:var(--tx1)}
-    .ozet{font-size:16px;color:var(--tx2);border-left:3px solid var(--or);padding-left:16px;margin-bottom:28px;line-height:1.8}
-    .icerik{font-size:15px;color:var(--tx1);line-height:1.9;margin-bottom:32px}
-    .kaynak-btn{display:inline-flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--b2);color:var(--tx2);text-decoration:none;padding:10px 18px;border-radius:8px;font-size:13px;transition:all .2s}
-    .kaynak-btn:hover{border-color:var(--or);color:var(--or);background:var(--or2)}
-    /* Skeleton */
+    .page-wrap{max-width:1100px;margin:0 auto;padding:32px 20px 60px}
+    .page-header{padding-bottom:24px;border-bottom:1px solid var(--b1);margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+    .page-header h1{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800}
+    .page-header h1 span{color:var(--or)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}
+    .card{background:var(--bg2);border:1px solid var(--b1);border-radius:12px;overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column;transition:border-color .2s,transform .2s}
+    .card:hover{border-color:var(--b3);transform:translateY(-2px)}
+    .card-img{height:180px;overflow:hidden;background:var(--bg3)}
+    .card-img img{width:100%;height:100%;object-fit:cover;transition:transform .3s}
+    .card:hover .card-img img{transform:scale(1.04)}
+    .card-body{padding:16px;flex:1;display:flex;flex-direction:column;gap:8px}
+    .card-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .card-tag{background:var(--or2);color:var(--or);border:1px solid var(--or);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase}
+    .card-date{color:var(--tx3);font-size:12px}
+    .card-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;line-height:1.3;color:var(--tx1)}
+    .card-ozet{font-size:13px;color:var(--tx2);line-height:1.6;margin-top:auto}
+    .skeleton{background:var(--bg3);border-radius:8px;animation:pulse 1.4s ease-in-out infinite}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-    .sk{background:var(--bg3);border-radius:6px;animation:pulse 1.4s ease-in-out infinite}
-    .sk-hero{width:100%;height:340px;border-radius:12px;margin-bottom:28px}
-    .sk-line{height:16px;margin-bottom:12px}
-    /* Error */
-    .err{text-align:center;padding:80px 20px;color:var(--tx2)}
-    .err-icon{font-size:48px;margin-bottom:16px}
+    .sk-card{background:var(--bg2);border:1px solid var(--b1);border-radius:12px;overflow:hidden}
+    .sk-img{height:180px;background:var(--bg3);animation:pulse 1.4s ease-in-out infinite}
+    .sk-body{padding:16px;display:flex;flex-direction:column;gap:10px}
+    .sk-line{height:14px;border-radius:4px;background:var(--bg3);animation:pulse 1.4s ease-in-out infinite}
+    .err{text-align:center;padding:60px 20px;color:var(--tx2)}
+    .err-icon{font-size:40px;margin-bottom:12px}
+    .load-more{display:block;margin:32px auto 0;padding:12px 32px;background:var(--bg2);border:1px solid var(--b2);border-radius:8px;color:var(--tx2);font-size:14px;cursor:pointer;transition:all .2s;font-family:'Barlow',sans-serif}
+    .load-more:hover{border-color:var(--or);color:var(--or);background:var(--or2)}
+    .load-more:disabled{opacity:.4;cursor:not-allowed}
     footer{text-align:center;padding:32px 20px;color:var(--tx3);font-size:13px;border-top:1px solid var(--b1)}
     footer a{color:var(--tx2);text-decoration:none}
     footer a:hover{color:var(--or)}
@@ -51,17 +61,15 @@
     <div class="topbar-mark"><img src="https://i.hizliresim.com/gbleupf.png" alt="ScorePop Logo"/></div>
     <div class="topbar-title">SCORE<em>POP</em></div>
   </a>
-  <a class="topbar-back" href="/haberler">← Haberler</a>
+  <a class="topbar-back" href="/">← Ana Sayfa</a>
 </nav>
 
-<div class="page-wrap" id="content">
-  <!-- skeleton -->
-  <div class="sk sk-hero"></div>
-  <div class="sk sk-line" style="width:40%"></div>
-  <div class="sk sk-line" style="width:80%;height:32px;margin-bottom:20px"></div>
-  <div class="sk sk-line" style="width:100%"></div>
-  <div class="sk sk-line" style="width:95%"></div>
-  <div class="sk sk-line" style="width:88%"></div>
+<div class="page-wrap">
+  <div class="page-header">
+    <h1>Spor <span>Haberleri</span></h1>
+  </div>
+  <div id="grid" class="grid"></div>
+  <button id="load-more" class="load-more" style="display:none">Daha fazla yükle</button>
 </div>
 
 <footer>
@@ -71,89 +79,82 @@
 <script>
 const SUPABASE_URL = 'BURAYA_URL';
 const ANON_KEY    = 'BURAYA_KEY';
+const PAGE_SIZE   = 18;
+let offset = 0, loading = false, total = 0;
 
 function fmtDate(str) {
   try {
     const d = new Date(str);
-    const months = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+    const months = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   } catch { return ''; }
 }
 
-// URL'den slug'ı çıkar: /haber/some-slug → some-slug
-function getSlug() {
-  const parts = window.location.pathname.replace(/\/$/, '').split('/');
-  return parts[parts.length - 1];
-}
-
-async function loadHaber() {
-  const slug = getSlug();
-  if (!slug || slug === 'haber') {
-    window.location.replace('/haberler');
-    return;
-  }
-
-  const res = await fetch(`/api/haberler?limit=${PAGE_SIZE}&offset=${offset}`);
-    if (!res.ok) throw new Error('API hatası');
-    const data = await res.json();
-    if (!data.length) throw new Error('not_found');
-    render(data[0]);
-  } catch(e) {
-    const msg = e.message === 'not_found'
-      ? '<div class="err-icon">🔍</div><p>Haber bulunamadı.</p><br><a href="/haberler" style="color:var(--or)">← Haberlere dön</a>'
-      : `<div class="err-icon">⚠️</div><p>Haber yüklenemedi.<br><small>${e.message}</small></p>`;
-    document.getElementById('content').innerHTML = `<div class="err">${msg}</div>`;
-  }
-}
-
-function render(h) {
-  // Meta etiketlerini güncelle
-  document.title = `${h.baslik} — ScorePop`;
-  setMeta('description', h.ozet || '');
-  setOG('og:title', h.baslik + ' — ScorePop');
-  setOG('og:description', h.ozet || '');
-  setOG('og:image', h.kapak_url || '');
-  setOG('og:url', 'https://scorepop.com.tr/haber/' + h.slug);
-  setOG('og:type', 'article');
-  setCanonical('https://scorepop.com.tr/haber/' + h.slug);
-
-  document.getElementById('content').innerHTML = `
-    ${h.kapak_url ? `<img class="hero-img" src="${esc(h.kapak_url)}" alt="${esc(h.baslik)}" onerror="this.style.display='none'"/>` : ''}
-    <div class="haber-meta">
-      <span class="meta-tag">${esc(h.kategori||'Genel')}</span>
-      <span class="meta-date">${fmtDate(h.yayin_tarihi)}</span>
-      ${h.yazar ? `<span class="meta-author">· ${esc(h.yazar)}</span>` : ''}
+function cardHTML(h) {
+  const ozet = h.ozet ? h.ozet.slice(0, 110) + (h.ozet.length > 110 ? '…' : '') : '';
+  return `<a class="card" href="/haber/${h.slug}">
+    <div class="card-img"><img src="${h.kapak_url||''}" alt="${h.baslik||''}" loading="lazy" onerror="this.parentElement.style.background='var(--bg4)'"/></div>
+    <div class="card-body">
+      <div class="card-meta">
+        <span class="card-tag">${h.kategori||'Genel'}</span>
+        <span class="card-date">${fmtDate(h.yayin_tarihi)}</span>
+      </div>
+      <div class="card-title">${h.baslik||''}</div>
+      <p class="card-ozet">${ozet}</p>
     </div>
-    <h1>${esc(h.baslik||'')}</h1>
-    ${h.ozet ? `<p class="ozet">${esc(h.ozet)}</p>` : ''}
-    ${h.icerik ? `<div class="icerik">${h.icerik}</div>` : ''}
-    ${h.kaynak_url ? `<a class="kaynak-btn" href="${esc(h.kaynak_url)}" target="_blank" rel="noopener">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M6 2H2.5A1.5 1.5 0 001 3.5v8A1.5 1.5 0 002.5 13h8A1.5 1.5 0 0012 11.5V8M8.5 1H13m0 0v4.5M13 1L6 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Kaynağa Git (Mackolik)
-    </a>` : ''}
-  `;
+  </a>`;
 }
 
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function setMeta(name, content) {
-  let el = document.querySelector(`meta[name="${name}"]`);
-  if (!el) { el = document.createElement('meta'); el.name = name; document.head.appendChild(el); }
-  el.content = content;
-}
-function setOG(prop, content) {
-  let el = document.querySelector(`meta[property="${prop}"]`);
-  if (!el) { el = document.createElement('meta'); el.setAttribute('property', prop); document.head.appendChild(el); }
-  el.content = content;
-}
-function setCanonical(href) {
-  let el = document.querySelector('link[rel="canonical"]');
-  if (!el) { el = document.createElement('link'); el.rel = 'canonical'; document.head.appendChild(el); }
-  el.href = href;
+function skeletons(n) {
+  return Array.from({length:n}, () =>
+    `<div class="sk-card"><div class="sk-img"></div><div class="sk-body">
+      <div class="sk-line" style="width:40%"></div>
+      <div class="sk-line" style="width:90%"></div>
+      <div class="sk-line" style="width:75%"></div>
+      <div class="sk-line" style="width:60%"></div>
+    </div></div>`
+  ).join('');
 }
 
-loadHaber();
+async function fetchNews() {
+  if (loading) return;
+  loading = true;
+  const grid = document.getElementById('grid');
+  const btn  = document.getElementById('load-more');
+  btn.disabled = true;
+
+  if (offset === 0) grid.innerHTML = skeletons(9);
+
+  try {  // ✅ EKSİK OLAN TRY EKLENDİ
+    const res = await fetch(`/api/haberler?limit=${PAGE_SIZE}&offset=${offset}`);
+    if (!res.ok) throw new Error('API hatası: ' + res.status);
+    const count = res.headers.get('content-range');
+    if (count) total = parseInt(count.split('/')[1]) || 0;
+    const data = await res.json();
+
+    if (offset === 0) grid.innerHTML = '';
+    grid.insertAdjacentHTML('beforeend', data.map(cardHTML).join(''));
+    offset += data.length;
+
+    if (offset < total && data.length === PAGE_SIZE) {
+      btn.style.display = 'block';
+      btn.textContent = 'Daha fazla yükle';
+      btn.disabled = false;
+    } else {
+      btn.style.display = 'none';
+    }
+
+    if (offset === 0 || data.length === 0) {
+      grid.innerHTML = '<div class="err"><div class="err-icon">📰</div><p>Henüz haber bulunmuyor.</p></div>';
+    }
+  } catch(e) {
+    grid.innerHTML = `<div class="err"><div class="err-icon">⚠️</div><p>Haberler yüklenemedi.<br><small>${e.message}</small></p></div>`;
+  }
+  loading = false;
+}
+
+document.getElementById('load-more').addEventListener('click', fetchNews);
+fetchNews();
 </script>
 </body>
 </html>
