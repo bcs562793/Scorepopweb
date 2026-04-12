@@ -95,14 +95,14 @@ const Router = (() => {
     }
 
     // puan-durumu sayfası - fiziksel HTML dosyasını göster
-    // Netlify'da /puan-durumu/ klasöre yönlenir ve index.html sunulur
+    // GitHub Pages: /puan-durumu/ → puan-durumu/index.html otomatik sunulur
     if (ROUTES.puandurumu.test(path)) {
-      // Yönlendirme döngüsünü önlemek için /puan-durumu/index.html'e sadece
-      // klasör yolu (/puan-durumu/) üzerinden gelindiğinde yönlendir
+      // trailing-slash ile yönlendir; GitHub Pages index.html'i otomatik bulur
+      
       if (path === '/puan-durumu' || path === '/puan-durumu/') {
-        window.location.replace('/puan-durumu/index.html');
+        window.location.replace('/puan-durumu/');
       }
-      // path zaten /puan-durumu/index.html ise sayfayı göster
+      // path zaten /puan-durumu/ ise sayfayı göster
       return;
     }
 
