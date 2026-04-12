@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — style.css v1.4
+   SCOREPOP — style.css v1.5
    Layout: Fixed sidebar 240px + fluid main
    Match row: Home→Score←Away (Mackolik style)
    Palette: Near-black + Electric Orange accent
@@ -2282,3 +2282,197 @@ img { display: block; }
 
 .mic-icon { font-size: 13px; }
 .mic-text { color: var(--tx1); font-weight: 500; }  /* --fg1 değil --tx1 */
+
+/* ═══════════════════════════════════════════════
+   SCOREPOP — Oran Zekası Sinyal Kartı  (style.css eklentisi)
+   style.css'in sonuna ekle
+════════════════════════════════════════════════ */
+
+/* ── Sinyal Kartı ──────────────────────────── */
+.sp-signal {
+  margin: 0 0 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.07);
+  overflow: hidden;
+  font-family: 'Barlow', sans-serif;
+}
+
+/* Başlık şeridi */
+.sp-signal-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.sp-signal--strong .sp-signal-hdr  { background: rgba(16,185,129,.14); color: #10b981; border-bottom: 1px solid rgba(16,185,129,.25); }
+.sp-signal--medium .sp-signal-hdr  { background: rgba(251,191,36,.10); color: #fbbf24; border-bottom: 1px solid rgba(251,191,36,.20); }
+.sp-signal--weak   .sp-signal-hdr  { background: rgba(255,255,255,.04); color: var(--tx2); border-bottom: 1px solid rgba(255,255,255,.06); }
+.sp-signal--none   .sp-signal-hdr  { background: rgba(255,255,255,.03); color: var(--tx3); border-bottom: 1px solid rgba(255,255,255,.05); }
+
+.sp-signal-hdr-left  { display: flex; align-items: center; gap: 6px; }
+.sp-signal-hdr-dot   { width: 6px; height: 6px; border-radius: 50%; }
+.sp-signal--strong .sp-signal-hdr-dot { background: #10b981; box-shadow: 0 0 6px #10b98188; }
+.sp-signal--medium .sp-signal-hdr-dot { background: #fbbf24; }
+.sp-signal--weak   .sp-signal-hdr-dot { background: var(--tx3); }
+.sp-signal--none   .sp-signal-hdr-dot { background: var(--tx3); opacity: .4; }
+
+.sp-signal-n { font-size: 10px; font-weight: 500; opacity: .7; }
+
+/* Kombino satırı */
+.sp-signal-combo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 4px;
+  font-size: 12px;
+}
+.sp-signal-combo-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+.sp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+.sp-chip--dn  { background: rgba(248,113,113,.15); color: #f87171; }
+.sp-chip--up  { background: rgba(74,222,128,.15);  color: #4ade80; }
+.sp-chip--eq  { background: rgba(255,255,255,.07); color: var(--tx2); }
+.sp-chip-arrow { font-size: 10px; }
+
+.sp-signal-arrow {
+  font-size: 14px;
+  color: var(--tx3);
+  flex-shrink: 0;
+}
+
+.sp-signal-winner {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+.sp-signal-winner-pct {
+  font-size: 18px;
+  font-weight: 800;
+  font-family: 'Barlow Condensed', sans-serif;
+  letter-spacing: -.01em;
+}
+.sp-signal--strong .sp-signal-winner-pct { color: #10b981; }
+.sp-signal--medium .sp-signal-winner-pct { color: #fbbf24; }
+.sp-signal--weak   .sp-signal-winner-pct { color: var(--tx1); }
+.sp-signal--none   .sp-signal-winner-pct { color: var(--tx2); }
+
+.sp-signal-winner-lbl {
+  font-size: 11px;
+  color: var(--tx2);
+  white-space: nowrap;
+}
+.sp-signal-winner-delta {
+  font-size: 10px;
+  font-weight: 600;
+  margin-left: 3px;
+}
+.delta-pos { color: #10b981; }
+.delta-neg { color: #f87171; }
+
+/* Market satırları */
+.sp-signal-markets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 12px 10px;
+}
+.sp-mkt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 7px;
+  padding: 5px 10px;
+  min-width: 72px;
+}
+.sp-mkt-name { font-size: 10px; color: var(--tx2); margin-bottom: 2px; }
+.sp-mkt-pct  { font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+.sp-mkt-delta { font-size: 10px; font-weight: 600; }
+.sp-mkt--high  .sp-mkt-pct { color: #10b981; }
+.sp-mkt--mid   .sp-mkt-pct { color: #fbbf24; }
+.sp-mkt--low   .sp-mkt-pct { color: var(--tx1); }
+.sp-mkt--neg   .sp-mkt-pct { color: #f87171; }
+
+/* Açıklama metni */
+.sp-signal-desc {
+  padding: 0 12px 10px;
+  font-size: 11px;
+  color: var(--tx2);
+  line-height: 1.5;
+  border-top: 1px solid rgba(255,255,255,.05);
+  padding-top: 8px;
+}
+.sp-signal-desc strong { color: var(--tx1); }
+
+/* ── Maç Listesi Rozeti ──────────────────────── */
+.sp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .03em;
+}
+.sp-badge--ev   { background: rgba(16,185,129,.15); color: #10b981; }
+.sp-badge--dep  { background: rgba(251,130,100,.15); color: #fb8464; }
+.sp-badge--ust  { background: rgba(59,130,246,.15);  color: #60a5fa; }
+.sp-badge--alt  { background: rgba(251,191,36,.12);  color: #fbbf24; }
+
+/* ── Gelişmiş Benzer Maç — Market Grid ──────── */
+.sim-market-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+.sim-mkt-block {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.sim-mkt-block-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--tx2);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 6px;
+}
+.sim-mkt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+.sim-mkt-label { color: var(--tx2); }
+.sim-mkt-val   { font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+.sim-mkt-d     { font-size: 10px; margin-left: 4px; }
+.sim-mkt-bar-wrap {
+  height: 3px;
+  background: rgba(255,255,255,.07);
+  border-radius: 2px;
+  margin-top: 3px;
+  overflow: hidden;
+}
+.sim-mkt-bar { height: 100%; border-radius: 2px; transition: width .5s ease; }
+.bar-green { background: #10b981; }
+.bar-blue  { background: #3b82f6; }
+.bar-red   { background: #f87171; }
+.bar-amber { background: #fbbf24; }
