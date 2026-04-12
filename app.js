@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v6.5 — Arşiv Desteği)
+   SCOREPOP — app.js  (v6.6 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -1421,17 +1421,6 @@ function _getMacOdds(m, marketName, outcomeName) {
   return null;
 }
 
- async function runSimAnalysis(fixtureId, cur1x2, curOu25, curHt) {
-  const resultEl = document.getElementById('sim-result-' + fixtureId);
-  if (!resultEl) return;
-
-  resultEl.innerHTML = '<div class="sim-loading">⏳ En iyi filtre kombinasyonu aranıyor...</div>';
-
-  let all;
-  try { all = await _loadAllGz(); }
-  catch(e) { resultEl.innerHTML = '<div class="sim-err">❌ Veri yüklenemedi</div>'; return; }
-  if (!all.length) { resultEl.innerHTML = '<div class="sim-err">❌ Arşiv boş</div>'; return; }
-
   // ── Yardımcılar ───────────────────────────────────────────────────────────
 
   function getMac(m, market, outcome) {
@@ -2535,19 +2524,10 @@ if (od && od.markets) {
 
      /* ── BENZERİ ORANLARIN ANALİZİ ── */
   {
-    const cur1x2 = od?.markets?.['1x2'];
-    const curOu25 = od?.markets?.['ou25'];
-    const curHt   = od?.markets?.['ht_1x2'];
-    if (cur1x2) {
-      html += `
-        <div class="sim-wrap" id="sim-wrap-${m.fixture_id}">
-          <button class="sim-btn" onclick="runSimAnalysis(${m.fixture_id}, ${JSON.stringify(cur1x2).replace(/"/g,'&quot;')}, ${JSON.stringify(curOu25||null).replace(/"/g,'&quot;')}, ${JSON.stringify(curHt||null).replace(/"/g,'&quot;')})">
-            📊 Benzer Oranlı Geçmiş Maçları Analiz Et
-          </button>
-          <div class="sim-result" id="sim-result-${m.fixture_id}"></div>
-        </div>`;
-    }
-  }
+  const cur1x2 = od?.markets?.['1x2'];
+  const curOu25 = od?.markets?.['ou25'];
+  html += renderSignalCard(m.fixture_id, cur1x2, curOu25);
+}
 
   /* ══════════════════════════════════════
      GRUP 1: MAÇ SONUCU
