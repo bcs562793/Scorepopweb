@@ -94,15 +94,14 @@ const Router = (() => {
       return;
     }
 
-    // puan-durumu sayfası - fiziksel HTML dosyasını göster
+    // puan-durumu sayfası — fiziksel HTML dosyasını göster
     // GitHub Pages: /puan-durumu/ → puan-durumu/index.html otomatik sunulur
     if (ROUTES.puandurumu.test(path)) {
-      // trailing-slash ile yönlendir; GitHub Pages index.html'i otomatik bulur
-      
-      if (path === '/puan-durumu' || path === '/puan-durumu/') {
+      if (path === '/puan-durumu') {
+        // SADECE trailing slash eksikse yönlendir.
+        // path zaten '/puan-durumu/' ise replace() ÇAĞIRMA — sonsuz döngüye girer!
         window.location.replace('/puan-durumu/');
       }
-      // path zaten /puan-durumu/ ise sayfayı göster
       return;
     }
 
