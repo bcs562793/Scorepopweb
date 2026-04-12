@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Puan Durumu — ScorePop | Lig Sıralamaları 2025 v1.0</title>
+  <meta name="description" content="2024-25 sezonu güncel puan durumları. Premier Lig, La Liga, Bundesliga, Serie A, Süper Lig ve daha fazlası için anlık lig sıralamaları ScorePop'ta."/>
+  <meta name="robots" content="index,follow"/>
+  <link rel="canonical" href="https://scorepop.com.tr/puan-durumu"/>
+  <meta property="og:title" content="Puan Durumu — ScorePop"/>
+  <meta property="og:description" content="2024-25 sezonu güncel puan durumları ve lig sıralamaları."/>
+  <meta property="og:url" content="https://scorepop.com.tr/puan-durumu"/>
+  <meta property="og:type" content="website"/>
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-JS4J2RCJJ9"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-JS4J2RCJJ9');
+  </script>
+
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6664942674336301" crossorigin="anonymous"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+
+  <!-- Cloudflare Workers ile uyumsuz spekülatif prefetch/prerender devre dışı -->
+  <meta name="supports-loading-mode" content="credentialed-prerender">
+  <script type="speculationrules">{"prefetch":[],"prerender":[]}</script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+  <script src="/config.js?v=0"></script>
+
+  <style>
+    :root {
+      --sb-w: 240px;
+      --bg:   #0b0d11; --bg2: #0f1218; --bg3: #141921; --bg4: #1a2030; --bg5: #1f2638;
+      --b1:   rgba(255,255,255,.05); --b2: rgba(255,255,255,.08); --b3: rgba(255,255,255,.12);
+      --tx1:  #dde4ef; --tx2: #8899b0; --tx3: #4a5a70;
+      --or:   #f26419; --or2: rgba(242,100,25,.15); --or3: rgba(242,100,25,.08);
+      --or-glow: rgba(242,100,25,.35);
+      --live: #f43f5e; --live2: rgba(244,63,94,.12); --live-gl: rgba(244,63,94,.4);
+      --green: #10b981; --blue: #3b82f6; --yellow: #f59e0b;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg); color: var(--tx1);
+      font-family: 'Barlow', sans-serif; font-size: 14px;
+      -webkit-font-smoothing: antialiased; min-height: 100vh;
+      display: flex; flex-direction: column;
+    }
+    button { cursor: pointer; border: none; background: none; font-family: inherit; color: inherit; }
+    a { color: inherit; text-decoration: none; }
+    img { display: block; }
+    ::-webkit-scrollbar { width: 3px; height: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--b3); border-radius: 3px; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--bg2); border-bottom: 1px solid var(--b1);
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 20px; height: 52px;
+    }
+    .topbar-brand {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--tx1); flex-shrink: 0;
+    }
+    .topbar-mark {
+      width: 30px; height: 30px; background: var(--or);
+      border-radius: 7px; display: flex; align-items: center;
+      justify-content: center; box-shadow: 0 0 14px var(--or-glow);
+      overflow: hidden; flex-shrink: 0;
+    }
+    .topbar-mark img { width: 100%; height: 100%; object-fit: contain; }
+    .topbar-name {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 17px; font-weight: 800;
+      letter-spacing: 2px; text-transform: uppercase;
+    }
+    .topbar-name em { color: var(--or); font-style: normal; }
+    .topbar-sep { width: 1px; height: 20px; background: var(--b2); flex-shrink: 0; }
+    .topbar-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 15px; font-weight: 700; letter-spacing: 1px;
+      color: var(--tx2); text-transform: uppercase;
+    }
+    .topbar-nav { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+    .topbar-link {
+      padding: 6px 12px; border-radius: 6px;
+      font-size: 13px; font-weight: 500; color: var(--tx2);
+      transition: all .15s;
+    }
+    .topbar-link:hover { background: var(--b1); color: var(--tx1); }
+    .topbar-link.active { background: var(--or2); color: var(--or); }
+
+    /* ── LAYOUT ── */
+    .page-wrap {
+      display: flex; flex: 1;
+      max-width: 1200px; width: 100%;
+      margin: 0 auto; padding: 24px 16px;
+      gap: 20px; align-items: flex-start;
+    }
+
+    /* ── LEFT: LEAGUE PICKER ── */
+    .league-panel {
+      width: 220px; flex-shrink: 0;
+      background: var(--bg2); border: 1px solid var(--b1);
+      border-radius: 12px; overflow: hidden;
+      position: sticky; top: 72px; max-height: calc(100vh - 90px);
+      display: flex; flex-direction: column;
+    }
+    .lp-header {
+      padding: 12px 14px 10px;
+      border-bottom: 1px solid var(--b1);
+    }
+    .lp-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 11px; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--tx3); margin-bottom: 8px;
+    }
+    .lp-search {
+      width: 100%; padding: 7px 10px;
+      background: var(--bg3); border: 1px solid var(--b1);
+      border-radius: 7px; color: var(--tx1);
+      font-family: 'Barlow', sans-serif; font-size: 12px;
+      outline: none; transition: border-color .15s;
+    }
+    .lp-search:focus { border-color: var(--or); }
+    .lp-search::placeholder { color: var(--tx3); }
+    .lp-scroll { overflow-y: auto; flex: 1; padding: 6px; scrollbar-width: thin; }
+    .lp-group-label {
+      padding: 8px 8px 4px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 9px; font-weight: 700; letter-spacing: 2px;
+      color: var(--tx3); text-transform: uppercase;
+    }
+    .lp-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 8px; border-radius: 7px;
+      cursor: pointer; transition: all .12s;
+      white-space: nowrap; overflow: hidden;
+    }
+    .lp-item:hover { background: var(--b1); }
+    .lp-item.active { background: var(--or2); }
+    .lp-item.active .lp-flag-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 700;
+      color: var(--tx3); background: var(--bg4);
+      border-radius: 4px; padding: 1px 4px;
+      flex-shrink: 0; letter-spacing: .5px;
+    }
+    .lp-item-name { color: var(--or); }
+    .lp-item-logo {
+      width: 18px; height: 18px; object-fit: contain;
+      flex-shrink: 0; border-radius: 2px;
+    }
+    .lp-flag-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 700;
+      color: var(--tx3); background: var(--bg4);
+      border-radius: 4px; padding: 1px 4px;
+      flex-shrink: 0; letter-spacing: .5px;
+    }
+    .lp-item-name {
+      font-size: 12px; font-weight: 500; color: var(--tx2);
+      overflow: hidden; text-overflow: ellipsis; flex: 1;
+      transition: color .12s;
+    }
+
+    /* ── RIGHT: STANDINGS ── */
+    .standings-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+
+    /* Ad slot */
+    .ad-slot {
+      background: var(--bg2); border: 1px solid var(--b1);
+      border-radius: 12px; padding: 12px; text-align: center;
+      min-height: 90px; display: flex; align-items: center;
+      justify-content: center; overflow: hidden;
+    }
+
+    /* standings card */
+    .standings-card {
+      background: var(--bg2); border: 1px solid var(--b1);
+      border-radius: 12px; overflow: hidden;
+    }
+    .card-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; border-bottom: 1px solid var(--b1);
+    }
+    .card-logo { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; }
+    .card-logo-placeholder {
+      width: 28px; height: 28px; border-radius: 6px;
+      background: var(--or); display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 11px; font-weight: 800; color: #fff;
+    }
+    .card-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 16px; font-weight: 700; letter-spacing: .5px;
+      color: var(--tx1);
+    }
+    .card-subtitle {
+      font-size: 11px; color: var(--tx3); margin-top: 1px;
+    }
+    .card-updated {
+      margin-left: auto; font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--tx3);
+    }
+    .card-group-label {
+      padding: 6px 16px 4px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 10px; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--or);
+      background: var(--or3); border-bottom: 1px solid var(--b1);
+    }
+
+    /* table */
+    .st-table { width: 100%; border-collapse: collapse; }
+    .st-table thead th {
+      padding: 7px 8px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--tx3);
+      text-align: center; border-bottom: 1px solid var(--b1);
+      white-space: nowrap;
+    }
+    .st-table thead th.th-team { text-align: left; padding-left: 14px; width: 40%; }
+    .st-table tbody tr { border-bottom: 1px solid var(--b1); transition: background .1s; }
+    .st-table tbody tr:last-child { border-bottom: none; }
+    .st-table tbody tr:hover { background: var(--b1); }
+    .st-table td {
+      padding: 9px 8px; text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: var(--tx2);
+    }
+    .td-rank {
+      width: 32px; font-size: 11px; color: var(--tx3);
+      font-family: 'Barlow', sans-serif; font-weight: 600;
+      padding-left: 14px; text-align: left;
+    }
+    .td-team {
+      text-align: left; padding-left: 4px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .td-team-logo { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
+    .td-team-name {
+      font-family: 'Barlow', sans-serif; font-size: 13px;
+      font-weight: 500; color: var(--tx1);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .td-pts {
+      font-weight: 700; color: var(--tx1); font-size: 13px;
+    }
+    .td-form { display: flex; gap: 3px; justify-content: center; }
+    .form-pip {
+      width: 14px; height: 14px; border-radius: 3px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 9px; font-weight: 700; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .form-W { background: var(--green); }
+    .form-D { background: var(--tx3); }
+    .form-L { background: var(--live); }
+
+    /* rank badges */
+    .rank-badge {
+      width: 4px; height: 28px; border-radius: 2px;
+      position: absolute; left: 0;
+    }
+    .td-rank-wrap {
+      position: relative; display: flex; align-items: center;
+      gap: 10px; padding-left: 14px; padding-right: 4px;
+    }
+    .rank-cl { background: var(--blue); }
+    .rank-uel { background: var(--green); }
+    .rank-conf { background: var(--yellow); }
+    .rank-rel { background: var(--live); }
+    .rank-playoff { background: var(--yellow); }
+
+    /* loading & empty */
+    .state-box {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 60px 20px; gap: 12px;
+      color: var(--tx3);
+    }
+    .state-box .icon { font-size: 32px; opacity: .4; }
+    .state-box p { font-size: 14px; }
+    .spinner {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 3px solid var(--b2); border-top-color: var(--or);
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* responsive */
+    @media (max-width: 768px) {
+      .page-wrap { flex-direction: column; padding: 12px; }
+      .league-panel { width: 100%; position: static; max-height: none; }
+      .lp-scroll { max-height: 200px; }
+      .td-form { display: none; }
+      .col-hid { display: none; }
+    }
+    @media (max-width: 480px) {
+      .topbar-sep, .topbar-title { display: none; }
+      .topbar-nav { gap: 2px; }
+      .topbar-link { padding: 5px 8px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="topbar-brand" href="/">
+    <div class="topbar-mark">
+      <img src="https://i.hizliresim.com/gbleupf.png" alt="ScorePop Logo">
+    </div>
+    <span class="topbar-name">SCORE<em>POP</em></span>
+  </a>
+  <div class="topbar-sep"></div>
+  <span class="topbar-title">Puan Durumu</span>
+  <nav class="topbar-nav">
+    <a class="topbar-link" href="/canli">Canlı</a>
+    <a class="topbar-link" href="/bugun">Bugün</a>
+    <a class="topbar-link active" href="/puan-durumu/">Puan Durumu</a>
+    <a class="topbar-link" href="/hakkimizda">Hakkımızda</a>
+  </nav>
+</header>
+
+<div class="page-wrap">
+
+  <aside class="league-panel">
+    <div class="lp-header">
+      <div class="lp-title">Ligler</div>
+      <input class="lp-search" type="text" id="leagueSearch" placeholder="Lig ara…" autocomplete="off"/>
+    </div>
+    <div class="lp-scroll" id="leagueList">
+      <div class="state-box"><div class="spinner"></div></div>
+    </div>
+  </aside>
+
+  <main class="standings-wrap" id="standingsWrap">
+
+    <div class="ad-slot">
+      <ins class="adsbygoogle"
+           style="display:block;width:100%;min-height:90px;"
+           data-ad-client="ca-pub-6664942674336301"
+           data-ad-slot="auto"
+           data-ad-format="horizontal"
+           data-full-width-responsive="true"></ins>
+    </div>
+
+    <div id="standingsContent">
+      <div class="state-box">
+        <div class="spinner"></div>
+        <p>Puan durumları yükleniyor…</p>
+      </div>
+    </div>
+
+    <div class="ad-slot">
+      <ins class="adsbygoogle"
+           style="display:block;width:100%;min-height:90px;"
+           data-ad-client="ca-pub-6664942674336301"
+           data-ad-slot="auto"
+           data-ad-format="horizontal"
+           data-full-width-responsive="true"></ins>
+    </div>
+
+  </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ── LEAGUE NAME MAP ── */
+const LEAGUE_NAMES = {
+  // Türkiye
+  203: { name: 'Türkiye Süper Ligi',        flag: 'TR',       group: 'Türkiye' },
+  204: { name: 'Türkiye 1. Lig',            flag: 'TR',       group: 'Türkiye' },
+  205: { name: 'Türkiye 2. Lig',            flag: 'TR',       group: 'Türkiye' },
+  // İngiltere
+  39:  { name: 'İngiltere Premier Lig',     flag: 'GB',       group: 'İngiltere' },
+  40:  { name: 'İngiltere Championship',    flag: 'GB',       group: 'İngiltere' },
+  41:  { name: 'İngiltere League One',      flag: 'GB',       group: 'İngiltere' },
+  42:  { name: 'İngiltere League Two',      flag: 'GB',       group: 'İngiltere' },
+  45:  { name: 'İngiltere FA Cup',          flag: 'GB',       group: 'İngiltere' },
+  48:  { name: 'İngiltere Carabao Cup',     flag: 'GB',       group: 'İngiltere' },
+  24:  { name: 'İngiltere National League', flag: 'GB',       group: 'İngiltere' },
+  // İspanya
+  140: { name: 'İspanya La Liga',           flag: 'ES',       group: 'İspanya' },
+  141: { name: 'İspanya La Liga 2',         flag: 'ES',       group: 'İspanya' },
+  143: { name: 'İspanya Copa del Rey',      flag: 'ES',       group: 'İspanya' },
+  // Almanya
+  78:  { name: 'Almanya Bundesliga',        flag: 'DE',       group: 'Almanya' },
+  79:  { name: 'Almanya 2. Bundesliga',     flag: 'DE',       group: 'Almanya' },
+  80:  { name: 'Almanya 3. Liga',           flag: 'DE',       group: 'Almanya' },
+  81:  { name: 'Almanya DFB Kupası',        flag: 'DE',       group: 'Almanya' },
+  // İtalya
+  135: { name: 'İtalya Serie A',            flag: 'IT',       group: 'İtalya' },
+  136: { name: 'İtalya Serie B',            flag: 'IT',       group: 'İtalya' },
+  137: { name: 'İtalya Serie C',            flag: 'IT',       group: 'İtalya' },
+  // Fransa
+  61:  { name: 'Fransa Ligue 1',            flag: 'FR',       group: 'Fransa' },
+  62:  { name: 'Fransa Ligue 2',            flag: 'FR',       group: 'Fransa' },
+  // Avrupa Kupaları
+  2:   { name: 'UEFA Şampiyonlar Ligi',     flag: 'UCL',      group: 'Avrupa' },
+  3:   { name: 'UEFA Avrupa Ligi',          flag: 'UEL',      group: 'Avrupa' },
+  4:   { name: 'UEFA Konferans Ligi',       flag: 'UECL',     group: 'Avrupa' },
+  9:   { name: 'UEFA Uluslar Ligi',         flag: 'UEFA',     group: 'Avrupa' },
+  848: { name: 'UEFA Süper Kupa',           flag: 'UEFA',     group: 'Avrupa' },
+  // Avrupa Ligleri
+  0:   { name: 'Ukrayna Premier Ligi',      flag: 'UA',       group: 'Avrupa' },
+  19:  { name: 'Finlandiya Veikkausliiga',  flag: 'FI',       group: 'Avrupa' },
+  43:  { name: 'İskoçya Premiership',       flag: 'SCT',      group: 'Avrupa' },
+  50:  { name: 'Belçika Pro Ligi A',        flag: 'BE',       group: 'Avrupa' },
+  51:  { name: 'Belçika Pro Ligi B',        flag: 'BE',       group: 'Avrupa' },
+  88:  { name: 'Hollanda Eredivisie',       flag: 'NL',       group: 'Avrupa' },
+  89:  { name: 'Hollanda KNVB Kupası',      flag: 'NL',       group: 'Avrupa' },
+  94:  { name: 'Portekiz Primeira Liga',    flag: 'PT',       group: 'Avrupa' },
+  95:  { name: 'Portekiz Liga 2',           flag: 'PT',       group: 'Avrupa' },
+  103: { name: 'Finlandiya Ykkönen',        flag: 'FI',       group: 'Avrupa' },
+  106: { name: 'Finlandiya Kakkonen',       flag: 'FI',       group: 'Avrupa' },
+  115: { name: 'Finlandiya Kupası',         flag: 'FI',       group: 'Avrupa' },
+  119: { name: 'Danimarka Superliga',       flag: 'DK',       group: 'Avrupa' },
+  120: { name: 'Danimarka 1. Division',     flag: 'DK',       group: 'Avrupa' },
+  129: { name: 'İsveç Allsvenskan',         flag: 'SE',       group: 'Avrupa' },
+  132: { name: 'Belçika Kral Kupası',       flag: 'BE',       group: 'Avrupa' },
+  134: { name: 'Yunanistan SL2',            flag: 'GR',       group: 'Avrupa' },
+  144: { name: 'Belçika Pro Ligi',          flag: 'BE',       group: 'Avrupa' },
+  145: { name: 'Belçika Amatör Ligi',       flag: 'BE',       group: 'Avrupa' },
+  149: { name: 'Brezilya Série C',          flag: 'BR',       group: 'Avrupa' },
+  179: { name: 'İskoçya Premiership',       flag: 'SCT',      group: 'Avrupa' },
+  180: { name: 'İskoçya Championship',      flag: 'SCT',      group: 'Avrupa' },
+  188: { name: 'İsviçre Challenge Ligi',    flag: 'CH',       group: 'Avrupa' },
+  189: { name: 'Avusturya 2. Liga',         flag: 'AT',       group: 'Avrupa' },
+  197: { name: 'Yunanistan Super Lig',      flag: 'GR',       group: 'Avrupa' },
+  207: { name: 'İsviçre Super Ligi',        flag: 'CH',       group: 'Avrupa' },
+  210: { name: 'Avusturya Bundesliga',      flag: 'AT',       group: 'Avrupa' },
+  233: { name: 'Hollanda Eerste Divisie',   flag: 'NL',       group: 'Avrupa' },
+  235: { name: 'Rusya Premier Lig',         flag: 'RU',       group: 'Avrupa' },
+  239: { name: 'Norveç Eliteserien',        flag: 'NO',       group: 'Avrupa' },
+  242: { name: 'Norveç 1. Divisjon',        flag: 'NO',       group: 'Avrupa' },
+  244: { name: 'İsveç Allsvenskan',         flag: 'SE',       group: 'Avrupa' },
+  268: { name: 'İsveç Superettan',          flag: 'SE',       group: 'Avrupa' },
+  271: { name: 'Danimarka 1. Division',     flag: 'DK',       group: 'Avrupa' },
+  281: { name: 'İskoçya Kupası',            flag: 'SCT',      group: 'Avrupa' },
+  283: { name: 'Polonya Ekstraklasa',       flag: 'PL',       group: 'Avrupa' },
+  286: { name: 'Polonya 1. Liga',           flag: 'PL',       group: 'Avrupa' },
+  288: { name: 'Polonya 2. Liga',           flag: 'PL',       group: 'Avrupa' },
+  299: { name: 'Romanya Kupası',            flag: 'RO',       group: 'Avrupa' },
+  310: { name: 'İsveç Kupası',              flag: 'SE',       group: 'Avrupa' },
+  327: { name: 'Portekiz Taça da Liga',     flag: 'PT',       group: 'Avrupa' },
+  332: { name: 'Romanya Liga 2',            flag: 'RO',       group: 'Avrupa' },
+  333: { name: 'Romanya Liga 1',            flag: 'RO',       group: 'Avrupa' },
+  345: { name: 'Hırvatistan 1. HNL',        flag: 'HR',       group: 'Avrupa' },
+  348: { name: 'Hırvatistan 2. HNL',        flag: 'HR',       group: 'Avrupa' },
+  356: { name: 'Bulgaristan Süper Lig',     flag: 'BG',       group: 'Avrupa' },
+  357: { name: 'Macaristan NB I',           flag: 'HU',       group: 'Avrupa' },
+  363: { name: 'Ukrayna Premier Ligi',      flag: 'UA',       group: 'Avrupa' },
+  369: { name: 'Çekya Fortuna Liga',        flag: 'CZ',       group: 'Avrupa' },
+  371: { name: 'Slovakya Süper Lig',        flag: 'SK',       group: 'Avrupa' },
+  372: { name: 'Slovenya PrvaLiga',         flag: 'SI',       group: 'Avrupa' },
+  381: { name: 'Yunanistan Kupası',         flag: 'GR',       group: 'Avrupa' },
+  399: { name: 'Sırbistan Super Liga',      flag: 'RS',       group: 'Avrupa' },
+  401: { name: 'Bosna Premijer Liga',       flag: 'BA',       group: 'Avrupa' },
+  552: { name: 'Azerbaycan Premyer Liqası', flag: 'AZ',       group: 'Avrupa' },
+  553: { name: 'Gürcistan Erovnuli Liga',   flag: 'GE',       group: 'Avrupa' },
+  554: { name: 'Ermenistan Premier Ligi',   flag: 'AM',       group: 'Avrupa' },
+  623: { name: 'Belarus Yüksek Ligi',       flag: 'BY',       group: 'Avrupa' },
+  624: { name: 'Kosova Superliga',          flag: 'XK',       group: 'Avrupa' },
+  636: { name: 'Karadağ Prva Liga',         flag: 'ME',       group: 'Avrupa' },
+  668: { name: 'Litvanya A Lyga',           flag: 'LT',       group: 'Avrupa' },
+  681: { name: 'Kuzey Makedonya 1. Lig',   flag: 'MK',       group: 'Avrupa' },
+  705: { name: 'Kuzey İrlanda Prem. Lig',  flag: 'NIR',      group: 'Avrupa' },
+  742: { name: 'Galler Cymru Premier',      flag: 'WAL',      group: 'Avrupa' },
+  823: { name: 'Arnavutluk Kategoria Sup.', flag: 'AL',       group: 'Avrupa' },
+  // Amerika
+  11:  { name: 'CONMEBOL Sudamericana',     flag: 'SA',       group: 'Amerika' },
+  13:  { name: 'Copa Libertadores',         flag: 'SA',       group: 'Amerika' },
+  15:  { name: 'FIFA Kulüpler Dünya K.',    flag: 'INT',      group: 'Amerika' },
+  16:  { name: 'CONCACAF Şampiyonlar',      flag: 'CONCACAF', group: 'Amerika' },
+  71:  { name: 'Brezilya Série A',          flag: 'BR',       group: 'Amerika' },
+  72:  { name: 'Brezilya Série B',          flag: 'BR',       group: 'Amerika' },
+  73:  { name: 'Brezilya Copa do Brasil',   flag: 'BR',       group: 'Amerika' },
+  128: { name: 'Arjantin Copa Argentina',   flag: 'AR',       group: 'Amerika' },
+  172: { name: 'Meksika Liga MX',           flag: 'MX',       group: 'Amerika' },
+  177: { name: 'Meksika Copa MX',           flag: 'MX',       group: 'Amerika' },
+  218: { name: 'Arjantin Primera División', flag: 'AR',       group: 'Amerika' },
+  253: { name: 'Kolombiya Liga BetPlay',    flag: 'CO',       group: 'Amerika' },
+  262: { name: 'Meksika Liga Expansión',    flag: 'MX',       group: 'Amerika' },
+  263: { name: 'Meksika Clausura',          flag: 'MX',       group: 'Amerika' },
+  265: { name: 'Şili Primera División',     flag: 'CL',       group: 'Amerika' },
+  274: { name: 'Venezuela Liga FUTVE',      flag: 'VE',       group: 'Amerika' },
+  301: { name: 'ABD MLS',                   flag: 'US',       group: 'Amerika' },
+  419: { name: 'ABD USL Championship',      flag: 'US',       group: 'Amerika' },
+  432: { name: 'Ekvador LigaPro',           flag: 'EC',       group: 'Amerika' },
+  447: { name: 'Paraguay División Prof.',   flag: 'PY',       group: 'Amerika' },
+  449: { name: 'Uruguay Primera División',  flag: 'UY',       group: 'Amerika' },
+  // Asya
+  17:  { name: 'AFC Şampiyonlar Ligi',      flag: 'AFC',      group: 'Asya' },
+  98:  { name: 'Japonya Emp. Kupası',       flag: 'JP',       group: 'Asya' },
+  169: { name: 'Japonya J3 Ligi',           flag: 'JP',       group: 'Asya' },
+  292: { name: 'Güney Kore K-League 1',     flag: 'KR',       group: 'Asya' },
+  305: { name: 'Katar Stars Ligi',          flag: 'QA',       group: 'Asya' },
+  307: { name: 'Suudi Arabistan Pro Ligi',  flag: 'SAR',      group: 'Asya' },
+  318: { name: 'İran Persian Gulf Pro',     flag: 'IR',       group: 'Asya' },
+  322: { name: 'Japonya J1 Ligi',           flag: 'JP',       group: 'Asya' },
+  323: { name: 'Japonya J2 Ligi',           flag: 'JP',       group: 'Asya' },
+  398: { name: 'Bangladeş Premier Lig',     flag: 'BD',       group: 'Asya' },
+  567: { name: 'Kazakistan Premier Ligi',   flag: 'KZ',       group: 'Asya' },
+  571: { name: 'Özbekistan Pro Liga',       flag: 'UZ',       group: 'Asya' },
+  // Afrika
+  12:  { name: 'CAF Şampiyonlar Ligi',      flag: 'CAF',      group: 'Afrika' },
+  200: { name: 'Fas Botola Pro',            flag: 'MA',       group: 'Afrika' },
+};
+
+const GROUP_ORDER = ['Türkiye','İngiltere','İspanya','Almanya','İtalya','Fransa','Avrupa','Amerika','Asya','Afrika'];
+
+/* ── SUPABASE INIT ── */
+let supabase;
+try {
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch(e) {
+  document.getElementById('standingsContent').innerHTML =
+    `<div class="state-box"><div class="icon">⚠️</div><p>Bağlantı hatası: config.js bulunamadı.</p></div>`;
+}
+
+let allData = [];   // {league_id, parsed, meta, updated_at}[]
+let activeId = null;
+
+async function load() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from('league_standings_rows')
+      .select('league_id, data, updated_at')
+      .order('league_id', { ascending: true });
+
+    if (error) throw error;
+
+    allData = (data || []).map(row => {
+      let parsed = null;
+      try { parsed = JSON.parse(row.data); } catch(_) {}
+      return { league_id: row.league_id, raw: parsed, updated_at: row.updated_at };
+    }).filter(r => r.raw);
+
+    buildLeagueList();
+
+    if (allData.length === 0) {
+      document.getElementById('standingsContent').innerHTML =
+        `<div class="standings-card"><div class="state-box"><div class="icon">📭</div><p>Henüz puan durumu verisi bulunmuyor.</p></div></div>`;
+      return;
+    }
+
+    // Select first known league automatically
+    const firstKnown = allData.find(r => LEAGUE_NAMES[r.league_id]);
+    if (firstKnown) selectLeague(firstKnown.league_id);
+    else if (allData[0]) selectLeague(allData[0].league_id);
+
+  } catch(err) {
+    document.getElementById('standingsContent').innerHTML =
+      `<div class="state-box"><div class="icon">❌</div><p>Veri yüklenemedi: ${err.message}</p></div>`;
+    document.getElementById('leagueList').innerHTML =
+      `<div class="state-box"><p>Hata</p></div>`;
+  }
+}
+
+function leagueMeta(id) {
+  return LEAGUE_NAMES[id] || { name: `Lig #${id}`, flag: '?', group: 'Diğer' };
+}
+
+function buildLeagueList(filter='') {
+  const fl = filter.toLowerCase();
+  const grouped = {};
+  for (const row of allData) {
+    const meta = leagueMeta(row.league_id);
+    const name = meta.name;
+    // Sadece bilinen ligleri göster
+    if (!LEAGUE_NAMES[row.league_id]) continue;
+    if (fl && !name.toLowerCase().includes(fl)) continue;
+    const grp = meta.group || 'Diğer';
+    if (!grouped[grp]) grouped[grp] = [];
+    grouped[grp].push(row);
+  }
+
+  const orderGroups = [...GROUP_ORDER, 'Diğer'];
+  const keys = [...orderGroups.filter(g => grouped[g]), ...Object.keys(grouped).filter(g => !orderGroups.includes(g))];
+
+  let html = '';
+  for (const grp of keys) {
+    const rows = grouped[grp];
+    if (!rows) continue;
+    html += `<div class="lp-group-label">${grp}</div>`;
+    for (const row of rows) {
+      const meta = leagueMeta(row.league_id);
+      const logo = getLeagueLogo(row);
+      const isActive = row.league_id === activeId ? 'active' : '';
+      const flagBadge = logo
+        ? `<img class="lp-item-logo" src="${logo}" alt="" onerror="this.style.display='none'">`
+        : meta.flag
+          ? `<span class="lp-flag-badge">${meta.flag}</span>`
+          : `<span class="lp-flag-badge">?</span>`;
+      html += `
+        <div class="lp-item ${isActive}" data-id="${row.league_id}" onclick="selectLeague(${row.league_id})">
+          ${flagBadge}
+          <span class="lp-item-name">${meta.name}</span>
+        </div>`;
+    }
+  }
+  document.getElementById('leagueList').innerHTML = html || `<div class="state-box"><p>Sonuç yok</p></div>`;
+}
+
+function getLeagueLogo(row) {
+  if (!row.raw) return null;
+  if (Array.isArray(row.raw)) return null;
+  if (row.raw.response && row.raw.response[0] && row.raw.response[0].league) {
+    return row.raw.response[0].league.logo || null;
+  }
+  return null;
+}
+
+function selectLeague(id) {
+  activeId = id;
+  // Update sidebar active state
+  document.querySelectorAll('.lp-item').forEach(el => {
+    el.classList.toggle('active', parseInt(el.dataset.id) === id);
+  });
+  renderStandings(id);
+}
+window.selectLeague = selectLeague;
+
+function parseStandings(row) {
+  // Two formats: full API response or raw array
+  if (!row.raw) return [];
+  if (Array.isArray(row.raw)) {
+    // Array of team standing objects (single group)
+    return [row.raw];
+  }
+  if (row.raw.response && row.raw.response[0] && row.raw.response[0].league) {
+    return row.raw.response[0].league.standings || [];
+  }
+  return [];
+}
+
+function renderStandings(id) {
+  const row = allData.find(r => r.league_id === id);
+  if (!row) {
+    document.getElementById('standingsContent').innerHTML =
+      `<div class="state-box"><div class="icon"></div><p>Veri bulunamadı.</p></div>`;
+    return;
+  }
+
+  const meta = leagueMeta(id);
+  const logo = getLeagueLogo(row);
+  const groups = parseStandings(row);
+  const updatedDate = row.updated_at ? new Date(row.updated_at).toLocaleDateString('tr-TR') : '';
+
+  if (!groups || groups.length === 0) {
+    document.getElementById('standingsContent').innerHTML =
+      `<div class="standings-card"><div class="state-box"><div class="icon"></div><p>Bu lig için puan durumu verisi mevcut değil.</p></div></div>`;
+    return;
+  }
+
+  let html = `<div class="standings-card">`;
+
+  // Card header
+  html += `<div class="card-header">`;
+  if (logo) {
+    html += `<img class="card-logo" src="${logo}" alt="${meta.name}" onerror="this.style.display='none'">`;
+  } else {
+    html += `<div class="card-logo-placeholder">${meta.flag}</div>`;
+  }
+  html += `
+    <div>
+      <div class="card-title">${meta.name}</div>
+      <div class="card-subtitle">2024–25 Sezonu</div>
+    </div>
+    ${updatedDate ? `<div class="card-updated">Güncellendi: ${updatedDate}</div>` : ''}
+  </div>`;
+
+  // Render each group
+  for (const group of groups) {
+    if (!group || group.length === 0) continue;
+    const groupName = group[0].group || '';
+
+    if (groupName) {
+      html += `<div class="card-group-label">${groupName}</div>`;
+    }
+
+    // Determine description zones for color coding
+    const descriptions = group.map(t => (t.description || '').toLowerCase());
+
+    html += `<table class="st-table">
+      <thead>
+        <tr>
+          <th class="th-team" colspan="2">Takım</th>
+          <th title="Oynadığı">O</th>
+          <th title="Galibiyet" class="col-hid">G</th>
+          <th title="Beraberlik" class="col-hid">B</th>
+          <th title="Mağlubiyet" class="col-hid">M</th>
+          <th title="Gol Farkı">AG</th>
+          <th title="Puan"><strong>P</strong></th>
+          <th title="Son 5 Maç" class="col-hid">Form</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+    for (const team of group) {
+      const all = team.all || {};
+      const desc = (team.description || '').toLowerCase();
+      let rankClass = '';
+      if (desc.includes('champions')) rankClass = 'rank-cl';
+      else if (desc.includes('europa') || desc.includes('playoff') && desc.includes('ue')) rankClass = 'rank-uel';
+      else if (desc.includes('conference') || desc.includes('konferans')) rankClass = 'rank-conf';
+      else if (desc.includes('relegat') || desc.includes('düşme')) rankClass = 'rank-rel';
+      else if (desc.includes('playoff')) rankClass = 'rank-playoff';
+
+      const form = (team.form || '').split('').slice(-5);
+      const formHtml = form.map(c => `<span class="form-pip form-${c}">${c}</span>`).join('');
+
+      const teamLogo = team.team?.logo || '';
+
+      html += `<tr>
+        <td>
+          <div class="td-rank-wrap">
+            ${rankClass ? `<div class="rank-badge ${rankClass}"></div>` : ''}
+            <span style="font-family:'Barlow',sans-serif;font-size:12px;color:var(--tx3);font-weight:600">${team.rank}</span>
+          </div>
+        </td>
+        <td>
+          <div class="td-team">
+            ${teamLogo ? `<img class="td-team-logo" src="${teamLogo}" alt="" onerror="this.style.display='none'">` : ''}
+            <span class="td-team-name">${team.team?.name || '—'}</span>
+          </div>
+        </td>
+        <td>${all.played ?? '—'}</td>
+        <td class="col-hid" style="color:var(--green)">${all.win ?? '—'}</td>
+        <td class="col-hid">${all.draw ?? '—'}</td>
+        <td class="col-hid" style="color:var(--live)">${all.lose ?? '—'}</td>
+        <td style="${team.goalsDiff > 0 ? 'color:var(--green)' : team.goalsDiff < 0 ? 'color:var(--live)' : ''}">${team.goalsDiff != null ? (team.goalsDiff > 0 ? '+' : '') + team.goalsDiff : '—'}</td>
+        <td class="td-pts">${team.points ?? '—'}</td>
+        <td class="col-hid"><div class="td-form">${formHtml || '—'}</div></td>
+      </tr>`;
+    }
+
+    html += `</tbody></table>`;
+  }
+
+  html += `</div>`;
+  document.getElementById('standingsContent').innerHTML = html;
+
+  // Scroll to top of content
+  document.getElementById('standingsWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Search
+document.getElementById('leagueSearch').addEventListener('input', function() {
+  buildLeagueList(this.value);
+});
+
+// Init AdSense
+try { (adsbygoogle = window.adsbygoogle || []).push({}); } catch(_) {}
+try { (adsbygoogle = window.adsbygoogle || []).push({}); } catch(_) {}
+
+// Start
+load();
+
+})();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Puan Durumu — ScorePop",
+  "description": "2024-25 sezonu güncel futbol lig puan durumları. Premier Lig, La Liga, Bundesliga, Serie A, Süper Lig ve daha fazlası.",
+  "url": "https://scorepop.com.tr/puan-durumu",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "ScorePop",
+    "url": "https://scorepop.com.tr"
+  },
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Ana Sayfa", "item": "https://scorepop.com.tr" },
+      { "@type": "ListItem", "position": 2, "name": "Puan Durumu", "item": "https://scorepop.com.tr/puan-durumu" }
+    ]
+  }
+}
+</script>
+
+</body>
+</html>
