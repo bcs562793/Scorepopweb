@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v6.7 — Arşiv Desteği)
+   SCOREPOP — app.js  (v6.8 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -1871,8 +1871,20 @@ function buildSignalDesc(ch1, chx, ch2, winner, pct, delta, ou25Delta, n) {
    buildDetail içindeki sim-wrap bloğunu şununla değiştir:
      html += renderSignalCard(m.fixture_id, cur1x2, curOu25);
 ───────────────────────────────────────────────────────────────────── */
-function renderSignalCard(fixtureId, cur1x2, curOu25) {
-  const sig = buildSignals(cur1x2);
+/**
+ * @param sofa_1x2  — Sofascore oran hareketi: { '1':{change}, 'x':{change}, '2':{change} }
+ *                    buildSignals() bu objeyi kullanır (−1/0/1 yön).
+ * @param curOu25   — Mackolik 2.5 Alt/Üst: { under, over }
+ * @param mac1x2    — Mackolik MS fiyatları: { home, draw, away }
+ *                    runSimAnalysisV2 butonuna geçirilir (arşiv maç eşleştirmesi için).
+ */
+function renderSignalCard(fixtureId, sofa_1x2, curOu25, mac1x2) {
+  /* Geriye dönük uyumluluk: eski çağrılar cur1x2 olarak Mackolik fiyatı geçirmiş olabilir.
+     Eğer sofa_1x2'de change alanı yoksa ve home/draw/away varsa bu Mackolik fiyatıdır — sinyal üretme. */
+  const hasSofaChange = sofa_1x2 &&
+    ('1' in sofa_1x2 || 'x' in sofa_1x2) &&
+    (sofa_1x2['1']?.change !== undefined || sofa_1x2['x']?.change !== undefined);
+  const sig = hasSofaChange ? buildSignals(sofa_1x2) : null;
 
   const tierLabel = {
     strong: '⬡ GÜÇLÜ SİNYAL',
@@ -1910,11 +1922,15 @@ function renderSignalCard(fixtureId, cur1x2, curOu25) {
 
   const mktValCls = d => Math.abs(d) >= 6 ? 'sp-mkt--high' : Math.abs(d) >= 3 ? 'sp-mkt--mid' : 'sp-mkt--low';
 
+  /* runSimAnalysisV2 butonu için Mackolik fiyatlarını JSON'a çevir */
+  const mac1x2Json  = JSON.stringify(mac1x2  || null).replace(/"/g,'&quot;');
+  const curOu25Json = JSON.stringify(curOu25 || null).replace(/"/g,'&quot;');
+
   if (!sig) {
-    /* Oran değişimi verisi yok ama buton yine de çalışsın */
+    /* Sofascore oran değişimi verisi yok — sadece arşiv analiz butonu göster */
     return `
       <div class="sim-wrap" id="sim-wrap-${fixtureId}">
-        <button class="sim-btn" onclick="runSimAnalysisV2(${fixtureId}, ${JSON.stringify(cur1x2).replace(/"/g,'&quot;')}, ${JSON.stringify(curOu25||null).replace(/"/g,'&quot;')})">
+        <button class="sim-btn" onclick="runSimAnalysisV2(${fixtureId}, ${mac1x2Json}, ${curOu25Json})">
           📊 Benzer Oranlı Geçmiş Maçları Analiz Et
         </button>
         <div class="sim-result" id="sim-result-${fixtureId}"></div>
@@ -1959,7 +1975,7 @@ function renderSignalCard(fixtureId, cur1x2, curOu25) {
     </div>
 
     <div class="sim-wrap" id="sim-wrap-${fixtureId}" style="padding-top:4px;">
-      <button class="sim-btn" onclick="runSimAnalysisV2(${fixtureId}, ${JSON.stringify(cur1x2).replace(/"/g,'&quot;')}, ${JSON.stringify(curOu25||null).replace(/"/g,'&quot;')})">
+      <button class="sim-btn" onclick="runSimAnalysisV2(${fixtureId}, ${mac1x2Json}, ${curOu25Json})">
         🔍 Geçmiş Maçları Tara — Detaylı Analiz
       </button>
       <div class="sim-result" id="sim-result-${fixtureId}"></div>
@@ -2024,27 +2040,68 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
     return out?.odds ?? null;
   };
 
-  /* Mevcut maç 1x2 kombinasyonu */
-  const myChange = {
-    '1': cur1x2?.['1']?.change ?? cur1x2?.home?.change ?? 0,
-    'X': cur1x2?.['x']?.change ?? cur1x2?.draw?.change ?? 0,
-    '2': cur1x2?.['2']?.change ?? cur1x2?.away?.change ?? 0,
+  /* ── Hangi mod? ────────────────────────────────────────────────────
+     cur1x2 olarak gelen veri iki türde olabilir:
+       A) Mackolik fiyatı:  { home: 1.85, draw: 3.20, away: 4.10 }
+       B) Sofascore hareketi: { '1':{change:-1}, 'x':{change:0}, '2':{change:1} }
+     Eğer 'home' / 'draw' / 'away' anahtarları varsa → Mackolik fiyatı (mod A).
+     Eğer '1' / 'x' / '2' anahtarları varsa → Sofascore hareketi (mod B).
+  ─────────────────────────────────────────────────────────────────── */
+  const isMacOdds = cur1x2 && ('home' in cur1x2 || 'draw' in cur1x2);
+  const macH = isMacOdds ? (cur1x2.home ?? null) : null;
+  const macD = isMacOdds ? (cur1x2.draw ?? null) : null;
+  const macA = isMacOdds ? (cur1x2.away ?? null) : null;
+
+  /* Sofascore oran hareketi (mod B veya mod A'da null) */
+  const myChange = isMacOdds ? null : {
+    '1': cur1x2?.['1']?.change ?? 0,
+    'X': cur1x2?.['x']?.change ?? 0,
+    '2': cur1x2?.['2']?.change ?? 0,
   };
+
   const myOu25 = curOu25 ? (curOu25.over ?? curOu25.over25 ?? null) : null;
+
+  function ok(val, ref, tol) {
+    return val != null && ref != null && Math.abs(val - ref) <= tol;
+  }
 
   /* Filtre: sonucu olan maçlar */
   let matches = all.filter(m => getResult(m) !== null);
 
-  /* Akıllı daraltma (mevcut kodla uyumlu) */
   const TARGET_MIN = 30, TARGET_MAX = 300;
 
-  /* Önce kombinasyon eşleştir */
-  const comboFiltered = matches.filter(m => {
-    const ch = getSofaChange(m);
-    if (!ch) return false;
-    return ch['1'] === myChange['1'] && ch['X'] === myChange['X'] && ch['2'] === myChange['2'];
-  });
-  if (comboFiltered.length >= TARGET_MIN) matches = comboFiltered;
+  /* ── MOD A: Mackolik fiyat eşleştirmesi ────────────────────────── */
+  if (isMacOdds && macH != null) {
+    /* Tolerans kademeli daraltma — eski runSimAnalysis mantığı */
+    const TOLS = [0.25, 0.20, 0.15, 0.10, 0.07];
+    for (const tol of TOLS) {
+      const filtered = matches.filter(m =>
+        ok(getOddsVal(m,'Maç Sonucu','1'), macH, tol) &&
+        ok(getOddsVal(m,'Maç Sonucu','X'), macD, tol) &&
+        ok(getOddsVal(m,'Maç Sonucu','2'), macA, tol)
+      );
+      if (filtered.length >= TARGET_MIN || tol === TOLS[TOLS.length-1]) {
+        matches = filtered.length >= 3 ? filtered : matches.slice(0, TARGET_MAX);
+        break;
+      }
+    }
+    /* 2.5 Alt/Üst ek filtresi */
+    if (matches.length > TARGET_MAX && myOu25 != null) {
+      const ouFiltered = matches.filter(m =>
+        ok(getOddsVal(m,'2,5 Alt/Üst','Üst'), myOu25, 0.15)
+      );
+      if (ouFiltered.length >= TARGET_MIN) matches = ouFiltered;
+    }
+  }
+  /* ── MOD B: Sofascore hareket kombinasyonu eşleştirmesi ─────────── */
+  else if (myChange) {
+    const comboFiltered = matches.filter(m => {
+      const ch = getSofaChange(m);
+      if (!ch) return false;
+      return ch['1'] === myChange['1'] && ch['X'] === myChange['X'] && ch['2'] === myChange['2'];
+    });
+    if (comboFiltered.length >= TARGET_MIN) matches = comboFiltered;
+  }
 
   /* İstatistik hesapla */
   const total = matches.length;
@@ -2078,10 +2135,16 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
     return '';
   };
 
-  /* Combo etiket */
-  const comboLabel = comboFiltered.length >= TARGET_MIN
-    ? `1${myChange['1']===1?'↑':myChange['1']===-1?'↓':'→'} X${myChange['X']===1?'↑':myChange['X']===-1?'↓':'→'} 2${myChange['2']===1?'↑':myChange['2']===-1?'↓':'→'}`
-    : 'Genel (oran verisi yok)';
+  /* Sonuç etiketi */
+  let comboLabel;
+  if (isMacOdds && macH != null) {
+    comboLabel = `MS ~${macH?.toFixed(2)}/${macD?.toFixed(2)}/${macA?.toFixed(2)}`;
+  } else if (myChange) {
+    const arrow = v => v === 1 ? '↑' : v === -1 ? '↓' : '→';
+    comboLabel = `1${arrow(myChange['1'])} X${arrow(myChange['X'])} 2${arrow(myChange['2'])}`;
+  } else {
+    comboLabel = 'Genel (oran verisi yok)';
+  }
 
   resultEl.innerHTML = `
     <div class="sim-card">
@@ -2531,9 +2594,13 @@ if (od && od.markets) {
 
      /* ── BENZERİ ORANLARIN ANALİZİ ── */
   {
-  const cur1x2 = od?.markets?.['1x2'];
-  const curOu25 = od?.markets?.['ou25'];
-  html += renderSignalCard(m.fixture_id, cur1x2, curOu25);
+  /* renderSignalCard → buildSignals için sofa_1x2 (oran değişim yönü) gerekiyor.
+     od.markets['1x2'] Mackolik fiyatlarıdır, oran hareketi değil.
+     runSimAnalysisV2 ise Mackolik fiyatlarını kullanır — her ikisi doğru şekilde ayrıldı. */
+  const sofaFor1x2  = od?.sofa_1x2 ?? null;   /* { '1':{change,opening,closing}, 'x':{...}, '2':{...} } */
+  const macFor1x2   = od?.markets?.['1x2'];    /* { home, draw, away } — Mackolik fiyatları */
+  const curOu25     = od?.markets?.['ou25'];
+  html += renderSignalCard(m.fixture_id, sofaFor1x2, curOu25, macFor1x2);
 }
 
   /* ══════════════════════════════════════
