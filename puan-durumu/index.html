@@ -379,80 +379,147 @@
 
 /* ── LEAGUE NAME MAP ── */
 const LEAGUE_NAMES = {
-  0:  { name: 'Ukrayna Ligi',          flag: 'UA', group: 'Avrupa' },
-  2:  { name: 'UEFA Şampiyonlar Ligi', flag: 'UCL', group: 'Avrupa' },
-  3:  { name: 'UEFA Avrupa Ligi',      flag: 'UEL', group: 'Avrupa' },
-  4:  { name: 'UEFA Konferans Ligi',   flag: 'INT', group: 'Avrupa' },
-  9:  { name: 'UEFA Uluslar Ligi',     flag: 'INT', group: 'Avrupa' },
-  11: { name: 'CONMEBOL Sudamericana', flag: 'SA', group: 'Amerika' },
-  12: { name: 'CAF Şampiyonlar Ligi',  flag: 'INT', group: 'Afrika' },
-  13: { name: 'Copa Libertadores',     flag: 'SA', group: 'Amerika' },
-  16: { name: 'CONCACAF Şampiyonlar', flag: 'SA', group: 'Amerika' },
-  17: { name: 'AFC Şampiyonlar Ligi',  flag: 'AS', group: 'Asya' },
-  19: { name: 'Finlandiya Ligi',       flag: 'FI', group: 'Avrupa' },
-  24: { name: 'İngiltere League One',  flag: '', group: 'İngiltere' },
-  37: { name: 'Türkiye Süper Ligi',    flag: 'TR', group: 'Türkiye' },
-  39: { name: 'İngiltere Premier Lig', flag: '', group: 'İngiltere' },
-  40: { name: 'İngiltere Championship',flag: '', group: 'İngiltere' },
-  41: { name: 'İngiltere League One',  flag: '', group: 'İngiltere' },
-  42: { name: 'İngiltere League Two',  flag: '', group: 'İngiltere' },
-  43: { name: 'İskoçya Premier',       flag: '', group: 'Avrupa' },
-  45: { name: 'İngiltere FA Cup',      flag: '', group: 'Kupalar' },
-  50: { name: 'Belçika 1. Ligi',       flag: 'BE', group: 'Avrupa' },
-  51: { name: 'Belçika 2. Ligi',       flag: 'BE', group: 'Avrupa' },
-  61: { name: 'Fransa Ligue 1',        flag: 'FR', group: 'Fransa' },
-  62: { name: 'Fransa Ligue 2',        flag: 'FR', group: 'Fransa' },
-  71: { name: 'Brezilya Serie A',      flag: 'BR', group: 'Amerika' },
-  72: { name: 'Brezilya Serie B',      flag: 'BR', group: 'Amerika' },
-  73: { name: 'Brezilya Copa',         flag: 'BR', group: 'Amerika' },
-  78: { name: 'Almanya Bundesliga',    flag: 'DE', group: 'Almanya' },
-  79: { name: 'Almanya 2. Bundesliga', flag: 'DE', group: 'Almanya' },
-  88: { name: 'Hollanda Eredivisie',   flag: 'NL', group: 'Avrupa' },
-  89: { name: 'Hollanda Kupası',       flag: 'NL', group: 'Kupalar' },
-  94: { name: 'Portekiz Primeira',     flag: 'PT', group: 'Avrupa' },
-  95: { name: 'Portekiz 2. Ligi',      flag: 'PT', group: 'Avrupa' },
-  119:{ name: 'Danimarka Superliga',   flag: 'DK', group: 'Avrupa' },
-  135:{ name: 'İtalya Serie A',        flag: 'IT', group: 'İtalya' },
-  136:{ name: 'İtalya Serie B',        flag: 'IT', group: 'İtalya' },
-  140:{ name: 'İspanya La Liga',       flag: 'ES', group: 'İspanya' },
-  141:{ name: 'İspanya La Liga 2',     flag: 'ES', group: 'İspanya' },
-  143:{ name: 'İspanya Copa del Rey',  flag: 'ES', group: 'Kupalar' },
-  144:{ name: 'Belçika 1. Ligi',       flag: 'BE', group: 'Avrupa' },
-  172:{ name: 'Meksika Liga MX',       flag: 'MX', group: 'Amerika' },
-  179:{ name: 'İskoçya Lig',          flag: '', group: 'Avrupa' },
-  197:{ name: 'Yunanistan Super Lig',  flag: '', group: 'Avrupa' },
-  203:{ name: 'Türkiye 1. Lig',        flag: 'TR', group: 'Türkiye' },
-  204:{ name: 'Türkiye 2. Lig',        flag: 'TR', group: 'Türkiye' },
-  207:{ name: 'İsviçre Super Lig',     flag: 'CH', group: 'Avrupa' },
-  210:{ name: 'Avusturya Bundesliga',  flag: 'AT', group: 'Avrupa' },
-  218:{ name: 'Arjantin Primera',      flag: 'AR', group: 'Amerika' },
-  235:{ name: 'Rusya Premier Lig',     flag: 'RU', group: 'Avrupa' },
-  239:{ name: 'Norveç Eliteserien',    flag: 'NO', group: 'Avrupa' },
-  241:{ name: 'Norveç 1. Divisjon',    flag: 'NO', group: 'Avrupa' },
-  244:{ name: 'İsveç Allsvenskan',     flag: 'SE', group: 'Avrupa' },
-  253:{ name: 'Kolombiya Liga',        flag: 'CO', group: 'Amerika' },
-  262:{ name: 'Meksika Liga Expansion',flag: 'MX', group: 'Amerika' },
-  263:{ name: 'Meksika Apertura',      flag: 'MX', group: 'Amerika' },
-  269:{ name: 'Şili Primera',          flag: 'CL', group: 'Amerika' },
-  271:{ name: 'Danimarka 1. Division', flag: 'DK', group: 'Avrupa' },
-  283:{ name: 'Polonya Ekstraklasa',   flag: 'PL', group: 'Avrupa' },
-  286:{ name: 'Polonya 1. Liga',       flag: 'PL', group: 'Avrupa' },
-  292:{ name: 'Güney Kore K-League',   flag: 'KR', group: 'Asya' },
-  301:{ name: 'ABD MLS',              flag: 'US', group: 'Amerika' },
-  307:{ name: 'Suudi Arabistan Pro',   flag: 'SA', group: 'Asya' },
-  318:{ name: 'İran Ligi',            flag: 'IR', group: 'Asya' },
-  322:{ name: 'Japonya J1 Ligi',       flag: 'JP', group: 'Asya' },
-  323:{ name: 'Japonya J2 Ligi',       flag: 'JP', group: 'Asya' },
-  333:{ name: 'Romanya 1. Ligi',       flag: 'RO', group: 'Avrupa' },
-  335:{ name: 'Çek Cumhuriyeti Ligi',  flag: 'CZ', group: 'Avrupa' },
-  345:{ name: 'Hırvatistan 1. HNL',    flag: 'HR', group: 'Avrupa' },
-  357:{ name: 'Macaristan NB I',       flag: 'HU', group: 'Avrupa' },
-  383:{ name: 'İsviçre 1. Ligi',       flag: 'CH', group: 'Avrupa' },
-  384:{ name: 'Avustralya A-League',   flag: 'AU', group: 'Asya' },
-  385:{ name: 'Avustralya NPL',        flag: 'AU', group: 'Asya' },
+  // Türkiye
+  203: { name: 'Türkiye Süper Ligi',        flag: 'TR',       group: 'Türkiye' },
+  204: { name: 'Türkiye 1. Lig',            flag: 'TR',       group: 'Türkiye' },
+  205: { name: 'Türkiye 2. Lig',            flag: 'TR',       group: 'Türkiye' },
+  // İngiltere
+  39:  { name: 'İngiltere Premier Lig',     flag: 'GB',       group: 'İngiltere' },
+  40:  { name: 'İngiltere Championship',    flag: 'GB',       group: 'İngiltere' },
+  41:  { name: 'İngiltere League One',      flag: 'GB',       group: 'İngiltere' },
+  42:  { name: 'İngiltere League Two',      flag: 'GB',       group: 'İngiltere' },
+  45:  { name: 'İngiltere FA Cup',          flag: 'GB',       group: 'İngiltere' },
+  48:  { name: 'İngiltere Carabao Cup',     flag: 'GB',       group: 'İngiltere' },
+  24:  { name: 'İngiltere National League', flag: 'GB',       group: 'İngiltere' },
+  // İspanya
+  140: { name: 'İspanya La Liga',           flag: 'ES',       group: 'İspanya' },
+  141: { name: 'İspanya La Liga 2',         flag: 'ES',       group: 'İspanya' },
+  143: { name: 'İspanya Copa del Rey',      flag: 'ES',       group: 'İspanya' },
+  // Almanya
+  78:  { name: 'Almanya Bundesliga',        flag: 'DE',       group: 'Almanya' },
+  79:  { name: 'Almanya 2. Bundesliga',     flag: 'DE',       group: 'Almanya' },
+  80:  { name: 'Almanya 3. Liga',           flag: 'DE',       group: 'Almanya' },
+  81:  { name: 'Almanya DFB Kupası',        flag: 'DE',       group: 'Almanya' },
+  // İtalya
+  135: { name: 'İtalya Serie A',            flag: 'IT',       group: 'İtalya' },
+  136: { name: 'İtalya Serie B',            flag: 'IT',       group: 'İtalya' },
+  137: { name: 'İtalya Serie C',            flag: 'IT',       group: 'İtalya' },
+  // Fransa
+  61:  { name: 'Fransa Ligue 1',            flag: 'FR',       group: 'Fransa' },
+  62:  { name: 'Fransa Ligue 2',            flag: 'FR',       group: 'Fransa' },
+  // Avrupa Kupaları
+  2:   { name: 'UEFA Şampiyonlar Ligi',     flag: 'UCL',      group: 'Avrupa' },
+  3:   { name: 'UEFA Avrupa Ligi',          flag: 'UEL',      group: 'Avrupa' },
+  4:   { name: 'UEFA Konferans Ligi',       flag: 'UECL',     group: 'Avrupa' },
+  9:   { name: 'UEFA Uluslar Ligi',         flag: 'UEFA',     group: 'Avrupa' },
+  848: { name: 'UEFA Süper Kupa',           flag: 'UEFA',     group: 'Avrupa' },
+  // Avrupa Ligleri
+  0:   { name: 'Ukrayna Premier Ligi',      flag: 'UA',       group: 'Avrupa' },
+  19:  { name: 'Finlandiya Veikkausliiga',  flag: 'FI',       group: 'Avrupa' },
+  43:  { name: 'İskoçya Premiership',       flag: 'SCT',      group: 'Avrupa' },
+  50:  { name: 'Belçika Pro Ligi A',        flag: 'BE',       group: 'Avrupa' },
+  51:  { name: 'Belçika Pro Ligi B',        flag: 'BE',       group: 'Avrupa' },
+  88:  { name: 'Hollanda Eredivisie',       flag: 'NL',       group: 'Avrupa' },
+  89:  { name: 'Hollanda KNVB Kupası',      flag: 'NL',       group: 'Avrupa' },
+  94:  { name: 'Portekiz Primeira Liga',    flag: 'PT',       group: 'Avrupa' },
+  95:  { name: 'Portekiz Liga 2',           flag: 'PT',       group: 'Avrupa' },
+  103: { name: 'Finlandiya Ykkönen',        flag: 'FI',       group: 'Avrupa' },
+  106: { name: 'Finlandiya Kakkonen',       flag: 'FI',       group: 'Avrupa' },
+  115: { name: 'Finlandiya Kupası',         flag: 'FI',       group: 'Avrupa' },
+  119: { name: 'Danimarka Superliga',       flag: 'DK',       group: 'Avrupa' },
+  120: { name: 'Danimarka 1. Division',     flag: 'DK',       group: 'Avrupa' },
+  129: { name: 'İsveç Allsvenskan',         flag: 'SE',       group: 'Avrupa' },
+  132: { name: 'Belçika Kral Kupası',       flag: 'BE',       group: 'Avrupa' },
+  134: { name: 'Yunanistan SL2',            flag: 'GR',       group: 'Avrupa' },
+  144: { name: 'Belçika Pro Ligi',          flag: 'BE',       group: 'Avrupa' },
+  145: { name: 'Belçika Amatör Ligi',       flag: 'BE',       group: 'Avrupa' },
+  149: { name: 'Brezilya Série C',          flag: 'BR',       group: 'Avrupa' },
+  179: { name: 'İskoçya Premiership',       flag: 'SCT',      group: 'Avrupa' },
+  180: { name: 'İskoçya Championship',      flag: 'SCT',      group: 'Avrupa' },
+  188: { name: 'İsviçre Challenge Ligi',    flag: 'CH',       group: 'Avrupa' },
+  189: { name: 'Avusturya 2. Liga',         flag: 'AT',       group: 'Avrupa' },
+  197: { name: 'Yunanistan Super Lig',      flag: 'GR',       group: 'Avrupa' },
+  207: { name: 'İsviçre Super Ligi',        flag: 'CH',       group: 'Avrupa' },
+  210: { name: 'Avusturya Bundesliga',      flag: 'AT',       group: 'Avrupa' },
+  233: { name: 'Hollanda Eerste Divisie',   flag: 'NL',       group: 'Avrupa' },
+  235: { name: 'Rusya Premier Lig',         flag: 'RU',       group: 'Avrupa' },
+  239: { name: 'Norveç Eliteserien',        flag: 'NO',       group: 'Avrupa' },
+  242: { name: 'Norveç 1. Divisjon',        flag: 'NO',       group: 'Avrupa' },
+  244: { name: 'İsveç Allsvenskan',         flag: 'SE',       group: 'Avrupa' },
+  268: { name: 'İsveç Superettan',          flag: 'SE',       group: 'Avrupa' },
+  271: { name: 'Danimarka 1. Division',     flag: 'DK',       group: 'Avrupa' },
+  281: { name: 'İskoçya Kupası',            flag: 'SCT',      group: 'Avrupa' },
+  283: { name: 'Polonya Ekstraklasa',       flag: 'PL',       group: 'Avrupa' },
+  286: { name: 'Polonya 1. Liga',           flag: 'PL',       group: 'Avrupa' },
+  288: { name: 'Polonya 2. Liga',           flag: 'PL',       group: 'Avrupa' },
+  299: { name: 'Romanya Kupası',            flag: 'RO',       group: 'Avrupa' },
+  310: { name: 'İsveç Kupası',              flag: 'SE',       group: 'Avrupa' },
+  327: { name: 'Portekiz Taça da Liga',     flag: 'PT',       group: 'Avrupa' },
+  332: { name: 'Romanya Liga 2',            flag: 'RO',       group: 'Avrupa' },
+  333: { name: 'Romanya Liga 1',            flag: 'RO',       group: 'Avrupa' },
+  345: { name: 'Hırvatistan 1. HNL',        flag: 'HR',       group: 'Avrupa' },
+  348: { name: 'Hırvatistan 2. HNL',        flag: 'HR',       group: 'Avrupa' },
+  356: { name: 'Bulgaristan Süper Lig',     flag: 'BG',       group: 'Avrupa' },
+  357: { name: 'Macaristan NB I',           flag: 'HU',       group: 'Avrupa' },
+  363: { name: 'Ukrayna Premier Ligi',      flag: 'UA',       group: 'Avrupa' },
+  369: { name: 'Çekya Fortuna Liga',        flag: 'CZ',       group: 'Avrupa' },
+  371: { name: 'Slovakya Süper Lig',        flag: 'SK',       group: 'Avrupa' },
+  372: { name: 'Slovenya PrvaLiga',         flag: 'SI',       group: 'Avrupa' },
+  381: { name: 'Yunanistan Kupası',         flag: 'GR',       group: 'Avrupa' },
+  399: { name: 'Sırbistan Super Liga',      flag: 'RS',       group: 'Avrupa' },
+  401: { name: 'Bosna Premijer Liga',       flag: 'BA',       group: 'Avrupa' },
+  552: { name: 'Azerbaycan Premyer Liqası', flag: 'AZ',       group: 'Avrupa' },
+  553: { name: 'Gürcistan Erovnuli Liga',   flag: 'GE',       group: 'Avrupa' },
+  554: { name: 'Ermenistan Premier Ligi',   flag: 'AM',       group: 'Avrupa' },
+  623: { name: 'Belarus Yüksek Ligi',       flag: 'BY',       group: 'Avrupa' },
+  624: { name: 'Kosova Superliga',          flag: 'XK',       group: 'Avrupa' },
+  636: { name: 'Karadağ Prva Liga',         flag: 'ME',       group: 'Avrupa' },
+  668: { name: 'Litvanya A Lyga',           flag: 'LT',       group: 'Avrupa' },
+  681: { name: 'Kuzey Makedonya 1. Lig',   flag: 'MK',       group: 'Avrupa' },
+  705: { name: 'Kuzey İrlanda Prem. Lig',  flag: 'NIR',      group: 'Avrupa' },
+  742: { name: 'Galler Cymru Premier',      flag: 'WAL',      group: 'Avrupa' },
+  823: { name: 'Arnavutluk Kategoria Sup.', flag: 'AL',       group: 'Avrupa' },
+  // Amerika
+  11:  { name: 'CONMEBOL Sudamericana',     flag: 'SA',       group: 'Amerika' },
+  13:  { name: 'Copa Libertadores',         flag: 'SA',       group: 'Amerika' },
+  15:  { name: 'FIFA Kulüpler Dünya K.',    flag: 'INT',      group: 'Amerika' },
+  16:  { name: 'CONCACAF Şampiyonlar',      flag: 'CONCACAF', group: 'Amerika' },
+  71:  { name: 'Brezilya Série A',          flag: 'BR',       group: 'Amerika' },
+  72:  { name: 'Brezilya Série B',          flag: 'BR',       group: 'Amerika' },
+  73:  { name: 'Brezilya Copa do Brasil',   flag: 'BR',       group: 'Amerika' },
+  128: { name: 'Arjantin Copa Argentina',   flag: 'AR',       group: 'Amerika' },
+  172: { name: 'Meksika Liga MX',           flag: 'MX',       group: 'Amerika' },
+  177: { name: 'Meksika Copa MX',           flag: 'MX',       group: 'Amerika' },
+  218: { name: 'Arjantin Primera División', flag: 'AR',       group: 'Amerika' },
+  253: { name: 'Kolombiya Liga BetPlay',    flag: 'CO',       group: 'Amerika' },
+  262: { name: 'Meksika Liga Expansión',    flag: 'MX',       group: 'Amerika' },
+  263: { name: 'Meksika Clausura',          flag: 'MX',       group: 'Amerika' },
+  265: { name: 'Şili Primera División',     flag: 'CL',       group: 'Amerika' },
+  274: { name: 'Venezuela Liga FUTVE',      flag: 'VE',       group: 'Amerika' },
+  301: { name: 'ABD MLS',                   flag: 'US',       group: 'Amerika' },
+  419: { name: 'ABD USL Championship',      flag: 'US',       group: 'Amerika' },
+  432: { name: 'Ekvador LigaPro',           flag: 'EC',       group: 'Amerika' },
+  447: { name: 'Paraguay División Prof.',   flag: 'PY',       group: 'Amerika' },
+  449: { name: 'Uruguay Primera División',  flag: 'UY',       group: 'Amerika' },
+  // Asya
+  17:  { name: 'AFC Şampiyonlar Ligi',      flag: 'AFC',      group: 'Asya' },
+  98:  { name: 'Japonya Emp. Kupası',       flag: 'JP',       group: 'Asya' },
+  169: { name: 'Japonya J3 Ligi',           flag: 'JP',       group: 'Asya' },
+  292: { name: 'Güney Kore K-League 1',     flag: 'KR',       group: 'Asya' },
+  305: { name: 'Katar Stars Ligi',          flag: 'QA',       group: 'Asya' },
+  307: { name: 'Suudi Arabistan Pro Ligi',  flag: 'SAR',      group: 'Asya' },
+  318: { name: 'İran Persian Gulf Pro',     flag: 'IR',       group: 'Asya' },
+  322: { name: 'Japonya J1 Ligi',           flag: 'JP',       group: 'Asya' },
+  323: { name: 'Japonya J2 Ligi',           flag: 'JP',       group: 'Asya' },
+  398: { name: 'Bangladeş Premier Lig',     flag: 'BD',       group: 'Asya' },
+  567: { name: 'Kazakistan Premier Ligi',   flag: 'KZ',       group: 'Asya' },
+  571: { name: 'Özbekistan Pro Liga',       flag: 'UZ',       group: 'Asya' },
+  // Afrika
+  12:  { name: 'CAF Şampiyonlar Ligi',      flag: 'CAF',      group: 'Afrika' },
+  200: { name: 'Fas Botola Pro',            flag: 'MA',       group: 'Afrika' },
 };
 
-const GROUP_ORDER = ['Türkiye','İngiltere','İspanya','Almanya','İtalya','Fransa','Avrupa','Amerika','Asya','Afrika','Kupalar'];
+const GROUP_ORDER = ['Türkiye','İngiltere','İspanya','Almanya','İtalya','Fransa','Avrupa','Amerika','Asya','Afrika'];
 
 /* ── SUPABASE INIT ── */
 let supabase;
@@ -470,7 +537,7 @@ async function load() {
   if (!supabase) return;
   try {
     const { data, error } = await supabase
-      .from('league_standings')
+      .from('league_standings_rows')
       .select('league_id, data, updated_at')
       .order('league_id', { ascending: true });
 
@@ -478,7 +545,7 @@ async function load() {
 
     allData = (data || []).map(row => {
       let parsed = null;
-      try { parsed = typeof row.data === 'string' ? JSON.parse(row.data) : row.data; } catch(_) {}
+      try { parsed = JSON.parse(row.data); } catch(_) {}
       return { league_id: row.league_id, raw: parsed, updated_at: row.updated_at };
     }).filter(r => r.raw);
 
@@ -513,6 +580,8 @@ function buildLeagueList(filter='') {
   for (const row of allData) {
     const meta = leagueMeta(row.league_id);
     const name = meta.name;
+    // Sadece bilinen ligleri göster
+    if (!LEAGUE_NAMES[row.league_id]) continue;
     if (fl && !name.toLowerCase().includes(fl)) continue;
     const grp = meta.group || 'Diğer';
     if (!grouped[grp]) grouped[grp] = [];
