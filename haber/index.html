@@ -93,11 +93,7 @@ async function loadHaber() {
     return;
   }
 
-  const url = `${SUPABASE_URL}/rest/v1/haberler?slug=eq.${encodeURIComponent(slug)}&aktif=eq.true&limit=1`;
-  try {
-    const res = await fetch(url, {
-      headers: { 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY }
-    });
+  const res = await fetch(`/api/haberler?limit=${PAGE_SIZE}&offset=${offset}`);
     if (!res.ok) throw new Error('API hatası');
     const data = await res.json();
     if (!data.length) throw new Error('not_found');
