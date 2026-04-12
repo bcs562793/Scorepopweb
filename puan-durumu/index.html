@@ -545,7 +545,7 @@ async function load() {
 
     allData = (data || []).map(row => {
       let parsed = null;
-      try { parsed = JSON.parse(row.data); } catch(_) {}
+      try { parsed = typeof row.data === 'string' ? JSON.parse(row.data) : row.data; } catch(_) {}
       return { league_id: row.league_id, raw: parsed, updated_at: row.updated_at };
     }).filter(r => r.raw);
 
