@@ -130,7 +130,7 @@ jobs:
               ]
 
           new_rule = {
-              "expression": '(http.request.uri.path matches "^/puan-durumu")',
+              "expression": '(starts_with(http.request.uri.path, "/puan-durumu"))',
               "action": "set_cache_settings",
               "action_parameters": {"cache": False},
               "description": "puan-durumu cache bypass",
