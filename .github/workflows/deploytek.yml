@@ -1,10 +1,12 @@
-name: DeployTek — Puan Durumu Fix
+name: Deploy ScorePop
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
-  fix-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -14,45 +16,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ── 2. Secret'ları doğrula ────────────────────────────────────────────
+      # ── 2. Secret'ları doğrula ───────────────────────────────────────────
       - name: Validate secrets
         run: |
           MISSING=0
-
-          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
-            echo "❌ SUPABASE_URL boş"; MISSING=1
-          else
-            echo "✅ SUPABASE_URL OK"
-          fi
-
-          if [ -z "${{ secrets.SUPABASE_KEY }}" ]; then
-            echo "❌ SUPABASE_KEY boş"; MISSING=1
-          else
-            echo "✅ SUPABASE_KEY OK"
-          fi
-
-          if [ -z "${{ secrets.CF_ZONE_ID }}" ]; then
-            echo "❌ CF_ZONE_ID boş! → Cloudflare → scorepop.com.tr → Overview → Zone ID"
-            MISSING=1
-          else
-            echo "✅ CF_ZONE_ID OK"
-          fi
-
-          if [ -z "${{ secrets.CF_API_TOKEN }}" ]; then
-            echo "❌ CF_API_TOKEN boş"; MISSING=1
-          else
-            echo "✅ CF_API_TOKEN OK"
-          fi
-
+          [ -z "${{ secrets.SUPABASE_URL }}" ]      && echo "❌ SUPABASE_URL boş"  && MISSING=1 || echo "✅ SUPABASE_URL OK"
+          [ -z "${{ secrets.SUPABASE_KEY }}" ]      && echo "❌ SUPABASE_KEY boş"  && MISSING=1 || echo "✅ SUPABASE_KEY OK"
+          [ -z "${{ secrets.CF_ZONE_ID }}" ]        && echo "❌ CF_ZONE_ID boş"    && MISSING=1 || echo "✅ CF_ZONE_ID OK"
+          [ -z "${{ secrets.CF_API_TOKEN }}" ]      && echo "❌ CF_API_TOKEN boş"  && MISSING=1 || echo "✅ CF_API_TOKEN OK"
           [ "$MISSING" = "1" ] && exit 1 || echo "✅ Tüm secret'lar mevcut"
 
-      # ── 3. Cloudflare bağlantısını test et ───────────────────────────────
+      # ── 3. Cloudflare bağlantısını test et ──────────────────────────────
       - name: Test Cloudflare credentials
         run: |
           ZONE_CHECK=$(curl -s \
             "https://api.cloudflare.com/client/v4/zones/${{ secrets.CF_ZONE_ID }}" \
             -H "Authorization: Bearer ${{ secrets.CF_API_TOKEN }}")
-
           if echo "$ZONE_CHECK" | grep -q '"success":true'; then
             echo "✅ Cloudflare bağlantısı OK"
           else
@@ -61,7 +40,7 @@ jobs:
             exit 1
           fi
 
-      # ── 4. Credentials enjekte et ─────────────────────────────────────────
+      # ── 4. Credentials enjekte et ────────────────────────────────────────
       - name: Inject credentials
         run: |
           sed -i "s|BURAYA_URL|${{ secrets.SUPABASE_URL }}|g" config.js
@@ -69,22 +48,23 @@ jobs:
           sed -i "s|BURAYA_PAYMENT_URL|${{ secrets.PAYMENT_EDGE_URL }}|g" index.html
           echo "✅ Credentials enjekte edildi"
 
-      # ── 5. Cache busting ──────────────────────────────────────────────────
+      # ── 5. Cache busting ─────────────────────────────────────────────────
       - name: Cache busting
         run: |
           BUILD=$(date +%s)
           echo "Build: $BUILD"
 
-          sed -i "s/app\.js?v=[^\"']*/app.js?v=${BUILD}/g"         index.html
-          sed -i "s/style\.css?v=[^\"']*/style.css?v=${BUILD}/g"   index.html
-          sed -i "s/config\.js?v=[^\"']*/config.js?v=${BUILD}/g"   index.html
-          sed -i "s/router\.js?v=[^\"']*/router.js?v=${BUILD}/g"   index.html
-          sed -i "s/auth\.js?v=[^\"']*/auth.js?v=${BUILD}/g"       index.html
-          sed -i "s/forum\.js?v=[^\"']*/forum.js?v=${BUILD}/g"     index.html
-          sed -i "s/payment\.js?v=[^\"']*/payment.js?v=${BUILD}/g" index.html
+          # Ana index.html
+          sed -i "s/app\.js?v=[^\"']*/app.js?v=${BUILD}/g"          index.html
+          sed -i "s/style\.css?v=[^\"']*/style.css?v=${BUILD}/g"    index.html
+          sed -i "s/config\.js?v=[^\"']*/config.js?v=${BUILD}/g"    index.html
+          sed -i "s/router\.js?v=[^\"']*/router.js?v=${BUILD}/g"    index.html
+          sed -i "s/auth\.js?v=[^\"']*/auth.js?v=${BUILD}/g"        index.html
+          sed -i "s/forum\.js?v=[^\"']*/forum.js?v=${BUILD}/g"      index.html
+          sed -i "s/payment\.js?v=[^\"']*/payment.js?v=${BUILD}/g"  index.html
           sed -i "s/indexing\.js?v=[^\"']*/indexing.js?v=${BUILD}/g" index.html
 
-          # puan-durumu/index.html — config.js referansını versiyonla
+          # puan-durumu/index.html — config.js versiyonla
           if grep -q 'config\.js?v=' puan-durumu/index.html; then
             sed -i "s/config\.js?v=[^\"']*/config.js?v=${BUILD}/g" puan-durumu/index.html
           else
@@ -94,41 +74,32 @@ jobs:
           touch .nojekyll
           echo "✅ Cache busting tamamlandı"
 
-      # ── 6. Cloudflare Cache Rule — puan-durumu bypass ────────────────────
-      - name: Cloudflare - Cache bypass for puan-durumu
+      # ── 6. Cloudflare: /puan-durumu cache bypass kuralı ─────────────────
+      - name: Cloudflare - Ensure cache bypass for puan-durumu
         run: |
           ZONE_ID="${{ secrets.CF_ZONE_ID }}"
           TOKEN="${{ secrets.CF_API_TOKEN }}"
 
-          echo "Mevcut cache kuralları kontrol ediliyor..."
-
-          # Phase yanıtını dosyaya yaz (tırnak sorununu önler)
           curl -s \
             "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/rulesets/phases/http_request_cache_settings/entrypoint" \
             -H "Authorization: Bearer ${TOKEN}" \
             -o /tmp/phase_response.json
 
           if grep -q "puan-durumu" /tmp/phase_response.json; then
-            echo "✅ puan-durumu cache kuralı zaten mevcut, atlanıyor."
+            echo "✅ Cache bypass kuralı zaten mevcut, atlanıyor."
             exit 0
           fi
 
           echo "➕ Cache bypass kuralı oluşturuluyor..."
 
-          # Mevcut kuralları al ve puan-durumu dışındakileri koru
           python3 - << 'EOF'
           import json
-
           with open('/tmp/phase_response.json') as f:
               data = json.load(f)
-
           existing = []
           if data.get('success') and data.get('result', {}).get('rules'):
-              existing = [
-                  r for r in data['result']['rules']
-                  if 'puan-durumu' not in json.dumps(r)
-              ]
-
+              existing = [r for r in data['result']['rules']
+                          if 'puan-durumu' not in json.dumps(r)]
           new_rule = {
               "expression": '(starts_with(http.request.uri.path, "/puan-durumu"))',
               "action": "set_cache_settings",
@@ -136,16 +107,12 @@ jobs:
               "description": "puan-durumu cache bypass",
               "enabled": True
           }
-
           payload = {"rules": [new_rule] + existing}
-
           with open('/tmp/cache_rule_payload.json', 'w') as f:
               json.dump(payload, f)
-
           print("✅ Payload hazırlandı:", len(payload['rules']), "kural")
           EOF
 
-          # Kuralı Cloudflare'e gönder
           RESULT=$(curl -s -X PUT \
             "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/rulesets/phases/http_request_cache_settings/entrypoint" \
             -H "Authorization: Bearer ${TOKEN}" \
@@ -156,26 +123,18 @@ jobs:
             echo "✅ Cache bypass kuralı başarıyla oluşturuldu."
           else
             echo "⚠️  Cache Rule oluşturulamadı (token'da 'Zone Cache Rules' yetkisi eksik olabilir)"
-            python3 -c "
-          import json, sys
-          d = json.loads('''$(echo "$RESULT" | sed "s/'/\\\\''/g")''')
-          for e in d.get('errors', []):
-              print('  Hata:', e.get('message',''))
-          " 2>/dev/null || echo "$RESULT"
+            echo "$RESULT"
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "📌 MANUEL ADIM (2 dakika):"
-            echo "   Cloudflare → scorepop.com.tr → Caching"
-            echo "   → Cache Rules → Create Rule"
-            echo "   Field   : URI Path"
-            echo "   Operator: starts with"
-            echo "   Value   : /puan-durumu"
-            echo "   Action  : Bypass cache"
+            echo "📌 MANUEL ADIM: Cloudflare → scorepop.com.tr"
+            echo "   Caching → Cache Rules → Create Rule"
+            echo "   Field: URI Path | starts with | /puan-durumu"
+            echo "   Action: Bypass cache"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Deploy devam ediyor..."
           fi
 
-      # ── 7. GitHub Pages deploy ────────────────────────────────────────────
+      # ── 7. GitHub Pages deploy ───────────────────────────────────────────
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v3
         with:
@@ -184,7 +143,7 @@ jobs:
           publish_branch: gh-pages
           exclude_assets: '.github,*.yml,*.md'
 
-      # ── 8. Cloudflare cache temizle ───────────────────────────────────────
+      # ── 8. Cloudflare cache temizle ──────────────────────────────────────
       - name: Cloudflare Cache Purge
         run: |
           RESULT=$(curl -s -X POST \
@@ -192,7 +151,6 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.CF_API_TOKEN }}" \
             -H "Content-Type: application/json" \
             --data '{"purge_everything":true}')
-
           if echo "$RESULT" | grep -q '"success":true'; then
             echo "✅ Cloudflare cache temizlendi."
           else
