@@ -125,7 +125,8 @@ async function fetchNews() {
 
   if (offset === 0) grid.innerHTML = skeletons(9);
 
-  const res = await fetch(`/api/haberler?slug=${encodeURIComponent(slug)}`);
+  try {  // ✅ EKSİK OLAN TRY EKLENDİ
+    const res = await fetch(`/api/haberler?limit=${PAGE_SIZE}&offset=${offset}`);
     if (!res.ok) throw new Error('API hatası: ' + res.status);
     const count = res.headers.get('content-range');
     if (count) total = parseInt(count.split('/')[1]) || 0;
