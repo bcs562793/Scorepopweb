@@ -125,15 +125,7 @@ async function fetchNews() {
 
   if (offset === 0) grid.innerHTML = skeletons(9);
 
-  const url = `${SUPABASE_URL}/rest/v1/haberler?aktif=eq.true&order=yayin_tarihi.desc&limit=${PAGE_SIZE}&offset=${offset}&select=id,slug,baslik,ozet,kapak_url,kategori,yayin_tarihi`;
-  try {
-    const res = await fetch(url, {
-      headers: {
-        'apikey': ANON_KEY,
-        'Authorization': 'Bearer ' + ANON_KEY,
-        'Prefer': 'count=exact'
-      }
-    });
+  const res = await fetch(`/api/haberler?slug=${encodeURIComponent(slug)}`);
     if (!res.ok) throw new Error('API hatası: ' + res.status);
     const count = res.headers.get('content-range');
     if (count) total = parseInt(count.split('/')[1]) || 0;
