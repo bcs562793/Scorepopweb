@@ -14,86 +14,175 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ── 2. Credentials enjekte et ─────────────────────────────────────────
+      # ── 2. Secret'ları doğrula ────────────────────────────────────────────
+      - name: Validate secrets
+        run: |
+          MISSING=0
+
+          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
+            echo "❌ SUPABASE_URL secret tanımlı değil"; MISSING=1
+          else
+            echo "✅ SUPABASE_URL OK"
+          fi
+
+          if [ -z "${{ secrets.SUPABASE_KEY }}" ]; then
+            echo "❌ SUPABASE_KEY secret tanımlı değil"; MISSING=1
+          else
+            echo "✅ SUPABASE_KEY OK"
+          fi
+
+          if [ -z "${{ secrets.CF_ZONE_ID }}" ]; then
+            echo "❌ CF_ZONE_ID boş!"
+            echo "   Cloudflare → scorepop.com.tr → Overview → Zone ID (sağ alt)"
+            echo "   GitHub repo → Settings → Secrets → CF_ZONE_ID olarak ekle"
+            MISSING=1
+          else
+            echo "✅ CF_ZONE_ID OK — ilk 4: $(echo '${{ secrets.CF_ZONE_ID }}' | cut -c1-4)****"
+          fi
+
+          if [ -z "${{ secrets.CF_API_TOKEN }}" ]; then
+            echo "❌ CF_API_TOKEN tanımlı değil"; MISSING=1
+          else
+            echo "✅ CF_API_TOKEN OK"
+          fi
+
+          [ "$MISSING" = "1" ] && exit 1 || echo "✅ Tüm secret'lar mevcut"
+
+      # ── 3. Cloudflare bağlantısını test et ───────────────────────────────
+      - name: Test Cloudflare credentials
+        run: |
+          ZONE_CHECK=$(curl -s \
+            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CF_ZONE_ID }}" \
+            -H "Authorization: Bearer ${{ secrets.CF_API_TOKEN }}")
+
+          if echo "$ZONE_CHECK" | grep -q '"success":true'; then
+            ZONE_NAME=$(echo "$ZONE_CHECK" | python3 -c \
+              "import sys,json; print(json.load(sys.stdin)['result']['name'])")
+            echo "✅ Cloudflare OK — Zone: $ZONE_NAME"
+          else
+            echo "❌ Cloudflare erişim hatası:"
+            echo "$ZONE_CHECK" | python3 -c \
+              "import sys,json; d=json.load(sys.stdin); [print(' ', e['message']) for e in d.get('errors',[])]"
+            exit 1
+          fi
+
+      # ── 4. Credentials enjekte et ─────────────────────────────────────────
       - name: Inject credentials
         run: |
           sed -i "s|BURAYA_URL|${{ secrets.SUPABASE_URL }}|g" config.js
           sed -i "s|BURAYA_KEY|${{ secrets.SUPABASE_KEY }}|g" config.js
           sed -i "s|BURAYA_PAYMENT_URL|${{ secrets.PAYMENT_EDGE_URL }}|g" index.html
+          echo "✅ Credentials enjekte edildi"
 
-      # ── 3. Cache busting — index.html + puan-durumu/index.html ────────────
+      # ── 5. Cache busting ──────────────────────────────────────────────────
       - name: Cache busting
         run: |
           BUILD=$(date +%s)
+          echo "Build: $BUILD"
 
-          # Ana sayfa
-          sed -i "s/app\.js?v=[^\"']*/app.js?v=${BUILD}/g"       index.html
-          sed -i "s/style\.css?v=[^\"']*/style.css?v=${BUILD}/g" index.html
-          sed -i "s/config\.js?v=[^\"']*/config.js?v=${BUILD}/g" index.html
-          sed -i "s/router\.js?v=[^\"']*/router.js?v=${BUILD}/g" index.html
-          sed -i "s/auth\.js?v=[^\"']*/auth.js?v=${BUILD}/g"     index.html
-          sed -i "s/forum\.js?v=[^\"']*/forum.js?v=${BUILD}/g"   index.html
-          sed -i "s/payment\.js?v=[^\"']*/payment.js?v=${BUILD}/g" index.html
-          sed -i "s/indexing\.js?v=[^\"']*/indexing.js?v=${BUILD}/g" index.html
+          for FILE in index.html; do
+            sed -i "s/app\.js?v=[^\"']*/app.js?v=${BUILD}/g"         $FILE
+            sed -i "s/style\.css?v=[^\"']*/style.css?v=${BUILD}/g"   $FILE
+            sed -i "s/config\.js?v=[^\"']*/config.js?v=${BUILD}/g"   $FILE
+            sed -i "s/router\.js?v=[^\"']*/router.js?v=${BUILD}/g"   $FILE
+            sed -i "s/auth\.js?v=[^\"']*/auth.js?v=${BUILD}/g"       $FILE
+            sed -i "s/forum\.js?v=[^\"']*/forum.js?v=${BUILD}/g"     $FILE
+            sed -i "s/payment\.js?v=[^\"']*/payment.js?v=${BUILD}/g" $FILE
+            sed -i "s/indexing\.js?v=[^\"']*/indexing.js?v=${BUILD}/g" $FILE
+          done
 
-          # Puan durumu — config.js referansını versiyonla (yoksa ekle)
+          # puan-durumu — config.js referansını versiyonla
           if grep -q 'config\.js?v=' puan-durumu/index.html; then
             sed -i "s/config\.js?v=[^\"']*/config.js?v=${BUILD}/g" puan-durumu/index.html
           else
-            sed -i 's|src="/config\.js"|src="/config.js?v='"${BUILD}"'"|g' puan-durumu/index.html
+            sed -i "s|src=\"/config\.js\"|src=\"/config.js?v=${BUILD}\"|g" puan-durumu/index.html
           fi
 
           touch .nojekyll
+          echo "✅ Cache busting tamamlandı"
 
-      # ── 4. Cloudflare Cache Rule — puan-durumu için bypass ────────────────
-      - name: Cloudflare - Create cache bypass rule for puan-durumu
+      # ── 6. Cloudflare Cache Rule — puan-durumu bypass ────────────────────
+      - name: Cloudflare - Cache bypass for puan-durumu
         run: |
-          echo "Mevcut Page Rule'lar kontrol ediliyor..."
+          ZONE_ID="${{ secrets.CF_ZONE_ID }}"
+          TOKEN="${{ secrets.CF_API_TOKEN }}"
 
-          EXISTING=$(curl -s \
-            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CF_ZONE_ID }}/pagerules?status=active" \
-            -H "Authorization: Bearer ${{ secrets.CF_API_TOKEN }}" \
-            -H "Content-Type: application/json")
+          echo "Mevcut cache phase kuralları kontrol ediliyor..."
+          PHASE=$(curl -s \
+            "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/rulesets/phases/http_request_cache_settings/entrypoint" \
+            -H "Authorization: Bearer ${TOKEN}")
 
-          # puan-durumu için kural zaten varsa atla
-          if echo "$EXISTING" | grep -q "puan-durumu"; then
-            echo "✅ puan-durumu için Page Rule zaten mevcut, atlanıyor."
+          if echo "$PHASE" | grep -q "puan-durumu"; then
+            echo "✅ puan-durumu cache kuralı zaten var, atlanıyor."
           else
-            echo "➕ puan-durumu Page Rule oluşturuluyor..."
-            RESULT=$(curl -s -X POST \
-              "https://api.cloudflare.com/client/v4/zones/${{ secrets.CF_ZONE_ID }}/pagerules" \
-              -H "Authorization: Bearer ${{ secrets.CF_API_TOKEN }}" \
+            echo "➕ Cache bypass kuralı oluşturuluyor..."
+
+            # Varsa mevcut kuralları koru, yoksa boş liste
+            EXISTING="[]"
+            if echo "$PHASE" | grep -q '"success":true'; then
+              EXISTING=$(echo "$PHASE" | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          rules = d.get('result', {}).get('rules', [])
+          print(json.dumps([r for r in rules if 'puan-durumu' not in json.dumps(r)]))
+          ")
+            fi
+
+            PAYLOAD=$(python3 << 'PYEOF'
+          import json, sys
+          existing = json.loads("""EXISTING_PLACEHOLDER""")
+          new_rule = {
+            "expression": '(http.request.uri.path matches "^/puan-durumu")',
+            "action": "set_cache_settings",
+            "action_parameters": {"cache": False},
+            "description": "puan-durumu cache bypass",
+            "enabled": True
+          }
+          print(json.dumps({"rules": [new_rule] + existing}))
+          PYEOF
+          )
+            # EXISTING değişkenini Python'a aktar
+            PAYLOAD=$(python3 -c "
+          import json
+          existing = json.loads('$EXISTING')
+          new_rule = {
+            'expression': '(http.request.uri.path matches \"^/puan-durumu\")',
+            'action': 'set_cache_settings',
+            'action_parameters': {'cache': False},
+            'description': 'puan-durumu cache bypass',
+            'enabled': True
+          }
+          print(json.dumps({'rules': [new_rule] + existing}))
+          ")
+
+            RESULT=$(curl -s -X PUT \
+              "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/rulesets/phases/http_request_cache_settings/entrypoint" \
+              -H "Authorization: Bearer ${TOKEN}" \
               -H "Content-Type: application/json" \
-              --data '{
-                "targets": [
-                  {
-                    "target": "url",
-                    "constraint": {
-                      "operator": "matches",
-                      "value": "scorepop.com.tr/puan-durumu*"
-                    }
-                  }
-                ],
-                "actions": [
-                  {
-                    "id": "cache_level",
-                    "value": "bypass"
-                  }
-                ],
-                "priority": 1,
-                "status": "active"
-              }')
+              --data "$PAYLOAD")
 
             if echo "$RESULT" | grep -q '"success":true'; then
-              echo "✅ Page Rule başarıyla oluşturuldu."
+              echo "✅ Cache bypass kuralı oluşturuldu."
             else
-              echo "❌ Page Rule oluşturulamadı:"
-              echo "$RESULT"
-              exit 1
+              echo "⚠️  Cache Rule API başarısız — token'a 'Zone.Cache Rules' yetkisi gerekebilir."
+              echo "Hata:"
+              echo "$RESULT" | python3 -c \
+                "import sys,json; d=json.load(sys.stdin); [print('  -', e['message']) for e in d.get('errors',[])]" 2>/dev/null
+              echo ""
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              echo "📌 MANUEL ADIM (2 dakika):"
+              echo "   Cloudflare → scorepop.com.tr → Caching"
+              echo "   → Cache Rules → Create Rule"
+              echo "   Field   : URI Path"
+              echo "   Operator: starts with"
+              echo "   Value   : /puan-durumu"
+              echo "   Action  : Bypass cache"
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              echo "Deploy devam ediyor..."
             fi
           fi
 
-      # ── 5. GitHub Pages'e deploy et ───────────────────────────────────────
+      # ── 7. GitHub Pages deploy ────────────────────────────────────────────
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v3
         with:
@@ -102,13 +191,19 @@ jobs:
           publish_branch: gh-pages
           exclude_assets: '.github,*.yml,*.md'
 
-      # ── 6. Cloudflare cache'ini tamamen temizle ───────────────────────────
+      # ── 8. Cloudflare cache temizle ───────────────────────────────────────
       - name: Cloudflare Cache Purge
         run: |
-          curl -s -X POST \
+          RESULT=$(curl -s -X POST \
             "https://api.cloudflare.com/client/v4/zones/${{ secrets.CF_ZONE_ID }}/purge_cache" \
             -H "Authorization: Bearer ${{ secrets.CF_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            --data '{"purge_everything":true}'
+            --data '{"purge_everything":true}')
 
-          echo "✅ Cloudflare cache temizlendi."
+          if echo "$RESULT" | grep -q '"success":true'; then
+            echo "✅ Cloudflare cache tamamen temizlendi."
+          else
+            echo "❌ Cache purge başarısız:"
+            echo "$RESULT"
+            exit 1
+          fi
