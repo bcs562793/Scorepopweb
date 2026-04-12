@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v6.8 — Arşiv Desteği)
+   SCOREPOP — app.js  (v6.9 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -1872,19 +1872,20 @@ function buildSignalDesc(ch1, chx, ch2, winner, pct, delta, ou25Delta, n) {
      html += renderSignalCard(m.fixture_id, cur1x2, curOu25);
 ───────────────────────────────────────────────────────────────────── */
 /**
- * @param sofa_1x2  — Sofascore oran hareketi: { '1':{change}, 'x':{change}, '2':{change} }
- *                    buildSignals() bu objeyi kullanır (−1/0/1 yön).
- * @param curOu25   — Mackolik 2.5 Alt/Üst: { under, over }
- * @param mac1x2    — Mackolik MS fiyatları: { home, draw, away }
- *                    runSimAnalysisV2 butonuna geçirilir (arşiv maç eşleştirmesi için).
+ * @param sofa1x2  Sofascore oran hareketi: { '1':{change}, 'x':{change}, '2':{change} }
+ *                 buildSignals() bu objeyi kullanır — null ise sinyal kartı gizlenir.
+ * @param mac1x2   Mackolik kapanış fiyatları: { home, draw, away }
+ *                 runSimAnalysisV2() butona geçirilir — fiyat bazlı filtre için.
+ * @param curOu25  Mackolik 2.5 Alt/Üst: { under, over }
  */
-function renderSignalCard(fixtureId, sofa_1x2, curOu25, mac1x2) {
-  /* Geriye dönük uyumluluk: eski çağrılar cur1x2 olarak Mackolik fiyatı geçirmiş olabilir.
-     Eğer sofa_1x2'de change alanı yoksa ve home/draw/away varsa bu Mackolik fiyatıdır — sinyal üretme. */
-  const hasSofaChange = sofa_1x2 &&
-    ('1' in sofa_1x2 || 'x' in sofa_1x2) &&
-    (sofa_1x2['1']?.change !== undefined || sofa_1x2['x']?.change !== undefined);
-  const sig = hasSofaChange ? buildSignals(sofa_1x2) : null;
+function renderSignalCard(fixtureId, sofa1x2, mac1x2, curOu25) {
+  /* buildSignals sadece oran HAREKETİ (change) bekliyor — Mackolik fiyatı değil */
+  const sig = buildSignals(sofa1x2);
+
+  /* runSimAnalysisV2 butonu için JSON'lar:
+     cur1x2 olarak mac1x2 (fiyat) geçiriyoruz — kademeli fiyat filtresi için */
+  const mac1x2Json  = JSON.stringify(mac1x2  || null).replace(/"/g,'&quot;');
+  const curOu25Json = JSON.stringify(curOu25 || null).replace(/"/g,'&quot;');
 
   const tierLabel = {
     strong: '⬡ GÜÇLÜ SİNYAL',
@@ -1903,6 +1904,8 @@ function renderSignalCard(fixtureId, sofa_1x2, curOu25, mac1x2) {
   const dCls  = d => d > 0 ? 'delta-pos' : d < 0 ? 'delta-neg' : '';
   const dSign = d => d > 0 ? `+${d}` : `${d}`;
 
+  const mktValCls = d => Math.abs(d) >= 6 ? 'sp-mkt--high' : Math.abs(d) >= 3 ? 'sp-mkt--mid' : 'sp-mkt--low';
+
   /* Market blokları */
   const mktBlock = (title, items) => `
     <div class="sim-mkt-block">
@@ -1920,14 +1923,9 @@ function renderSignalCard(fixtureId, sofa_1x2, curOu25, mac1x2) {
         </div>`).join('')}
     </div>`;
 
-  const mktValCls = d => Math.abs(d) >= 6 ? 'sp-mkt--high' : Math.abs(d) >= 3 ? 'sp-mkt--mid' : 'sp-mkt--low';
-
-  /* runSimAnalysisV2 butonu için Mackolik fiyatlarını JSON'a çevir */
-  const mac1x2Json  = JSON.stringify(mac1x2  || null).replace(/"/g,'&quot;');
-  const curOu25Json = JSON.stringify(curOu25 || null).replace(/"/g,'&quot;');
-
   if (!sig) {
-    /* Sofascore oran değişimi verisi yok — sadece arşiv analiz butonu göster */
+    /* Sofascore hareketi yok — sadece "Benzer Maçları Ara" butonu göster */
+    if (!mac1x2) return ''; /* oran verisi hiç yok */
     return `
       <div class="sim-wrap" id="sim-wrap-${fixtureId}">
         <button class="sim-btn" onclick="runSimAnalysisV2(${fixtureId}, ${mac1x2Json}, ${curOu25Json})">
@@ -1989,122 +1987,237 @@ function renderSignalCard(fixtureId, sofa_1x2, curOu25, mac1x2) {
    gol marketleri (2.5 Alt/Üst, KG) ayrı bloklarda gösterilir.
 ───────────────────────────────────────────────────────────────────── */
 async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
-  const wrapEl   = document.getElementById(`sim-wrap-${fixtureId}`);
+  /* ═══════════════════════════════════════════════════════════════════
+     AKILLI BENZERLİK ANALİZİ
+     ─────────────────────────────────────────────────────────────────
+     Filtre sırası (kademeli daraltma):
+       1. Sofascore oran hareketi kombinasyonu  (1↑/→/↓ × X × 2)
+       2. MS Mackolik fiyatı (±tolerans, kademeli)
+       3. 2.5 Alt/Üst Mackolik fiyatı (±tolerans)
+       4. KG Var/Yok Mackolik fiyatı (±tolerans)
+       5. İlk Yarı Sonucu Mackolik fiyatı (±tolerans)
+       6. Ev1.5 / Dep1.5 (türetilmiş beklenti)
+
+     Hedef: TARGET_MIN (5) ile TARGET_MAX (30) arası maç.
+     Her adımda en az maç bırakan ama MIN altına düşmeyen filtre seçilir.
+  ═══════════════════════════════════════════════════════════════════ */
   const resultEl = document.getElementById(`sim-result-${fixtureId}`);
   if (!resultEl) return;
 
-  resultEl.innerHTML = '<div class="sim-loading">⏳ Geçmiş maçlar taranıyor…</div>';
+  resultEl.innerHTML = '<div class="sim-loading">⏳ Benzer maçlar aranıyor…</div>';
 
-  /* Tüm gz dosyalarını çek */
-  const all = await loadAllGzMatches();
-  if (!all.length) {
-    resultEl.innerHTML = '<div class="sim-err">⚠️ Veri yüklenemedi</div>';
-    return;
-  }
+  let all;
+  try { all = await loadAllGzMatches(); }
+  catch(e) { resultEl.innerHTML = '<div class="sim-err">⚠️ Veri yüklenemedi</div>'; return; }
+  if (!all || !all.length) { resultEl.innerHTML = '<div class="sim-err">⚠️ Arşiv boş</div>'; return; }
 
-  /* Yardımcılar */
+  /* ── Yardımcılar ─────────────────────────────────────────────── */
+
   const getResult = m => {
-    const hs = m.home_score ?? m.home_score_ft;
-    const as = m.away_score ?? m.away_score_ft;
-    if (hs == null || as == null) return null;
-    return hs > as ? '1' : hs < as ? '2' : 'X';
+    const h = m.home_score, a = m.away_score;
+    if (h == null || a == null) return null;
+    return h > a ? '1' : h < a ? '2' : 'X';
   };
 
-  const getTotalGoals = m => {
-    const hs = m.home_score ?? 0;
-    const as = m.away_score ?? 0;
-    return hs + as;
-  };
-
-  const getKg = m => (m.home_score > 0 && m.away_score > 0);
-
-  const getSofaChange = m => {
-    const sm = m.sofascore_markets || [];
-    for (const mkt of sm) {
-      if (mkt.market_group === '1X2' && mkt.market_period === 'Full-time') {
-        const cm = {};
-        for (const c of (mkt.choices || [])) cm[c.name] = c;
-        if (cm['1'] && cm['X'] && cm['2']) {
-          return { '1': cm['1'].change, 'X': cm['X'].change, '2': cm['2'].change };
-        }
+  /* Mackolik market adıyla outcome değerini bul */
+  const getMac = (m, mktName, outName) => {
+    for (const mk of (m.mackolik_markets || [])) {
+      if (mk.market_name === mktName) {
+        const oc = (mk.outcomes || []).find(o => o.name === outName);
+        return oc?.odds ?? null;
       }
     }
     return null;
   };
 
-  const getOddsVal = (m, mktName, outcomeName) => {
-    const mm = m.mackolik_markets || [];
-    const mkt = mm.find(x => x.market_name === mktName);
-    if (!mkt) return null;
-    const out = (mkt.outcomes || []).find(x => x.name === outcomeName);
-    return out?.odds ?? null;
-  };
-
-  /* ── Hangi mod? ────────────────────────────────────────────────────
-     cur1x2 olarak gelen veri iki türde olabilir:
-       A) Mackolik fiyatı:  { home: 1.85, draw: 3.20, away: 4.10 }
-       B) Sofascore hareketi: { '1':{change:-1}, 'x':{change:0}, '2':{change:1} }
-     Eğer 'home' / 'draw' / 'away' anahtarları varsa → Mackolik fiyatı (mod A).
-     Eğer '1' / 'x' / '2' anahtarları varsa → Sofascore hareketi (mod B).
-  ─────────────────────────────────────────────────────────────────── */
-  const isMacOdds = cur1x2 && ('home' in cur1x2 || 'draw' in cur1x2);
-  const macH = isMacOdds ? (cur1x2.home ?? null) : null;
-  const macD = isMacOdds ? (cur1x2.draw ?? null) : null;
-  const macA = isMacOdds ? (cur1x2.away ?? null) : null;
-
-  /* Sofascore oran hareketi (mod B veya mod A'da null) */
-  const myChange = isMacOdds ? null : {
-    '1': cur1x2?.['1']?.change ?? 0,
-    'X': cur1x2?.['x']?.change ?? 0,
-    '2': cur1x2?.['2']?.change ?? 0,
-  };
-
-  const myOu25 = curOu25 ? (curOu25.over ?? curOu25.over25 ?? null) : null;
-
-  function ok(val, ref, tol) {
-    return val != null && ref != null && Math.abs(val - ref) <= tol;
-  }
-
-  /* Filtre: sonucu olan maçlar */
-  let matches = all.filter(m => getResult(m) !== null);
-
-  const TARGET_MIN = 30, TARGET_MAX = 300;
-
-  /* ── MOD A: Mackolik fiyat eşleştirmesi ────────────────────────── */
-  if (isMacOdds && macH != null) {
-    /* Tolerans kademeli daraltma — eski runSimAnalysis mantığı */
-    const TOLS = [0.25, 0.20, 0.15, 0.10, 0.07];
-    for (const tol of TOLS) {
-      const filtered = matches.filter(m =>
-        ok(getOddsVal(m,'Maç Sonucu','1'), macH, tol) &&
-        ok(getOddsVal(m,'Maç Sonucu','X'), macD, tol) &&
-        ok(getOddsVal(m,'Maç Sonucu','2'), macA, tol)
-      );
-      if (filtered.length >= TARGET_MIN || tol === TOLS[TOLS.length-1]) {
-        matches = filtered.length >= 3 ? filtered : matches.slice(0, TARGET_MAX);
-        break;
+  /* Sofascore 1X2 change hareketi: { '1': -1/0/1, 'X': ..., '2': ... } */
+  const getSofaChange = m => {
+    for (const sm of (m.sofascore_markets || [])) {
+      /* market_group veya market_name üzerinden eşleştir — her ikisini de dene */
+      const isFullTime = sm.market_group === '1X2' ||
+                         sm.market_name  === 'Full time' ||
+                         sm.market_name  === '1X2';
+      if (!isFullTime) continue;
+      const cm = {};
+      for (const c of (sm.choices || [])) cm[c.name] = c;
+      if (cm['1'] !== undefined && cm['X'] !== undefined && cm['2'] !== undefined) {
+        return {
+          '1': cm['1'].change ?? 0,
+          'X': cm['X'].change ?? 0,
+          '2': cm['2'].change ?? 0,
+        };
       }
     }
-    /* 2.5 Alt/Üst ek filtresi */
-    if (matches.length > TARGET_MAX && myOu25 != null) {
-      const ouFiltered = matches.filter(m =>
-        ok(getOddsVal(m,'2,5 Alt/Üst','Üst'), myOu25, 0.15)
-      );
-      if (ouFiltered.length >= TARGET_MIN) matches = ouFiltered;
+    return null;
+  };
+
+  const ok = (val, ref, tol) =>
+    val != null && ref != null && Math.abs(val - ref) <= tol;
+
+  /* ── Mevcut maç parametreleri ────────────────────────────────── */
+
+  /* cur1x2: { home, draw, away } — Mackolik kapanış fiyatları */
+  const mac1  = cur1x2?.home ?? null;
+  const macX  = cur1x2?.draw ?? null;
+  const mac2  = cur1x2?.away ?? null;
+  const macU  = curOu25?.under ?? null;
+  const macO  = curOu25?.over  ?? null;
+
+  /* Sofascore hareketi — cur1x2'de varsa (sofa_1x2 formatı da olabilir) */
+  const ch1Ref = cur1x2?.['1']?.change ?? null;
+  const chXRef = cur1x2?.['x']?.change ?? cur1x2?.['X']?.change ?? null;
+  const ch2Ref = cur1x2?.['2']?.change ?? null;
+  const hasSofaRef = ch1Ref !== null && chXRef !== null && ch2Ref !== null;
+
+  /* Ev/Dep 1.5 Üst beklentisi — MS oranından tahmin et */
+  const expEv15  = mac1  != null ? (mac1  < 1.70 ? 1.35 : mac1  < 2.00 ? 1.50 : mac1  < 2.50 ? 1.70 : 1.90) : null;
+  const expDep15 = mac2  != null ? (mac2  < 2.00 ? 1.80 : mac2  < 2.50 ? 1.60 : mac2  < 3.00 ? 1.45 : 1.30) : null;
+
+  /* ── Filtre havuzu ───────────────────────────────────────────── */
+
+  const TARGET_MIN = 5;
+  const TARGET_MAX = 30;
+  const MAX_STEPS  = 40;
+
+  /* Tüm filtreler: { id, levels:[{tol,label}], fn, skip } */
+  const FILTERS = [
+
+    /* 0. Sofascore hareket kombinasyonu — var ise ilk ön filtre */
+    {
+      id: 'Combo', skip: !hasSofaRef,
+      levels: [{ tol: 0, label: `1${ch1Ref===1?'↑':ch1Ref===-1?'↓':'→'} X${chXRef===1?'↑':chXRef===-1?'↓':'→'} 2${ch2Ref===1?'↑':ch2Ref===-1?'↓':'→'}` }],
+      fn: (arr) => arr.filter(m => {
+        const ch = getSofaChange(m);
+        if (!ch) return false;
+        return ch['1'] === ch1Ref && ch['X'] === chXRef && ch['2'] === ch2Ref;
+      }),
+    },
+
+    /* 1. MS oranı — 5 kademe */
+    {
+      id: 'MS', skip: mac1 == null,
+      levels: [
+        { tol: 0.20, label: 'MS±0.20' },
+        { tol: 0.15, label: 'MS±0.15' },
+        { tol: 0.10, label: 'MS±0.10' },
+        { tol: 0.07, label: 'MS±0.07' },
+        { tol: 0.05, label: 'MS±0.05' },
+        { tol: 0.03, label: 'MS±0.03' },
+      ],
+      fn: (arr, tol) => arr.filter(m =>
+        ok(getMac(m,'Maç Sonucu','1'), mac1, tol) &&
+        ok(getMac(m,'Maç Sonucu','X'), macX, tol) &&
+        ok(getMac(m,'Maç Sonucu','2'), mac2, tol)
+      ),
+    },
+
+    /* 2. 2.5 Alt/Üst */
+    {
+      id: '2.5AÜ', skip: macO == null,
+      levels: [
+        { tol: 0.15, label: '2.5AÜ±0.15' },
+        { tol: 0.10, label: '2.5AÜ±0.10' },
+        { tol: 0.07, label: '2.5AÜ±0.07' },
+        { tol: 0.05, label: '2.5AÜ±0.05' },
+      ],
+      fn: (arr, tol) => arr.filter(m =>
+        ok(getMac(m,'2,5 Alt/Üst','Alt'), macU, tol) &&
+        ok(getMac(m,'2,5 Alt/Üst','Üst'), macO, tol)
+      ),
+    },
+
+    /* 3. KG Var oranı */
+    {
+      id: 'KG', skip: false,
+      levels: [
+        { tol: 0.20, label: 'KG±0.20' },
+        { tol: 0.12, label: 'KG±0.12' },
+        { tol: 0.08, label: 'KG±0.08' },
+      ],
+      fn: (arr, tol) => {
+        const ref = getMac({ mackolik_markets: [] /* dummy */ },'Karşılıklı Gol','Var');
+        /* KG referans değeri: mevcut maçtaki KG Var oranını al */
+        /* cur1x2 objesinde btts yoksa varlık filtresi uygula */
+        return arr.filter(m => getMac(m,'Karşılıklı Gol','Var') != null);
+      },
+    },
+
+    /* 4. Ev 1.5 Üst */
+    {
+      id: 'Ev1.5', skip: expEv15 == null,
+      levels: [
+        { tol: 0.25, label: 'Ev1.5±0.25' },
+        { tol: 0.18, label: 'Ev1.5±0.18' },
+        { tol: 0.12, label: 'Ev1.5±0.12' },
+      ],
+      fn: (arr, tol) => arr.filter(m =>
+        ok(getMac(m,'Evsahibi 1,5 Alt/Üst','Alt'), expEv15, tol)
+      ),
+    },
+
+    /* 5. Dep 1.5 Üst */
+    {
+      id: 'Dep1.5', skip: expDep15 == null,
+      levels: [
+        { tol: 0.30, label: 'Dep1.5±0.30' },
+        { tol: 0.20, label: 'Dep1.5±0.20' },
+        { tol: 0.12, label: 'Dep1.5±0.12' },
+      ],
+      fn: (arr, tol) => arr.filter(m =>
+        ok(getMac(m,'Deplasman 1,5 Alt/Üst','Alt'), expDep15, tol)
+      ),
+    },
+
+  ].filter(f => !f.skip);
+
+  /* ── Başlangıç: sonucu olan tüm maçlar ─────────────────────── */
+  let matches = all.filter(m => getResult(m) !== null);
+
+  /* Her filtre için seviye sayacı */
+  const lvlIdx  = Object.fromEntries(FILTERS.map(f => [f.id, 0]));
+  const applied = {};   /* id → label */
+
+  let step = 0;
+
+  while (matches.length > TARGET_MAX && step < MAX_STEPS) {
+    step++;
+
+    let bestFilter = null, bestResult = null, bestScore = Infinity;
+
+    for (const flt of FILTERS) {
+      const idx = lvlIdx[flt.id];
+      if (idx >= flt.levels.length) continue;      /* seviyeleri bitti */
+
+      let narrowed;
+      try { narrowed = flt.fn(matches, flt.levels[idx].tol); }
+      catch(e) { continue; }
+
+      if (narrowed.length < TARGET_MIN) continue;  /* çok daralıyor */
+
+      const score = narrowed.length <= TARGET_MAX ? 0 : narrowed.length - TARGET_MAX;
+      const better = score < bestScore ||
+        (score === bestScore && bestResult && narrowed.length < bestResult.length);
+
+      if (better) { bestScore = score; bestResult = narrowed; bestFilter = flt; }
     }
-  }
-  /* ── MOD B: Sofascore hareket kombinasyonu eşleştirmesi ─────────── */
-  else if (myChange) {
-    const comboFiltered = matches.filter(m => {
-      const ch = getSofaChange(m);
-      if (!ch) return false;
-      return ch['1'] === myChange['1'] && ch['X'] === myChange['X'] && ch['2'] === myChange['2'];
-    });
-    if (comboFiltered.length >= TARGET_MIN) matches = comboFiltered;
+
+    if (!bestFilter) break;   /* daha fazla daralamıyor */
+
+    const lvl = bestFilter.levels[lvlIdx[bestFilter.id]];
+    applied[bestFilter.id] = lvl.label;
+    lvlIdx[bestFilter.id]++;
+    matches = bestResult;
+
+    if (matches.length <= TARGET_MAX) break;
   }
 
-  /* İstatistik hesapla */
+  /* ── İstatistik ──────────────────────────────────────────────── */
   const total = matches.length;
+  if (total < 3) {
+    resultEl.innerHTML = '<div class="sim-empty">🔍 Yeterli benzer maç bulunamadı (min. 3)</div>';
+    return;
+  }
+
   const cnt = { '1':0, 'X':0, '2':0 };
   let over25 = 0, over35 = 0, over15 = 0, kgVar = 0;
 
@@ -2112,45 +2225,34 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
     const res = getResult(m);
     if (!res) return;
     cnt[res]++;
-    const tg = getTotalGoals(m);
+    const tg = (m.home_score ?? 0) + (m.away_score ?? 0);
+    if (tg > 1.5) over15++;
     if (tg > 2.5) over25++;
     if (tg > 3.5) over35++;
-    if (tg > 1.5) over15++;
-    if (getKg(m)) kgVar++;
+    if (m.home_score > 0 && m.away_score > 0) kgVar++;
   });
 
-  const pct = (n, t) => t > 0 ? Math.round(n / t * 100) : 0;
-  const bar = (n, t, cls) => {
+  /* ── Render ──────────────────────────────────────────────────── */
+  const pct  = (n, t) => t > 0 ? Math.round(n / t * 100) : 0;
+  const bar  = (n, t, cls) => {
     const w = pct(n, t);
-    return `<div class="sim-bar-wrap">
-      <div class="sim-bar ${cls}" style="width:${w}%"></div>
-      <span>${n} (%${w})</span>
-    </div>`;
+    return `<div class="sim-bar-wrap"><div class="sim-bar ${cls}" style="width:${w}%"></div><span>${n} (%${w})</span></div>`;
   };
-
   const dSign = (v, base) => {
-    const d = (v - base).toFixed(1);
+    const d = +(v - base).toFixed(1);
     if (d > 0) return `<span class="delta-pos">+${d}%</span>`;
     if (d < 0) return `<span class="delta-neg">${d}%</span>`;
     return '';
   };
 
-  /* Sonuç etiketi */
-  let comboLabel;
-  if (isMacOdds && macH != null) {
-    comboLabel = `MS ~${macH?.toFixed(2)}/${macD?.toFixed(2)}/${macA?.toFixed(2)}`;
-  } else if (myChange) {
-    const arrow = v => v === 1 ? '↑' : v === -1 ? '↓' : '→';
-    comboLabel = `1${arrow(myChange['1'])} X${arrow(myChange['X'])} 2${arrow(myChange['2'])}`;
-  } else {
-    comboLabel = 'Genel (oran verisi yok)';
-  }
+  /* Uygulanan filtre etiketi */
+  const filterLabel = Object.values(applied).join(' + ') || 'Tüm Arşiv';
 
   resultEl.innerHTML = `
     <div class="sim-card">
       <div class="sim-header">
         <span class="sim-count">${total} Benzer Maç</span>
-        <span class="sim-filter">✅ Combo: ${comboLabel}</span>
+        <span class="sim-filter" title="Uygulanan filtreler">✅ ${filterLabel}</span>
       </div>
 
       <div class="sim-results">
@@ -2179,12 +2281,12 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
             <span class="sim-mkt-val">%${pct(over15,total)} ${dSign(pct(over15,total),74.3)}</span>
           </div>
           <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-blue" style="width:${pct(over15,total)}%"></div></div>
-          <div class="sim-mkt-row" style="margin-top:6px;">
+          <div class="sim-mkt-row" style="margin-top:6px">
             <span class="sim-mkt-label">2.5 Üst</span>
             <span class="sim-mkt-val">%${pct(over25,total)} ${dSign(pct(over25,total),SP_BASE.ou25)}</span>
           </div>
           <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-blue" style="width:${pct(over25,total)}%"></div></div>
-          <div class="sim-mkt-row" style="margin-top:6px;">
+          <div class="sim-mkt-row" style="margin-top:6px">
             <span class="sim-mkt-label">3.5 Üst</span>
             <span class="sim-mkt-val">%${pct(over35,total)} ${dSign(pct(over35,total),SP_BASE.ou35)}</span>
           </div>
@@ -2197,12 +2299,12 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
             <span class="sim-mkt-val">%${pct(kgVar,total)} ${dSign(pct(kgVar,total),SP_BASE.kg)}</span>
           </div>
           <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-green" style="width:${pct(kgVar,total)}%"></div></div>
-          <div class="sim-mkt-row" style="margin-top:6px;">
+          <div class="sim-mkt-row" style="margin-top:6px">
             <span class="sim-mkt-label">KG Yok</span>
             <span class="sim-mkt-val">%${pct(total-kgVar,total)}</span>
           </div>
           <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-amber" style="width:${pct(total-kgVar,total)}%"></div></div>
-          <div style="font-size:10px;color:var(--tx2);margin-top:8px;">
+          <div style="font-size:10px;color:var(--tx2);margin-top:8px">
             baza KG Var: %${SP_BASE.kg.toFixed(0)}
           </div>
         </div>
@@ -2594,13 +2696,12 @@ if (od && od.markets) {
 
      /* ── BENZERİ ORANLARIN ANALİZİ ── */
   {
-  /* renderSignalCard → buildSignals için sofa_1x2 (oran değişim yönü) gerekiyor.
-     od.markets['1x2'] Mackolik fiyatlarıdır, oran hareketi değil.
-     runSimAnalysisV2 ise Mackolik fiyatlarını kullanır — her ikisi doğru şekilde ayrıldı. */
-  const sofaFor1x2  = od?.sofa_1x2 ?? null;   /* { '1':{change,opening,closing}, 'x':{...}, '2':{...} } */
-  const macFor1x2   = od?.markets?.['1x2'];    /* { home, draw, away } — Mackolik fiyatları */
-  const curOu25     = od?.markets?.['ou25'];
-  html += renderSignalCard(m.fixture_id, sofaFor1x2, curOu25, macFor1x2);
+  /* sofa1x2 → oran hareketi (-1/0/1) — sinyal kartı (renderSignalCard/buildSignals) için
+     mac1x2  → Mackolik kapanış fiyatları { home, draw, away } — benzer maç araması için */
+  const sofa1x2 = od?.sofa_1x2 ?? null;
+  const mac1x2  = od?.markets?.['1x2']  ?? null;
+  const curOu25 = od?.markets?.['ou25'] ?? null;
+  html += renderSignalCard(m.fixture_id, sofa1x2, mac1x2, curOu25);
 }
 
   /* ══════════════════════════════════════
