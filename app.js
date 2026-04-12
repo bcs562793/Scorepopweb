@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v6.6 — Arşiv Desteği)
+   SCOREPOP — app.js  (v6.7 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -1461,6 +1461,13 @@ function _getMacOdds(m, marketName, outcomeName) {
   //   Her adımda HAVUZDAN bir (filtre, tolerans) çifti seçilir.
   //   Seçim kriteri: hedefe (TARGET) en yakın sonucu veren, MIN altına düşmeyen.
   //   Filtre bir kez seçilince bir sonraki dar toleransına geçilir.
+
+async function runSimAnalysis(fixtureId, cur1x2, curHt, curOu25) {
+  const resultEl = document.getElementById(`sim-result-${fixtureId}`);
+  if (!resultEl) return;
+  resultEl.innerHTML = '<div class="sim-loading">⏳ Taranıyor…</div>';
+  const all = await _loadAllGz();
+  if (!all.length) { resultEl.innerHTML = '<div>Veri yok</div>'; return; }
 
   const TARGET_MIN = 5;
   const TARGET_MAX = 12;
