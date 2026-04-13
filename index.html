@@ -35,7 +35,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
-<link rel="stylesheet" href="style.css?v=1776040815"/>
+<link rel="stylesheet" href="style.css?v=1776040873"/>
 <!-- 404.html redirect trick: ?p=/mac/123 → gerçek URL -->
 <script>
 (function() {
@@ -81,6 +81,10 @@
     <button class="sb-btn" data-page="upcoming">
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 3.5v3l2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
       <span>Yaklaşan</span>
+    </button>
+    <button class="sb-btn" data-page="odds">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 9.5l3-3.5 2.5 2.5L11 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Oran Analizi</span>
     </button>
   </nav>
 
@@ -192,6 +196,24 @@
     <div id="detail-root"></div>
   </div>
 
+  <!-- ORAN ANALİZİ VIEW -->
+  <div id="view-odds" class="hidden">
+    <div class="oa-page">
+      <div class="oa-header">
+        <div class="oa-header-title">📊 Oran Analizi</div>
+        <div class="oa-header-sub">Maça tıkla → Oranlar sekmesinde detaylı analiz</div>
+      </div>
+      <!-- Tarih strip — odds sayfasına özel -->
+      <div class="oa-date-strip" id="oa-date-strip"></div>
+      <div id="odds-matches-root">
+        <div class="skel">
+          <div class="sk-h"></div><div class="sk-r"></div><div class="sk-r"></div>
+          <div class="sk-h" style="margin-top:8px"></div><div class="sk-r"></div><div class="sk-r"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <!-- mobile overlay -->
@@ -224,13 +246,13 @@ window._watchdog = setTimeout(function() {
   }
 }, 15000);
 </script>
-<script src="config.js?v=1776040815"></script>
-<script src="router.js?v=1776040815"></script>
-<script src="auth.js?v=1776040815"></script>
-<script src="forum.js?v=1776040815"></script>
-<script src="payment.js?v=1776040815"></script>
-<script src="indexing.js?v=1776040815"></script>
-<script src="app.js?v=1776040815"></script>
+<script src="config.js?v=1776040873"></script>
+<script src="router.js?v=1776040873"></script>
+<script src="auth.js?v=1776040873"></script>
+<script src="forum.js?v=1776040873"></script>
+<script src="payment.js?v=1776040873"></script>
+<script src="indexing.js?v=1776040873"></script>
+<script src="app.js?v=1776040873"></script>
 
 <!-- 🗑 SİL — İLK 1000 ÜYE KAMPANYASI SAYAÇ BAŞLANGICI -->
 <script>
