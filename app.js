@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v7.5 — Arşiv Desteği)
+   SCOREPOP — app.js  (v7.6 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -2778,7 +2778,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, oddsOnly = false) {
       </div>`;
   }
 
-  html += `<div class="d-panel ${oddsOnly ? '' : 'active'}" id="d-ev">`;
+  html += `<div class="d-panel" id="d-ev">`;
 
   // ── MAÇ BİLGİ KARTI ── sadece veri varsa göster
 let referee = null, venue = null, city = null;
@@ -2887,7 +2887,7 @@ if (kickoffFmt || referee || venue) {
   html += `</div>`;
 
   /* ── ORANLAR PANELİ ────────────────────────── */
-html += `<div class="d-panel ${oddsOnly ? 'active' : ''}" id="d-or">`;
+html += `<div class="d-panel active" id="d-or">`;
 const od = odds?.odds_data ?? null;
 
 if (od && od.markets) {
