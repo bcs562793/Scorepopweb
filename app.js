@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v7.1— Arşiv Desteği)
+   SCOREPOP — app.js  (v7.2 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -1868,11 +1868,19 @@ function buildSignalDesc(ch1, chx, ch2, winner, pct, delta, ou25Delta, n) {
 /* ─────────────────────────────────────────────────────────────────────
    3. HTML RENDER — Sinyal Kartı
    
-   buildDetail içindeki sim-wrap bloğunu şununla değiştir:
-     html += renderSignalCard(m.fixture_id, cur1x2, curOu25);
+   @param sofa1x2  Sofascore oran hareketi { '1':{change}, 'x':{change}, '2':{change} }
+                   buildSignals() buradan change:-1/0/1 okur.
+   @param mac1x2   Mackolik kapanış fiyatları { home, draw, away }
+                   runSimAnalysisV2 butonuna geçirilir (fiyat filtresi için).
+   @param curOu25  Mackolik 2.5 Alt/Üst { under, over }
 ───────────────────────────────────────────────────────────────────── */
-function renderSignalCard(fixtureId, cur1x2, curOu25) {
-  const sig = buildSignals(cur1x2);
+function renderSignalCard(fixtureId, sofa1x2, mac1x2, curOu25) {
+  /* buildSignals yalnızca oran HAREKETİ (change) bekliyor — Mackolik fiyatı değil */
+  const sig = buildSignals(sofa1x2);
+
+  /* Buton için JSON — mac1x2 (fiyat) ve curOu25 geçiyoruz */
+  const mac1x2Json  = JSON.stringify(mac1x2  || null).replace(/"/g,'&quot;');
+  const curOu25Json = JSON.stringify(curOu25 || null).replace(/"/g,'&quot;');
 
   const tierLabel = {
     strong: '⬡ GÜÇLÜ SİNYAL',
@@ -1911,10 +1919,11 @@ function renderSignalCard(fixtureId, cur1x2, curOu25) {
   const mktValCls = d => Math.abs(d) >= 6 ? 'sp-mkt--high' : Math.abs(d) >= 3 ? 'sp-mkt--mid' : 'sp-mkt--low';
 
   if (!sig) {
-    /* Oran değişimi verisi yok ama buton yine de çalışsın */
+    /* Sofascore oran hareketi yok — sadece fiyat bazlı arşiv analizi butonu */
+    if (!mac1x2) return ''; /* Mackolik fiyatı da yoksa hiçbir şey gösterme */
     return `
       <div class="sim-wrap" id="sim-wrap-${fixtureId}">
-        <button class="sim-btn" onclick="runSimAnalysisV2(${fixtureId}, ${JSON.stringify(cur1x2).replace(/"/g,'&quot;')}, ${JSON.stringify(curOu25||null).replace(/"/g,'&quot;')})">
+        <button class="sim-btn" onclick="runSimAnalysisV2(${fixtureId}, ${mac1x2Json}, ${curOu25Json})">
           📊 Benzer Oranlı Geçmiş Maçları Analiz Et
         </button>
         <div class="sim-result" id="sim-result-${fixtureId}"></div>
@@ -1959,7 +1968,7 @@ function renderSignalCard(fixtureId, cur1x2, curOu25) {
     </div>
 
     <div class="sim-wrap" id="sim-wrap-${fixtureId}" style="padding-top:4px;">
-      <button class="sim-btn" onclick="runSimAnalysisV2(${fixtureId}, ${JSON.stringify(cur1x2).replace(/"/g,'&quot;')}, ${JSON.stringify(curOu25||null).replace(/"/g,'&quot;')})">
+      <button class="sim-btn" onclick="runSimAnalysisV2(${fixtureId}, ${mac1x2Json}, ${curOu25Json})">
         🔍 Geçmiş Maçları Tara — Detaylı Analiz
       </button>
       <div class="sim-result" id="sim-result-${fixtureId}"></div>
@@ -1967,129 +1976,219 @@ function renderSignalCard(fixtureId, cur1x2, curOu25) {
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   4. DETAYLI BENZİM MAÇ ANALİZİ — runSimAnalysisV2
+   4. DETAYLI BENZERLİK ANALİZİ — runSimAnalysisV2
    
-   Eski runSimAnalysis'in yerini alır. Aynı mantık +
-   gol marketleri (2.5 Alt/Üst, KG) ayrı bloklarda gösterilir.
+   cur1x2: Mackolik fiyatları { home, draw, away }
+   curOu25: { under, over }
+   
+   Filtre sırası (kademeli, TARGET 5-30 maç):
+     0. Sofascore change combo (varsa)
+     1. MS oranı ±0.20→0.05 (Mackolik)
+     2. 2.5 Alt/Üst ±0.15→0.05
+     3. KG Var varlık filtresi
+     4. Ev1.5 / Dep1.5 (türetilmiş beklenti)
 ───────────────────────────────────────────────────────────────────── */
 async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
-  const wrapEl   = document.getElementById(`sim-wrap-${fixtureId}`);
   const resultEl = document.getElementById(`sim-result-${fixtureId}`);
   if (!resultEl) return;
 
-  resultEl.innerHTML = '<div class="sim-loading">⏳ Geçmiş maçlar taranıyor…</div>';
+  resultEl.innerHTML = '<div class="sim-loading">⏳ Benzer maçlar aranıyor…</div>';
 
-  /* Tüm gz dosyalarını çek */
-  const all = await loadAllGzMatches();
-  if (!all.length) {
-    resultEl.innerHTML = '<div class="sim-err">⚠️ Veri yüklenemedi</div>';
-    return;
-  }
+  let all;
+  try { all = await loadAllGzMatches(); }
+  catch(e) { resultEl.innerHTML = '<div class="sim-err">⚠️ Veri yüklenemedi</div>'; return; }
+  if (!all || !all.length) { resultEl.innerHTML = '<div class="sim-err">⚠️ Arşiv boş</div>'; return; }
 
-  /* Yardımcılar */
+  /* ── Yardımcılar ── */
   const getResult = m => {
-    const hs = m.home_score ?? m.home_score_ft;
-    const as = m.away_score ?? m.away_score_ft;
-    if (hs == null || as == null) return null;
-    return hs > as ? '1' : hs < as ? '2' : 'X';
+    const h = m.home_score, a = m.away_score;
+    if (h == null || a == null) return null;
+    return h > a ? '1' : h < a ? '2' : 'X';
   };
 
-  const getTotalGoals = m => {
-    const hs = m.home_score ?? 0;
-    const as = m.away_score ?? 0;
-    return hs + as;
+  /* Mackolik market değeri */
+  const getMac = (m, mktName, outName) => {
+    for (const mk of (m.mackolik_markets || [])) {
+      if (mk.market_name === mktName) {
+        const oc = (mk.outcomes || []).find(o => o.name === outName);
+        return oc?.odds ?? null;
+      }
+    }
+    return null;
   };
 
-  const getKg = m => (m.home_score > 0 && m.away_score > 0);
-
+  /* Sofascore 1X2 change hareketi */
   const getSofaChange = m => {
-    const sm = m.sofascore_markets || [];
-    for (const mkt of sm) {
-      if (mkt.market_group === '1X2' && mkt.market_period === 'Full-time') {
+    for (const sm of (m.sofascore_markets || [])) {
+      if (sm.market_group === '1X2' || sm.market_name === 'Full time' || sm.market_name === '1X2') {
         const cm = {};
-        for (const c of (mkt.choices || [])) cm[c.name] = c;
-        if (cm['1'] && cm['X'] && cm['2']) {
-          return { '1': cm['1'].change, 'X': cm['X'].change, '2': cm['2'].change };
+        for (const c of (sm.choices || [])) cm[c.name] = c;
+        if (cm['1'] !== undefined && cm['X'] !== undefined && cm['2'] !== undefined) {
+          return { '1': cm['1'].change ?? 0, 'X': cm['X'].change ?? 0, '2': cm['2'].change ?? 0 };
         }
       }
     }
     return null;
   };
 
-  const getOddsVal = (m, mktName, outcomeName) => {
-    const mm = m.mackolik_markets || [];
-    const mkt = mm.find(x => x.market_name === mktName);
-    if (!mkt) return null;
-    const out = (mkt.outcomes || []).find(x => x.name === outcomeName);
-    return out?.odds ?? null;
-  };
+  const ok = (val, ref, tol) => val != null && ref != null && Math.abs(val - ref) <= tol;
 
-  /* Mevcut maç 1x2 kombinasyonu */
-  const myChange = {
-    '1': cur1x2?.['1']?.change ?? cur1x2?.home?.change ?? 0,
-    'X': cur1x2?.['x']?.change ?? cur1x2?.draw?.change ?? 0,
-    '2': cur1x2?.['2']?.change ?? cur1x2?.away?.change ?? 0,
-  };
-  const myOu25 = curOu25 ? (curOu25.over ?? curOu25.over25 ?? null) : null;
+  /* ── Mevcut maç parametreleri ── */
+  /* cur1x2: { home, draw, away } — Mackolik kapanış fiyatları */
+  const mac1  = cur1x2?.home ?? null;
+  const macX  = cur1x2?.draw ?? null;
+  const mac2  = cur1x2?.away ?? null;
+  const macU  = curOu25?.under ?? null;
+  const macO  = curOu25?.over  ?? null;
 
-  /* Filtre: sonucu olan maçlar */
+  /* Ev/Dep 1.5 Üst beklentisi — MS oranından tahmin */
+  const expEv15  = mac1 != null ? (mac1 < 1.70 ? 1.35 : mac1 < 2.00 ? 1.50 : mac1 < 2.50 ? 1.70 : 1.90) : null;
+  const expDep15 = mac2 != null ? (mac2 < 2.00 ? 1.80 : mac2 < 2.50 ? 1.60 : mac2 < 3.00 ? 1.45 : 1.30) : null;
+
+  /* ── Filtre havuzu ── */
+  const TARGET_MIN = 5;
+  const TARGET_MAX = 30;
+  const MAX_STEPS  = 40;
+
+  const FILTERS = [
+
+    /* 0. Sofascore change combo — arşiv maçının kendi change'ini kontrol et */
+    /* cur1x2'de change alanları yoktur (Mackolik fiyatı), bu filtre arşivde sofascore'dan okur */
+    /* Gelecekte sofa_1x2 geçirilirse burası aktif olur — şimdilik skip */
+    /* { id:'Combo', skip: true, ... } */
+
+    /* 1. MS oranı — 6 kademe */
+    {
+      id: 'MS', skip: mac1 == null,
+      levels: [
+        { tol: 0.20, label: 'MS±0.20' },
+        { tol: 0.15, label: 'MS±0.15' },
+        { tol: 0.10, label: 'MS±0.10' },
+        { tol: 0.07, label: 'MS±0.07' },
+        { tol: 0.05, label: 'MS±0.05' },
+        { tol: 0.03, label: 'MS±0.03' },
+      ],
+      fn: (arr, tol) => arr.filter(m =>
+        ok(getMac(m,'Maç Sonucu','1'), mac1, tol) &&
+        ok(getMac(m,'Maç Sonucu','X'), macX, tol) &&
+        ok(getMac(m,'Maç Sonucu','2'), mac2, tol)
+      ),
+    },
+
+    /* 2. 2.5 Alt/Üst */
+    {
+      id: '2.5AÜ', skip: macO == null,
+      levels: [
+        { tol: 0.15, label: '2.5AÜ±0.15' },
+        { tol: 0.10, label: '2.5AÜ±0.10' },
+        { tol: 0.07, label: '2.5AÜ±0.07' },
+        { tol: 0.05, label: '2.5AÜ±0.05' },
+      ],
+      fn: (arr, tol) => arr.filter(m =>
+        ok(getMac(m,'2,5 Alt/Üst','Alt'), macU, tol) &&
+        ok(getMac(m,'2,5 Alt/Üst','Üst'), macO, tol)
+      ),
+    },
+
+    /* 3. KG Var varlık filtresi */
+    {
+      id: 'KG', skip: false,
+      levels: [{ tol: 999, label: 'KG varlık' }],
+      fn: arr => arr.filter(m => getMac(m,'Karşılıklı Gol','Var') != null),
+    },
+
+    /* 4. Ev 1.5 Üst */
+    {
+      id: 'Ev1.5', skip: expEv15 == null,
+      levels: [
+        { tol: 0.25, label: 'Ev1.5±0.25' },
+        { tol: 0.18, label: 'Ev1.5±0.18' },
+        { tol: 0.12, label: 'Ev1.5±0.12' },
+      ],
+      fn: (arr, tol) => arr.filter(m => ok(getMac(m,'Evsahibi 1,5 Alt/Üst','Alt'), expEv15, tol)),
+    },
+
+    /* 5. Dep 1.5 Üst */
+    {
+      id: 'Dep1.5', skip: expDep15 == null,
+      levels: [
+        { tol: 0.30, label: 'Dep1.5±0.30' },
+        { tol: 0.20, label: 'Dep1.5±0.20' },
+        { tol: 0.12, label: 'Dep1.5±0.12' },
+      ],
+      fn: (arr, tol) => arr.filter(m => ok(getMac(m,'Deplasman 1,5 Alt/Üst','Alt'), expDep15, tol)),
+    },
+
+  ].filter(f => !f.skip);
+
+  /* ── Başlangıç: sonucu olan maçlar ── */
   let matches = all.filter(m => getResult(m) !== null);
 
-  /* Akıllı daraltma (mevcut kodla uyumlu) */
-  const TARGET_MIN = 30, TARGET_MAX = 300;
+  const lvlIdx  = Object.fromEntries(FILTERS.map(f => [f.id, 0]));
+  const applied = {};
+  let step = 0;
 
-  /* Önce kombinasyon eşleştir */
-  const comboFiltered = matches.filter(m => {
-    const ch = getSofaChange(m);
-    if (!ch) return false;
-    return ch['1'] === myChange['1'] && ch['X'] === myChange['X'] && ch['2'] === myChange['2'];
-  });
-  if (comboFiltered.length >= TARGET_MIN) matches = comboFiltered;
+  while (matches.length > TARGET_MAX && step < MAX_STEPS) {
+    step++;
+    let bestFilter = null, bestResult = null, bestScore = Infinity;
 
-  /* İstatistik hesapla */
+    for (const flt of FILTERS) {
+      const idx = lvlIdx[flt.id];
+      if (idx >= flt.levels.length) continue;
+      let narrowed;
+      try { narrowed = flt.fn(matches, flt.levels[idx].tol); } catch { continue; }
+      if (narrowed.length < TARGET_MIN) continue;
+      const score = narrowed.length <= TARGET_MAX ? 0 : narrowed.length - TARGET_MAX;
+      const better = score < bestScore || (score === bestScore && bestResult && narrowed.length < bestResult.length);
+      if (better) { bestScore = score; bestResult = narrowed; bestFilter = flt; }
+    }
+
+    if (!bestFilter) break;
+    const lvl = bestFilter.levels[lvlIdx[bestFilter.id]];
+    applied[bestFilter.id] = lvl.label;
+    lvlIdx[bestFilter.id]++;
+    matches = bestResult;
+    if (matches.length <= TARGET_MAX) break;
+  }
+
+  /* ── İstatistik ── */
   const total = matches.length;
-  const cnt = { '1':0, 'X':0, '2':0 };
-  let over25 = 0, over35 = 0, over15 = 0, kgVar = 0;
+  if (total < 3) {
+    resultEl.innerHTML = '<div class="sim-empty">🔍 Yeterli benzer maç bulunamadı (min. 3)</div>';
+    return;
+  }
 
+  const cnt = { '1':0, 'X':0, '2':0 };
+  let o15 = 0, o25 = 0, o35 = 0, kg = 0;
   matches.forEach(m => {
-    const res = getResult(m);
-    if (!res) return;
-    cnt[res]++;
-    const tg = getTotalGoals(m);
-    if (tg > 2.5) over25++;
-    if (tg > 3.5) over35++;
-    if (tg > 1.5) over15++;
-    if (getKg(m)) kgVar++;
+    const r = getResult(m); if (!r) return;
+    cnt[r]++;
+    const tg = (m.home_score ?? 0) + (m.away_score ?? 0);
+    if (tg > 1.5) o15++;
+    if (tg > 2.5) o25++;
+    if (tg > 3.5) o35++;
+    if (m.home_score > 0 && m.away_score > 0) kg++;
   });
 
-  const pct = (n, t) => t > 0 ? Math.round(n / t * 100) : 0;
-  const bar = (n, t, cls) => {
+  /* ── Render ── */
+  const pct  = (n, t) => t > 0 ? Math.round(n / t * 100) : 0;
+  const bar  = (n, t, cls) => {
     const w = pct(n, t);
-    return `<div class="sim-bar-wrap">
-      <div class="sim-bar ${cls}" style="width:${w}%"></div>
-      <span>${n} (%${w})</span>
-    </div>`;
+    return `<div class="sim-bar-wrap"><div class="sim-bar ${cls}" style="width:${w}%"></div><span>${n} (%${w})</span></div>`;
   };
-
   const dSign = (v, base) => {
-    const d = (v - base).toFixed(1);
-    if (d > 0) return `<span class="delta-pos">+${d}%</span>`;
-    if (d < 0) return `<span class="delta-neg">${d}%</span>`;
-    return '';
+    const d = +(v - base).toFixed(1);
+    return d > 0 ? `<span class="delta-pos">+${d}%</span>` : d < 0 ? `<span class="delta-neg">${d}%</span>` : '';
   };
 
-  /* Combo etiket */
-  const comboLabel = comboFiltered.length >= TARGET_MIN
-    ? `1${myChange['1']===1?'↑':myChange['1']===-1?'↓':'→'} X${myChange['X']===1?'↑':myChange['X']===-1?'↓':'→'} 2${myChange['2']===1?'↑':myChange['2']===-1?'↓':'→'}`
-    : 'Genel (oran verisi yok)';
+  const filterLabel = Object.values(applied).join(' + ') || 'Genel';
 
   resultEl.innerHTML = `
     <div class="sim-card">
       <div class="sim-header">
         <span class="sim-count">${total} Benzer Maç</span>
-        <span class="sim-filter">✅ Combo: ${comboLabel}</span>
+        <span class="sim-filter" title="${filterLabel}">✅ ${filterLabel}</span>
       </div>
-
       <div class="sim-results">
         <div class="sim-col">
           <div class="sim-col-lbl">🏠 Ev</div>
@@ -2107,44 +2206,25 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
           <div style="font-size:10px;color:var(--tx2)">baza %${SP_BASE.p2.toFixed(0)} ${dSign(pct(cnt['2'],total), SP_BASE.p2)}</div>
         </div>
       </div>
-
       <div class="sim-market-grid" style="padding:8px 12px 12px;">
         <div class="sim-mkt-block">
           <div class="sim-mkt-block-title">Alt / Üst</div>
-          <div class="sim-mkt-row">
-            <span class="sim-mkt-label">1.5 Üst</span>
-            <span class="sim-mkt-val">%${pct(over15,total)} ${dSign(pct(over15,total),74.3)}</span>
-          </div>
-          <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-blue" style="width:${pct(over15,total)}%"></div></div>
-          <div class="sim-mkt-row" style="margin-top:6px;">
-            <span class="sim-mkt-label">2.5 Üst</span>
-            <span class="sim-mkt-val">%${pct(over25,total)} ${dSign(pct(over25,total),SP_BASE.ou25)}</span>
-          </div>
-          <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-blue" style="width:${pct(over25,total)}%"></div></div>
-          <div class="sim-mkt-row" style="margin-top:6px;">
-            <span class="sim-mkt-label">3.5 Üst</span>
-            <span class="sim-mkt-val">%${pct(over35,total)} ${dSign(pct(over35,total),SP_BASE.ou35)}</span>
-          </div>
-          <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-blue" style="width:${pct(over35,total)}%"></div></div>
+          <div class="sim-mkt-row"><span class="sim-mkt-label">1.5 Üst</span><span class="sim-mkt-val">%${pct(o15,total)} ${dSign(pct(o15,total),74.3)}</span></div>
+          <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-blue" style="width:${pct(o15,total)}%"></div></div>
+          <div class="sim-mkt-row" style="margin-top:6px"><span class="sim-mkt-label">2.5 Üst</span><span class="sim-mkt-val">%${pct(o25,total)} ${dSign(pct(o25,total),SP_BASE.ou25)}</span></div>
+          <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-blue" style="width:${pct(o25,total)}%"></div></div>
+          <div class="sim-mkt-row" style="margin-top:6px"><span class="sim-mkt-label">3.5 Üst</span><span class="sim-mkt-val">%${pct(o35,total)} ${dSign(pct(o35,total),SP_BASE.ou35)}</span></div>
+          <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-blue" style="width:${pct(o35,total)}%"></div></div>
         </div>
         <div class="sim-mkt-block">
           <div class="sim-mkt-block-title">Karşılıklı Gol</div>
-          <div class="sim-mkt-row">
-            <span class="sim-mkt-label">KG Var</span>
-            <span class="sim-mkt-val">%${pct(kgVar,total)} ${dSign(pct(kgVar,total),SP_BASE.kg)}</span>
-          </div>
-          <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-green" style="width:${pct(kgVar,total)}%"></div></div>
-          <div class="sim-mkt-row" style="margin-top:6px;">
-            <span class="sim-mkt-label">KG Yok</span>
-            <span class="sim-mkt-val">%${pct(total-kgVar,total)}</span>
-          </div>
-          <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-amber" style="width:${pct(total-kgVar,total)}%"></div></div>
-          <div style="font-size:10px;color:var(--tx2);margin-top:8px;">
-            baza KG Var: %${SP_BASE.kg.toFixed(0)}
-          </div>
+          <div class="sim-mkt-row"><span class="sim-mkt-label">KG Var</span><span class="sim-mkt-val">%${pct(kg,total)} ${dSign(pct(kg,total),SP_BASE.kg)}</span></div>
+          <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-green" style="width:${pct(kg,total)}%"></div></div>
+          <div class="sim-mkt-row" style="margin-top:6px"><span class="sim-mkt-label">KG Yok</span><span class="sim-mkt-val">%${pct(total-kg,total)}</span></div>
+          <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-amber" style="width:${pct(total-kg,total)}%"></div></div>
+          <div style="font-size:10px;color:var(--tx2);margin-top:8px">baza KG Var: %${SP_BASE.kg.toFixed(0)}</div>
         </div>
       </div>
-
       <div class="sim-change" style="font-size:11px;color:var(--tx2);padding-top:6px;">
         ℹ️ Baza: ${SP_BASE.n.toLocaleString('tr-TR')} maç · %${SP_BASE.p1} ev · %${SP_BASE.ou25} 2.5 Üst · %${SP_BASE.kg} KG Var
       </div>
@@ -2158,12 +2238,12 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
 async function loadAllGzMatches() {
   /* Zaten yüklenmiş tüm cacheden topla */
   const cached = Object.values(S.gzOddsCache).flat();
-  if (cached.length >= 5000) return cached; /* yeterli veri */
+  if (cached.length >= 5000) return cached;
 
-  /* Liste dosyasından GERÇEK dosya adlarını çek
-     Dosya adları: odds_2025-05-01_2025-05-31.json.gz (aylık paket)
-     HATA: eski kod d='2025-05-01' → 'odds_2025-05-01.json.gz' (404!)
-     DOĞRU: oranveri.txt'deki fname'i olduğu gibi kullan */
+  /* oranveri.txt'den GERÇEK dosya adlarını çek
+     HATA: eski kod d='2025-05-01' → 'odds_2025-05-01.json.gz' → 404
+     Dosyalar aylık: odds_2025-05-01_2025-05-31.json.gz
+     DOĞRU: fname'i olduğu gibi kullan */
   try {
     const listResp = await fetch('https://www.onlinescoreboard.store/oranveri.txt');
     if (!listResp.ok) throw new Error('liste yok');
@@ -2171,9 +2251,8 @@ async function loadAllGzMatches() {
       .map(l => l.trim())
       .filter(l => l.startsWith('odds_') && l.endsWith('.json.gz'));
 
-    /* Tüm dosyaları yükle — cache key olarak fname kullan */
     for (const fname of fnames) {
-      if (S.gzOddsCache[fname] !== undefined) continue; /* zaten var */
+      if (S.gzOddsCache[fname] !== undefined) continue;
       try {
         const url  = `${ORANCEK_BASE}/${fname}`;
         const resp = await fetch(url);
@@ -2186,7 +2265,7 @@ async function loadAllGzMatches() {
         S.gzOddsCache[fname] = JSON.parse(new TextDecoder().decode(out));
       } catch { S.gzOddsCache[fname] = []; }
     }
-  } catch(e) { console.warn('[loadAllGzMatches] hata:', e); }
+  } catch(e) { console.warn('[loadAllGzMatches]', e); }
 
   return Object.values(S.gzOddsCache).flat();
 }
@@ -2219,12 +2298,10 @@ function buildMatchBadges(sofaMarkets) {
 async function fetchGzOdds(date, homeTeam, awayTeam) {
   if (!date || date.length < 10) return null;
 
-  /* Önce zaten yüklenmiş tüm veriyi kullan (loadAllGzMatches'in cache'i) */
+  /* Zaten yüklü veriyi kullan (loadAllGzMatches cache'i)
+     Boşsa yükle — GERÇEK dosya adlarıyla (odds_2025-05-01_2025-05-31.json.gz) */
   let pool = Object.values(S.gzOddsCache).flat();
 
-  /* Veri yoksa oranveri.txt'den GERÇEK dosya adlarıyla yükle
-     HATA: eski kod `odds_${d}.json.gz` → 404 (dosyalar aylık: odds_2025-05-01_2025-05-31.json.gz)
-     DOĞRU: oranveri.txt'deki fname'leri doğrudan kullan */
   if (!pool.length) {
     try {
       const listResp = await fetch('https://www.onlinescoreboard.store/oranveri.txt');
@@ -2232,7 +2309,6 @@ async function fetchGzOdds(date, homeTeam, awayTeam) {
         const fnames = (await listResp.text()).split('\n')
           .map(l => l.trim())
           .filter(l => l.startsWith('odds_') && l.endsWith('.json.gz'));
-
         for (const fname of fnames) {
           if (S.gzOddsCache[fname] !== undefined) continue;
           try {
@@ -2248,9 +2324,7 @@ async function fetchGzOdds(date, homeTeam, awayTeam) {
         }
         pool = Object.values(S.gzOddsCache).flat();
       }
-    } catch(e) {
-      console.warn('[fetchGzOdds] liste yüklenemedi:', e);
-    }
+    } catch(e) { console.warn('[fetchGzOdds]', e); }
   }
 
   if (!pool.length) return null;
@@ -2544,9 +2618,12 @@ if (od && od.markets) {
 
      /* ── BENZERİ ORANLARIN ANALİZİ ── */
   {
-  const cur1x2 = od?.markets?.['1x2'];
-  const curOu25 = od?.markets?.['ou25'];
-  html += renderSignalCard(m.fixture_id, cur1x2, curOu25);
+  /* sofa_1x2 → oran hareketi change:-1/0/1 → sinyal kartı için
+     mac_1x2  → Mackolik kapanış fiyatları {home,draw,away} → arşiv filtresi için */
+  const sofa1x2 = od?.sofa_1x2 ?? null;
+  const mac1x2  = od?.markets?.['1x2']  ?? null;
+  const curOu25 = od?.markets?.['ou25'] ?? null;
+  html += renderSignalCard(m.fixture_id, sofa1x2, mac1x2, curOu25);
 }
 
   /* ══════════════════════════════════════
