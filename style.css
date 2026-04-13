@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — style.css v1.7
+   SCOREPOP — style.css v1.8
    Layout: Fixed sidebar 240px + fluid main
    Match row: Home→Score←Away (Mackolik style)
    Palette: Near-black + Electric Orange accent
@@ -2643,3 +2643,23 @@ img { display: block; }
 .or2-arr { font-size: 11px; font-weight: 800; }
 .or2-arr.up { color: #4ade80; }
 .or2-arr.dn { color: #f87171; }
+
+/* Deep Analysis UI */
+.sim-deep-card { background: rgba(0,0,0,.2); border-radius: 12px; overflow: hidden; margin-top: 10px; border: 1px solid rgba(255,255,255,.05); }
+.sim-comparison { padding: 10px; background: rgba(255,255,255,.02); font-size: 11px; }
+.sim-comp-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr; gap: 4px; padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,.05); text-align: center; }
+.sim-comp-row.sh { font-weight: bold; color: var(--tx3); text-transform: uppercase; font-size: 9px; }
+.sim-comp-row.active { background: rgba(74,222,128,.1); color: #4ade80; border-radius: 4px; border-bottom: none; font-weight: bold; }
+.sim-history-section { padding: 12px; }
+.sim-history-title { font-size: 12px; font-weight: bold; color: var(--or); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.sim-history-list { display: flex; flex-direction: column; gap: 2px; }
+.sh-item { display: grid; grid-template-columns: 55px 1fr 85px 35px 25px; gap: 8px; padding: 8px; background: rgba(255,255,255,.03); border-radius: 4px; align-items: center; font-size: 10.5px; }
+.sh-item.sh-header { font-weight: bold; color: var(--tx3); background: none; font-size: 9px; }
+.sh-date { color: var(--tx3); font-family: monospace; }
+.sh-teams { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sh-odds { color: var(--tx2); text-align: center; font-size: 9.5px; }
+.sh-score { font-weight: bold; text-align: center; }
+.sh-res { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: bold; font-size: 10px; }
+.res-1 { background: #4ade80; color: #06200c; }
+.res-X { background: #fbbf24; color: #2a1a02; }
+.res-2 { background: #f87171; color: #2d0a0a; }
