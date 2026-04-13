@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v8.7 — Arşiv Desteği)
+   SCOREPOP — app.js  (v8.8 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -2948,10 +2948,23 @@ if (od && od.markets) {
     </div>`;
 
   /* ── BENZERİ ORANLARIN ANALİZİ ── */
-  const sofa1x2 = od?.sofa_1x2 ?? null;
+  let sofa1x2 = od?.sofa_1x2 ? JSON.parse(JSON.stringify(od.sofa_1x2)) : null;
+  const mc1x2 = od?.markets_change?.['1x2'] ?? null;
 
-  /* change değerlerini opening/closing'den türet */
-  if (sofa1x2) {
+  /* YENİ: Veritabanında (Nesine) 'markets_change' trendi varsa, 
+     bunu sofa1x2 formatına çevirip KÖPRÜ GÖREVİ gördür! */
+  if (mc1x2) {
+    if (!sofa1x2) sofa1x2 = {};
+    if (!sofa1x2['1']) sofa1x2['1'] = {};
+    if (!sofa1x2['x']) sofa1x2['x'] = {};
+    if (!sofa1x2['2']) sofa1x2['2'] = {};
+    
+    sofa1x2['1'].change = mc1x2.home ?? 0;
+    sofa1x2['x'].change = mc1x2.draw ?? 0;
+    sofa1x2['2'].change = mc1x2.away ?? 0;
+  } 
+  /* Eski Sofascore opening/closing yedeği */
+  else if (sofa1x2) {
     ['1','x','2'].forEach(k => {
       const d = sofa1x2[k];
       if (!d) return;
