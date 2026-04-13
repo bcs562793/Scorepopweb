@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v7.2 — Arşiv Desteği)
+   SCOREPOP — app.js  (v7.3 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -375,6 +375,9 @@ async function _boot() {
   try { if (typeof Payment !== 'undefined') Payment.init(S.sb); } catch(e) {}
 
   buildDateStrip();
+  /* Oran Analizi tarih strip — Türkiye saatine göre bugün */
+  OA.date = todayTR();
+  _buildOddsDateStrip();
   bindEvents();
 
   /* 4. Router */
@@ -414,6 +417,17 @@ function navigate(page) {
   document.querySelectorAll('.sb-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.page === page));
 
+  /* Oran Analizi sayfası — ayrı view */
+  if (page === 'odds') {
+    document.getElementById('date-strip').style.display = 'none';
+    const calBtn2 = document.querySelector('.tb-cal-btn');
+    if (calBtn2) calBtn2.style.display = 'none';
+    stopRealtime();
+    showView('odds');
+    loadOddsPage();
+    return;
+  }
+
   const showDate = page !== 'live';
   document.getElementById('date-strip').style.display = showDate ? 'flex' : 'none';
   const calBtn2 = document.querySelector('.tb-cal-btn');
@@ -441,12 +455,17 @@ function openDetail(id, isLive) {
   S.detail     = id;
   S.detailLive = isLive;
   showView('detail');
-  loadDetail(id, isLive);
+  /* Oran analizi sayfasından geliyorsa sadece oranlar tabında aç */
+  loadDetail(id, isLive, S.page === 'odds');
 }
 
 function closeDetail(reload = true) {
   try { if (typeof Forum !== 'undefined') Forum.close(); } catch(e) {}
   S.detail = null;
+  if (S.page === 'odds') {
+    showView('odds');
+    return;
+  }
   showView('matches');
   if (reload) loadMatches();
 }
@@ -454,7 +473,256 @@ function closeDetail(reload = true) {
 function showView(v) {
   document.getElementById('view-matches').classList.toggle('hidden', v !== 'matches');
   document.getElementById('view-detail').classList.toggle('hidden', v !== 'detail');
+  const vo = document.getElementById('view-odds');
+  if (vo) vo.classList.toggle('hidden', v !== 'odds');
   document.getElementById('col-hdr').style.display = v === 'matches' ? '' : 'none';
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ORAN ANALİZİ SAYFASI
+══════════════════════════════════════════════════════════════════ */
+
+const OA = {
+  date:    todayStr(),
+  loading: false,
+  matches: [],
+  oddsMap: {},
+};
+
+/* Türkiye saatine göre bugünün tarihini al */
+function todayTR() {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
+}
+
+async function loadOddsPage() {
+  if (OA.loading) return;
+  OA.loading = true;
+  const root = document.getElementById('odds-matches-root');
+  if (!root) { OA.loading = false; return; }
+  root.innerHTML = `<div class="empty"><div class="empty-i">⏳</div><div class="empty-t">Maçlar yükleniyor…</div></div>`;
+
+  try {
+    const today  = todayTR();
+    const isToday  = OA.date === today;
+    const isPast   = OA.date < today;
+
+    let rows = [];
+
+    if (isPast) {
+      /* Geçmiş — archiveCache'ten */
+      rows = Object.values(S.archiveCache).map(m => normFix(m));
+      if (!rows.length) {
+        root.innerHTML = `<div class="empty"><div class="empty-i">📂</div><div class="empty-t">Bu tarih için arşiv yüklü değil.<br>Önce Bugün sekmesinde o tarihe git.</div></div>`;
+        OA.loading = false; return;
+      }
+    } else {
+      /* Bugün veya gelecek:
+         future_matches'te date kolonu UTC'de kaydedildiğinden,
+         Türkiye gece maçları bir sonraki gün olarak görünebilir.
+         Çözüm: seçili tarih + bir sonraki günü birlikte çek, dedupe et. */
+      const nextDate = fmtDate(new Date(new Date(OA.date).getTime() + 86400000));
+
+      const [liveRes, futRes, futNextRes] = await Promise.all([
+        isToday
+          ? S.sb.from('live_matches').select('*').limit(300)
+          : Promise.resolve({ data: [] }),
+        S.sb.from('future_matches').select('*').eq('date', OA.date).limit(300),
+        S.sb.from('future_matches').select('*').eq('date', nextDate).limit(100),
+      ]);
+
+      const map = new Map();
+
+      const addRow = (r) => {
+        let n = null;
+        if (r.raw_data) try { n = normFix({...r,...JSON.parse(r.raw_data)}); } catch(e){}
+        if (!n && r.data) {
+          let d = r.data;
+          if (typeof d === 'string') try { d = JSON.parse(d); } catch(e) { d = null; }
+          if (d) { const list = Array.isArray(d)?d:[d]; n = normFix({...r,...list[0]}); }
+        }
+        if (!n) n = normFix(r);
+        if (!n.fixture_id) return;
+        if (!map.has(n.fixture_id)) map.set(n.fixture_id, n);
+      };
+
+      (liveRes.data  || []).forEach(addRow);
+      (futRes.data   || []).forEach(addRow);
+      /* Bir sonraki günden sadece kickoff_time'ı seçili güne düşen maçları al */
+      (futNextRes.data || []).forEach(r => {
+        let n = null;
+        if (r.raw_data) try { n = normFix({...r,...JSON.parse(r.raw_data)}); } catch(e){}
+        if (!n) n = normFix(r);
+        if (!n.fixture_id) return;
+        /* kickoff_time'dan gerçek tarihi hesapla */
+        const kt = n.kickoff_time || '';
+        if (kt) {
+          const ktDate = new Date(kt).toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
+          if (ktDate === OA.date && !map.has(n.fixture_id)) map.set(n.fixture_id, n);
+        }
+      });
+
+      rows = Array.from(map.values());
+    }
+
+    rows = rows.filter(m => m.fixture_id);
+    OA.matches = rows;
+
+    if (!rows.length) {
+      root.innerHTML = `<div class="empty"><div class="empty-i">📭</div><div class="empty-t">Bu tarihte maç bulunamadı</div></div>`;
+      OA.loading = false; return;
+    }
+
+    /* match_odds toplu çek */
+    const ids = rows.map(m => m.fixture_id).filter(Boolean);
+    OA.oddsMap = {};
+    if (ids.length) {
+      const { data: oddsData } = await S.sb
+        .from('match_odds').select('fixture_id, odds_data, updated_at')
+        .in('fixture_id', ids);
+      (oddsData || []).forEach(o => { OA.oddsMap[String(o.fixture_id)] = o; });
+    }
+
+    _renderOddsPage(root, rows);
+  } catch(e) {
+    console.error('[OddsPage]', e);
+    root.innerHTML = `<div class="empty"><div class="empty-i">⚠️</div><div class="empty-t">Yükleme hatası</div></div>`;
+  }
+  OA.loading = false;
+}
+
+function _renderOddsPage(root, rows) {
+  /* Ligleri sırala */
+  const groups = {};
+  rows.forEach(m => {
+    const k = m.league_id ? String(m.league_id)
+      : `${(m.league_country||'').toLowerCase()}__${(m.league_name||'Diğer').toLowerCase()}`;
+    if (!groups[k]) groups[k] = { name: m.league_name||'Diğer', logo: m.league_logo||'', country: m.league_country||'', matches: [] };
+    groups[k].matches.push(m);
+  });
+  const sorted = _sortLeagueGroups(Object.values(groups));
+
+  const hasOdds = m => OA.oddsMap[String(m.fixture_id)]?.odds_data?.markets?.['1x2'] != null;
+
+  let html = '';
+  sorted.forEach(g => {
+    const with_ = g.matches.filter(m =>  hasOdds(m));
+    const without_ = g.matches.filter(m => !hasOdds(m));
+    html += `<div class="lg-grp" data-league="${esc(g.name)}">
+      <div class="lg-hdr">
+        ${g.logo ? `<img src="${esc(g.logo)}" width="16" height="16" onerror="this.style.display='none'" alt="">` : ''}
+        <span class="lg-name">${esc(g.name)}</span>
+        <span class="lg-ct">${g.matches.length}</span>
+      </div>`;
+    [...with_, ...without_].forEach(m => { html += _buildOddsRow(m); });
+    html += `</div>`;
+  });
+
+  root.innerHTML = html || `<div class="empty"><div class="empty-t">Gösterilecek maç yok</div></div>`;
+}
+
+function _buildOddsRow(m) {
+  const st    = statusInfo(m);
+  const hs    = m.home_score != null ? m.home_score : '-';
+  const as    = m.away_score != null ? m.away_score : '-';
+  const isNS  = !['1H','2H','HT','ET','BT','P','LIVE','FT','AET','PEN'].includes(m.status_short);
+
+  const odRow = OA.oddsMap[String(m.fixture_id)];
+  const od    = odRow?.odds_data ?? null;
+  const mk    = od?.markets ?? null;
+  const sofa  = od?.sofa_1x2 ?? null;
+
+  const o1x2  = mk?.['1x2'] ?? null;
+  const h1    = o1x2?.home, hX = o1x2?.draw, h2 = o1x2?.away;
+
+  /* Sofascore oran hareketi */
+  const ch1 = sofa?.['1']?.change ?? null;
+  const chX = sofa?.['x']?.change ?? null;
+  const ch2 = sofa?.['2']?.change ?? null;
+  const hasCh = ch1 !== null && chX !== null && ch2 !== null;
+  const arr = v => v===1?'<span class="oa-up">↑</span>':v===-1?'<span class="oa-dn">↓</span>':'<span class="oa-eq">→</span>';
+
+  /* Sinyal badge */
+  let sigBadge = '';
+  if (hasCh) {
+    const sig = buildSignals(sofa);
+    if (sig && sig.tier !== 'none') {
+      const tc = { strong:'oa-sig-strong', medium:'oa-sig-medium', weak:'oa-sig-weak' };
+      const tl = { strong:'⬡ Güçlü', medium:'◈ Orta', weak:'◇ Zayıf' };
+      sigBadge = `<span class="oa-sig-badge ${tc[sig.tier]}">${tl[sig.tier]} · %${sig.winnerPct.toFixed(0)} ${sig.winnerLabel}</span>`;
+    }
+  }
+
+  const hLogo = m.home_logo ? `<img src="${esc(m.home_logo)}" width="18" height="18" onerror="this.style.display='none'" alt="">` : '';
+  const aLogo = m.away_logo ? `<img src="${esc(m.away_logo)}" width="18" height="18" onerror="this.style.display='none'" alt="">` : '';
+
+  return `
+    <div class="oa-row" onclick="openOddsDetail(${m.fixture_id}, ${st.live})">
+      <div class="oa-left">
+        <div class="oa-time"><span class="mr-t1 ${st.cls}">${st.label}</span></div>
+        <div class="oa-teams">
+          <div class="oa-team">${hLogo}<span>${esc(m.home_team||'')}</span></div>
+          <div class="oa-score">${isNS?'<span class="oa-vs">vs</span>':`<span>${hs}</span><span class="oa-sep">:</span><span>${as}</span>`}</div>
+          <div class="oa-team">${aLogo}<span>${esc(m.away_team||'')}</span></div>
+        </div>
+      </div>
+      <div class="oa-right">
+        ${o1x2 ? `
+          <div class="oa-odds">
+            <div class="oa-odd-cell">
+              <span class="oa-odd-lbl">1</span>
+              <span class="oa-odd-val ${h1 < 1.8 ? 'oa-fav' : ''}">${h1 ? h1.toFixed(2) : '-'}</span>
+              ${hasCh ? arr(ch1) : ''}
+            </div>
+            <div class="oa-odd-cell">
+              <span class="oa-odd-lbl">X</span>
+              <span class="oa-odd-val">${hX ? hX.toFixed(2) : '-'}</span>
+              ${hasCh ? arr(chX) : ''}
+            </div>
+            <div class="oa-odd-cell">
+              <span class="oa-odd-lbl">2</span>
+              <span class="oa-odd-val ${h2 < 1.8 ? 'oa-fav' : ''}">${h2 ? h2.toFixed(2) : '-'}</span>
+              ${hasCh ? arr(ch2) : ''}
+            </div>
+          </div>
+          ${sigBadge}
+        ` : `<div class="oa-no-odds">Oran yok</div>`}
+      </div>
+    </div>`;
+}
+
+/* Oran sayfasından maça tıklayınca — sadece Oranlar tabında aç */
+function openOddsDetail(id, isLive) {
+  S.detail     = id;
+  S.detailLive = isLive;
+  S.page       = 'odds'; /* geri gelince odds sayfasına dön */
+  showView('detail');
+  loadDetail(id, isLive, true /* oddsOnly */);
+}
+
+/* Oran analizi tarih strip */
+function _buildOddsDateStrip() {
+  const el = document.getElementById('oa-date-strip');
+  if (!el) return;
+  el.innerHTML = '';
+  const dow = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+  const today = todayTR();
+
+  for (let i = -1; i <= 5; i++) {
+    const d = new Date(); d.setDate(d.getDate() + i);
+    const s = fmtDate(d);
+    const btn = document.createElement('button');
+    btn.className = 'oa-dp' + (s === today ? ' active' : '');
+    const dd = pad2(d.getDate()) + '/' + pad2(d.getMonth()+1);
+    const lbl = s === today ? 'Bugün' : i === 1 ? 'Yarın' : i === -1 ? 'Dün' : dow[d.getDay()];
+    btn.innerHTML = `<span class="oa-dp-d">${dd}</span><span class="oa-dp-w">${lbl}</span>`;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#oa-date-strip .oa-dp').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      OA.date = s;
+      loadOddsPage();
+    });
+    el.appendChild(btn);
+  }
 }
 
 /* ── DATE STRIP ─────────────────────────────── */
@@ -1067,7 +1335,7 @@ function applyFilter() {
 }
 
 /* ── DETAIL ──────────────────────────────────── */
-async function loadDetail(id, isLive) {
+async function loadDetail(id, isLive, oddsOnly = false) {
   setDetailHTML(`<div class="empty" style="min-height:160px"><div class="empty-i">⚽</div></div>`);
   try {
 
@@ -1082,7 +1350,7 @@ async function loadDetail(id, isLive) {
       const h2h  = archiveAdaptH2H(cached.h2h);
       const matchDate = (m.kickoff_time || m.date || S.date || '').slice(0,10);
       const gzOdds = await fetchGzOdds(matchDate, m.home_team, m.away_team);
-      buildDetail(m, evs, stats, lus, h2h, null, gzOdds);
+      buildDetail(m, evs, stats, lus, h2h, null, gzOdds, oddsOnly);
       return;
     }
 
@@ -1180,7 +1448,7 @@ if (m.home_team_id && m.away_team_id) {
 }
 
     // ✅ oranlar direkt match_odds'tan gelir, gz sadece sim analizi için
-       buildDetail(m, evs||[], stats, lus, h2h, pred, dbOdds || null);
+       buildDetail(m, evs||[], stats, lus, h2h, pred, dbOdds || null, oddsOnly);
   } catch (e) {
     console.error(e);
     setDetailHTML(`<div class="empty"><div class="empty-t">Hata: ${esc(e.message)}</div></div>`);
@@ -1838,31 +2106,42 @@ function buildSignals(sofa_1x2) {
 }
 
 function buildSignalDesc(ch1, chx, ch2, winner, pct, delta, ou25Delta, n) {
-  const ch = v => v === 1 ? 'yükseldi' : v === -1 ? 'düştü' : 'sabit';
-  const dirMap = { '1': 'Ev sahibi', '2': 'Deplasman', 'X': 'Beraberlik' };
-
+  /* ─── Maç Sonucu sinyali ─── */
   let ms = '';
   if (ch1 === -1 && chx === 1 && ch2 === 1) {
-    ms = 'Ev sahibi oranı düşerken rakipler yükseliyor — piyasa evi açık favori görüyor.';
+    ms = '🟢 <strong>Güçlü Ev Sinyali:</strong> Ev sahibi oranı düşerken rakipler yükseliyor. Piyasa evi açık favori görüyor — "sharp money" ev sahibinde. 57k maçta bu kombinasyon <strong>%57.1 ev galibiyeti</strong> (baza +13).';
   } else if (ch1 === 1 && chx === 1 && ch2 === -1) {
-    ms = 'Deplasman oranı düşerken rakipler yükseliyor — piyasa deplasmanı favori görüyor.';
-  } else if (chx === 1 && ch1 !== 1 && ch2 !== 1) {
-    ms = 'Beraberlik uzaklaşıyor — piyasa sonucun açık olacağını öngörüyor.';
-  } else if (chx === -1 && ch1 !== -1 && ch2 !== -1) {
-    ms = 'Beraberlik yaklaşıyor — piyasa sıkışık, düşük tempolu maç bekliyor.';
+    ms = '🔵 <strong>Güçlü Deplasman Sinyali:</strong> Deplasman oranı düşerken rakipler yükseliyor. Piyasa deplasmanı favori görüyor — en büyük mutlak sapma. 57k maçta <strong>%47.4 deplasman galibiyeti</strong> (baza +16).';
+  } else if (ch1 === -1 && chx === 1 && ch2 === 0) {
+    ms = '🟢 <strong>Ev Sinyali:</strong> Ev oranı düşüyor, beraberlik uzaklaşıyor, deplasman sabit. Piyasa evi favori görüyor. Benzer maçlarda <strong>%52 ev galibiyeti</strong>.';
   } else if (ch1 === 0 && chx === 1 && ch2 === -1) {
-    ms = 'Deplasman güçleniyor, beraberlik uzaklaşıyor — açık maç beklentisi var.';
+    ms = '🔵 <strong>Deplasman + Gol Sinyali:</strong> Deplasman güçleniyor, beraberlik uzaklaşıyor, ev sabit. Açık maç beklentisi var. Benzer maçlarda <strong>%60.3 üst 2.5</strong> — en yüksek gol sinyali.';
+  } else if (chx === -1 && ch1 !== -1 && ch2 !== -1) {
+    ms = '🟡 <strong>Düşük Gol Sinyali:</strong> Beraberlik oranı yaklaşıyor — piyasa sıkışık, düşük tempolu maç bekliyor. Bu kombinasyon 2.5 Üst sadece <strong>%44.4</strong> (baza -7.4). 1.5 Alt dikkat çekici.';
+  } else if (ch1 === 1 && chx === -1 && ch2 === 1) {
+    ms = '🟡 <strong>Kilitli Maç:</strong> Her iki taraf oranı yükselirken beraberlik kısalıyor. Piyasa düşük tempolu, beraberlik odaklı maç bekliyor. 2.5 Üst <strong>%44.4</strong> (baza -7.4).';
+  } else if (ch1 === -1 && chx === -1 && ch2 === 1) {
+    ms = '🔵 <strong>Deplasman Sinyali:</strong> Ev ve beraberlik oranları düşerken deplasman yükseliyor. Benzer maçlarda <strong>%38.6 deplasman galibiyeti</strong> (+8 baza).';
+  } else if (ch1 === 1 && chx === -1 && ch2 === -1) {
+    ms = '🟢 <strong>Ev + Sabit Sinyal:</strong> Beraberlik düşerken ev sabit, deplasman sabit. Beraberlik uzaklaşıyor, ev hafif öne çıkıyor. Benzer maçlarda <strong>%51 ev galibiyeti</strong> (+7).';
+  } else if (ch1 === 0 && chx === 0 && ch2 === 0) {
+    ms = '⚪ <strong>Nötr:</strong> Tüm oranlar sabit. Piyasada anlamlı bir yön yok. Bu durum 21.267 maçta (%37 tüm maçlar) görülüyor — baza istatistiklerini referans al.';
   } else {
+    const dirMap = { '1': 'Ev sahibi', '2': 'Deplasman', 'X': 'Beraberlik' };
     ms = `${dirMap[winner]} tarafında anlamlı hareket var.`;
   }
 
-  const golNote = ou25Delta >= 5
-    ? ` Benzer kombinasyonlarda gol sayısı ortalamanın üzerinde (%${+(51.7+ou25Delta).toFixed(0)} üst25).`
-    : ou25Delta <= -5
-    ? ` Benzer kombinasyonlarda gol sayısı ortalamanın altında (%${+(51.7+ou25Delta).toFixed(0)} üst25).`
-    : '';
+  /* ─── Gol sinyali ─── */
+  let golNote = '';
+  if (ou25Delta >= 8) {
+    golNote = ` 🔥 <strong>Yüksek Gol:</strong> Bu kombinasyonda 2.5 Üst <strong>%${+(51.7+ou25Delta).toFixed(0)}</strong> (baza +${ou25Delta}).`;
+  } else if (ou25Delta >= 4) {
+    golNote = ` ⬆️ Gol ortalamanın üzerinde: 2.5 Üst <strong>%${+(51.7+ou25Delta).toFixed(0)}</strong> (+${ou25Delta}).`;
+  } else if (ou25Delta <= -5) {
+    golNote = ` ⬇️ <strong>Düşük Gol:</strong> 2.5 Üst sadece <strong>%${+(51.7+ou25Delta).toFixed(0)}</strong> (${ou25Delta}).`;
+  }
 
-  return `${ms}${golNote} Bu sinyal <strong>${n.toLocaleString('tr-TR')} maçlık</strong> geçmiş veriye dayanıyor.`;
+  return `${ms}${golNote} <span style="color:var(--tx3);font-size:10px;">${n.toLocaleString('tr-TR')} maçlık geçmiş veriye dayanıyor.</span>`;
 }
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -2354,7 +2633,7 @@ async function fetchGzOdds(date, homeTeam, awayTeam) {
   };
 }
 
-function buildDetail(m, evs, stats, lus, h2h, pred, odds) {
+function buildDetail(m, evs, stats, lus, h2h, pred, odds, oddsOnly = false) {
   const st = statusInfo(m);
   const hs = m.home_score ?? '-', as = m.away_score ?? '-';
 
@@ -2430,28 +2709,41 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds) {
       </div>
     </div>`;
 
-  html += `
-    <div class="d-visual">
-      <div class="d-visual-hdr">
-        <div class="d-visual-hdr-l">📺 Canlı Görsel</div>
-        ${m.visual_url ? `<span class="d-visual-live">LIVE</span>` : ''}
-      </div>
-      ${m.visual_url
-        ? `<div class="d-visual-iframe-wrap"><iframe class="d-visual-iframe" src="${esc(m.visual_url)}" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe></div>`
-        : `<div class="d-visual-empty">📡<span>Görsel stream mevcut değil</span></div>`}
-    </div>`;
+  /* oddsOnly=true ise canlı görsel ve diğer tabları gizle */
+  if (!oddsOnly) {
+    html += `
+      <div class="d-visual">
+        <div class="d-visual-hdr">
+          <div class="d-visual-hdr-l">📺 Canlı Görsel</div>
+          ${m.visual_url ? `<span class="d-visual-live">LIVE</span>` : ''}
+        </div>
+        ${m.visual_url
+          ? `<div class="d-visual-iframe-wrap"><iframe class="d-visual-iframe" src="${esc(m.visual_url)}" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe></div>`
+          : `<div class="d-visual-empty">📡<span>Görsel stream mevcut değil</span></div>`}
+      </div>`;
 
-  html += `
-    <div class="d-tabs">
-      <div class="d-tab active" onclick="switchTab('ev',this)">Olaylar</div>
-      <div class="d-tab" onclick="switchTab('st',this)">İstatistik</div>
-      <div class="d-tab" onclick="switchTab('or',this)">Oranlar</div>
-      <div class="d-tab" onclick="switchTab('lu',this)">Kadro</div>
-      <div class="d-tab" onclick="switchTab('h2',this)">H2H</div>
-      <div class="d-tab" onclick="switchTab('fr',this)">Forum</div>
-    </div>`;
+    html += `
+      <div class="d-tabs">
+        <div class="d-tab" onclick="switchTab('ev',this)">Olaylar</div>
+        <div class="d-tab" onclick="switchTab('st',this)">İstatistik</div>
+        <div class="d-tab active" onclick="switchTab('or',this)">Oranlar</div>
+        <div class="d-tab" onclick="switchTab('lu',this)">Kadro</div>
+        <div class="d-tab" onclick="switchTab('h2',this)">H2H</div>
+        <div class="d-tab" onclick="switchTab('fr',this)">Forum</div>
+      </div>`;
+  } else {
+    /* Oran Analizi sayfasından gelince — sadece Oranlar tabı */
+    html += `
+      <div class="d-tabs" style="border-bottom:1px solid rgba(255,255,255,.07)">
+        <div class="d-tab active" onclick="switchTab('or',this)">📊 Oran Analizi</div>
+        <div class="d-tab" onclick="switchTab('ev',this)">Olaylar</div>
+        <div class="d-tab" onclick="switchTab('st',this)">İstatistik</div>
+        <div class="d-tab" onclick="switchTab('lu',this)">Kadro</div>
+        <div class="d-tab" onclick="switchTab('h2',this)">H2H</div>
+      </div>`;
+  }
 
-  html += `<div class="d-panel active" id="d-ev">`;
+  html += `<div class="d-panel ${oddsOnly ? '' : 'active'}" id="d-ev">`;
 
   // ── MAÇ BİLGİ KARTI ── sadece veri varsa göster
 let referee = null, venue = null, city = null;
@@ -2560,7 +2852,7 @@ if (kickoffFmt || referee || venue) {
   html += `</div>`;
 
   /* ── ORANLAR PANELİ ────────────────────────── */
-html += `<div class="d-panel" id="d-or">`;
+html += `<div class="d-panel ${oddsOnly ? 'active' : ''}" id="d-or">`;
 const od = odds?.odds_data ?? null;
 
 if (od && od.markets) {
