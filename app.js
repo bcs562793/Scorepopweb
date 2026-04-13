@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v7.6 — Arşiv Desteği)
+   SCOREPOP — app.js  (v7.7 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -2944,14 +2944,23 @@ if (od && od.markets) {
     </div>`;
 
      /* ── BENZERİ ORANLARIN ANALİZİ ── */
-  {
-  /* sofa_1x2 → oran hareketi change:-1/0/1 → sinyal kartı için
-     mac_1x2  → Mackolik kapanış fiyatları {home,draw,away} → arşiv filtresi için */
   const sofa1x2 = od?.sofa_1x2 ?? null;
-  const mac1x2  = od?.markets?.['1x2']  ?? null;
-  const curOu25 = od?.markets?.['ou25'] ?? null;
-  html += renderSignalCard(m.fixture_id, sofa1x2, mac1x2, curOu25);
+
+/* change değerlerini opening/closing'den türet */
+if (sofa1x2) {
+  ['1','x','2'].forEach(k => {
+    const d = sofa1x2[k];
+    if (!d) return;
+    const op = d.opening, cl = d.closing;
+    if (op != null && cl != null && Math.abs(cl - op) > 0.04) {
+      d.change = cl < op ? -1 : 1;
+    }
+  });
 }
+
+const mac1x2  = od?.markets?.['1x2']  ?? null;
+const curOu25 = od?.markets?.['ou25'] ?? null;
+html += renderSignalCard(m.fixture_id, sofa1x2, mac1x2, curOu25);
 
   /* ══════════════════════════════════════
      GRUP 1: MAÇ SONUCU
@@ -3167,35 +3176,46 @@ if (od && od.markets) {
   /* ══════════════════════════════════════
      GRUP 6: SOFASCORE ORAN DEĞİŞİMİ
   ══════════════════════════════════════ */
-  {
-    const s1x2 = od.sofa_1x2;
-    if (s1x2) {
-      const arrow = ch => ch === 1 ? '↑' : ch === -1 ? '↓' : '→';
-      const arrowCls = ch => ch === 1 ? 'sofa-up' : ch === -1 ? 'sofa-dn' : 'sofa-eq';
-      const sofaCell = (lbl, d) => {
-        if (!d) return '';
-        const op = d.opening != null ? d.opening.toFixed(2) : '-';
-        const cl = d.closing != null ? d.closing.toFixed(2) : '-';
-        const ar = arrow(d.change ?? 0);
-        const arCls = arrowCls(d.change ?? 0);
-        const winCls = d.winning === true ? 'sofa-win' : d.winning === false ? 'sofa-lose' : '';
-        return `<div class="sofa-cell ${winCls}">
-          <div class="sofa-lbl">${lbl}</div>
-          <div class="sofa-odds">
-            <span class="sofa-open">${op}</span>
-            <span class="sofa-arrow ${arCls}">${ar}</span>
-            <span class="sofa-close">${cl}</span>
-          </div>
-        </div>`;
-      };
-      const g6 = `<div class="sofa-row">
-        ${sofaCell(homeN, s1x2['1'])}
-        ${sofaCell('X', s1x2['x'])}
-        ${sofaCell(awayN, s1x2['2'])}
+{
+  const s1x2 = od.sofa_1x2;
+  if (s1x2) {
+    /* Opening-closing farkından change türet — DB'deki change yanlışsa düzelt */
+    const deriveChange = (d) => {
+      if (!d) return 0;
+      const op = d.opening, cl = d.closing;
+      if (op != null && cl != null && Math.abs(cl - op) > 0.04) {
+        return cl < op ? -1 : 1;   // düştü → -1, yükseldi → +1
+      }
+      return d.change ?? 0;
+    };
+
+    const arrow = ch => ch === 1 ? '↑' : ch === -1 ? '↓' : '→';
+    const arrowCls = ch => ch === 1 ? 'sofa-up' : ch === -1 ? 'sofa-dn' : 'sofa-eq';
+    const sofaCell = (lbl, d) => {
+      if (!d) return '';
+      const ch  = deriveChange(d);   // ← türetilmiş change
+      const op  = d.opening != null ? d.opening.toFixed(2) : '-';
+      const cl  = d.closing != null ? d.closing.toFixed(2) : '-';
+      const ar  = arrow(ch);
+      const arCls = arrowCls(ch);
+      const winCls = d.winning === true ? 'sofa-win' : d.winning === false ? 'sofa-lose' : '';
+      return `<div class="sofa-cell ${winCls}">
+        <div class="sofa-lbl">${lbl}</div>
+        <div class="sofa-odds">
+          <span class="sofa-open">${op}</span>
+          <span class="sofa-arrow ${arCls}">${ar}</span>
+          <span class="sofa-close">${cl}</span>
+        </div>
       </div>`;
-      html += group('📈', 'Oran Değişimi (Sofascore)', g6);
-    }
+    };
+    const g6 = `<div class="sofa-row">
+      ${sofaCell(homeN, s1x2['1'])}
+      ${sofaCell('X',   s1x2['x'])}
+      ${sofaCell(awayN, s1x2['2'])}
+    </div>`;
+    html += group('📈', 'Oran Değişimi (Sofascore)', g6);
   }
+}
 
   html += `</div>`; /* or2-wrap */
 
