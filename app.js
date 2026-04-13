@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v7.4 — Arşiv Desteği)
+   SCOREPOP — app.js  (v7.5 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -2160,6 +2160,7 @@ function renderSignalCard(fixtureId, sofa1x2, mac1x2, curOu25) {
   /* Buton için JSON — mac1x2 (fiyat) ve curOu25 geçiyoruz */
   const mac1x2Json  = JSON.stringify(mac1x2  || null).replace(/"/g,'&quot;');
   const curOu25Json = JSON.stringify(curOu25 || null).replace(/"/g,'&quot;');
+  const sofaJson    = JSON.stringify(sofa1x2 || null).replace(/"/g,'&quot;');
 
   const tierLabel = {
     strong: '⬡ GÜÇLÜ SİNYAL',
@@ -2167,6 +2168,8 @@ function renderSignalCard(fixtureId, sofa1x2, mac1x2, curOu25) {
     weak:   '◇ ZAYIF SİNYAL',
     none:   '— NÖTR',
   };
+
+   
 
   /* Chip HTML */
   const chCls = d => d === 1 ? 'sp-chip--up' : d === -1 ? 'sp-chip--dn' : 'sp-chip--eq';
