@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v8.6 — Arşiv Desteği)
+   SCOREPOP — app.js  (v8.7 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -2257,19 +2257,7 @@ function renderSignalCard(fixtureId, sofa1x2, mac1x2, curOu25) {
     </div>`;
 }
 
-/* ─────────────────────────────────────────────────────────────────────
-   4. DETAYLI BENZERLİK ANALİZİ — runSimAnalysisV2
-   
-   cur1x2: Mackolik fiyatları { home, draw, away }
-   curOu25: { under, over }
-   
-   Filtre sırası (kademeli, TARGET 5-30 maç):
-     0. Sofascore change combo (varsa)
-     1. MS oranı ±0.20→0.05 (Mackolik)
-     2. 2.5 Alt/Üst ±0.15→0.05
-     3. KG Var varlık filtresi
-     4. Ev1.5 / Dep1.5 (türetilmiş beklenti)
-───────────────────────────────────────────────────────────────────── */
+
 /* ─────────────────────────────────────────────────────────────────────
    4. DETAYLI BENZERLİK ANALİZİ — DERİN ANALİZ (v2 — UI entegreli)
    Filtre sırası (kademeli, hedef 5-10 maç):
@@ -2306,14 +2294,22 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25, curSofa) {
     return null;
   };
 
-  /* Arşiv maçının Sofascore 1X2 change yönünü oku */
   const getSofaChange = m => {
     for (const sm of (m.sofascore_markets || [])) {
       if (['Full time','1X2','Maç Sonucu'].includes(sm.market_name) || sm.market_group === '1X2') {
         const cm = {};
         for (const c of (sm.choices || [])) cm[c.name] = c;
         if (cm['1'] !== undefined && cm['X'] !== undefined && cm['2'] !== undefined) {
-          return { '1': Number(cm['1'].change ?? 0), 'X': Number(cm['X'].change ?? 0), '2': Number(cm['2'].change ?? 0) };
+          const derive = (d) => {
+            if (!d) return 0;
+            const op = d.opening_odds ?? d.opening;
+            const cl = d.closing_odds ?? d.closing;
+            if (op != null && cl != null && Math.abs(cl - op) > 0.04) {
+              return cl < op ? -1 : 1;
+            }
+            return Number(d.change ?? 0);
+          };
+          return { '1': derive(cm['1']), 'X': derive(cm['X']), '2': derive(cm['2']) };
         }
       }
     }
@@ -2328,7 +2324,6 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25, curSofa) {
   const mac2 = cur1x2?.away  ?? null;
   const macU = curOu25?.under ?? null;
 
-  /* Trend yönleri — curSofa'dan al (key: '1','x','2' / .change değeri) */
   const chg1 = curSofa?.['1']?.change ?? null;
   const chgX = curSofa?.['x']?.change ?? null;
   const chg2 = curSofa?.['2']?.change ?? null;
@@ -2351,23 +2346,27 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25, curSofa) {
     return;
   }
 
-  /* ── HAVUZ 2: Akıllı Daraltma (hedef 5-10 maç) ── */
+  /* ── HAVUZ 2: Akıllı Daraltma (Min 3 maç) ── */
+  const MIN_MATCHES = 3;
   const filters = [
     {
       id: 'Trend', label: 'Trend',
       apply: pool => {
         if (!hasTrend) return null;
-        const next = pool.filter(m => { const sc = getSofaChange(m); return sc && sc['1'] === chg1 && sc['X'] === chgX && sc['2'] === chg2; });
-        return next.length >= 5 ? next : null;
+        const next = pool.filter(m => { 
+            const sc = getSofaChange(m); 
+            return sc && sc['1'] === chg1 && sc['X'] === chgX && sc['2'] === chg2; 
+        });
+        return next.length >= MIN_MATCHES ? next : null; 
       },
     },
     {
       id: '2.5AÜ', label: '2.5AÜ',
       apply: pool => {
         if (macU == null) return null;
-        for (const tol of [0.05, 0.10]) {
+        for (const tol of [0.05, 0.10, 0.15]) {
           const next = pool.filter(m => ok(getMac(m,'2,5 Alt/Üst','Alt'), macU, tol));
-          if (next.length >= 5) return next;
+          if (next.length >= MIN_MATCHES) return next;
         }
         return null;
       },
@@ -2378,7 +2377,7 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25, curSofa) {
         if (expEv15 == null) return null;
         for (const tol of [0.10, 0.15]) {
           const next = pool.filter(m => ok(getMac(m,'Evsahibi 1,5 Alt/Üst','Alt'), expEv15, tol));
-          if (next.length >= 5) return next;
+          if (next.length >= MIN_MATCHES) return next;
         }
         return null;
       },
@@ -2389,7 +2388,7 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25, curSofa) {
         if (expDep15 == null) return null;
         for (const tol of [0.10, 0.15]) {
           const next = pool.filter(m => ok(getMac(m,'Deplasman 1,5 Alt/Üst','Alt'), expDep15, tol));
-          if (next.length >= 5) return next;
+          if (next.length >= MIN_MATCHES) return next;
         }
         return null;
       },
@@ -2398,10 +2397,25 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25, curSofa) {
 
   let currentPool = poolOdds;
   const applied = [];
+  
+  // ERKEN KIRILMA (BREAK) KALDIRILDI! Her filtreyi sırayla deneyecek.
   for (const f of filters) {
-    if (currentPool.length >= 5 && currentPool.length <= 10) break;
     const next = f.apply(currentPool);
-    if (next) { currentPool = next; applied.push(f.label); }
+    if (next) { 
+        currentPool = next; 
+        applied.push(f.label); 
+    }
+  }
+
+  /* KESİN LİMİT: Sonuçta hala 12'den fazla maç varsa en yakın MS oranlarına göre sıralayıp kes */
+  if (currentPool.length > 12) {
+    currentPool.sort((a,b) => {
+        const dA = Math.abs((getMac(a,'Maç Sonucu','1')||0) - mac1) + Math.abs((getMac(a,'Maç Sonucu','2')||0) - mac2);
+        const dB = Math.abs((getMac(b,'Maç Sonucu','1')||0) - mac1) + Math.abs((getMac(b,'Maç Sonucu','2')||0) - mac2);
+        return dA - dB;
+    });
+    currentPool = currentPool.slice(0, 12);
+    applied.push('En Yakın 12');
   }
 
   /* ── İstatistik ── */
@@ -2458,7 +2472,6 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25, curSofa) {
         <span class="sim-filter" title="${filterLabel}">✅ ${filterLabel || 'MS±0.05'}</span>
       </div>
 
-      <!-- İKİ HAVUZ KARŞILAŞTIRMASI -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 12px 4px;font-size:11px;">
         <div style="background:rgba(255,255,255,.04);border-radius:6px;padding:8px;">
           <div style="color:var(--tx2);margin-bottom:6px;">📎 Sadece MS±0.05 (${s1.n} maç)</div>
@@ -2480,14 +2493,12 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25, curSofa) {
         </div>
       </div>
 
-      <!-- MS BARLAR -->
       <div class="sim-results" style="margin-top:6px;">
         <div class="sim-col"><div class="sim-col-lbl">🏠 Ev</div>${bar(s2.p1,'bar-1')}</div>
         <div class="sim-col"><div class="sim-col-lbl">🤝 Ber</div>${bar(s2.px,'bar-x')}</div>
         <div class="sim-col"><div class="sim-col-lbl">✈️ Dep</div>${bar(s2.p2,'bar-2')}</div>
       </div>
 
-      <!-- GOL MARKETLERİ -->
       <div class="sim-market-grid" style="padding:8px 12px 10px;">
         <div class="sim-mkt-block">
           <div class="sim-mkt-block-title">Alt / Üst</div>
@@ -2507,7 +2518,6 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25, curSofa) {
         </div>
       </div>
 
-      <!-- TARİHSEL MAÇ LİSTESİ -->
       <div style="padding:0 12px 12px;">
         <div style="font-size:11px;color:#93c5fd;font-weight:600;margin-bottom:6px;">📅 En Benzer Maçlar</div>
         <div style="overflow-x:auto;">
