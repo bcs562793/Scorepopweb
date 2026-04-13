@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Spor Haberleri v1.0 — ScorePop</title>
-  <meta name="description" content="Futbol dünyasından son dakika spor haberleri ScorePop'ta."/>
+  <title>Haber Detayı — ScorePop</title>
+  <meta name="description" content="ScorePop spor haberleri detay sayfası."/>
   <meta name="robots" content="index,follow"/>
   <link rel="canonical" href="https://scorepop.com.tr/haberler"/>
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-JS4J2RCJJ9"></script>
@@ -23,33 +23,33 @@
     .topbar-title em{color:var(--or);font-style:normal}
     .topbar-back{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--tx2);text-decoration:none;font-size:13px;padding:6px 12px;border-radius:6px;border:1px solid var(--b2);transition:all .2s}
     .topbar-back:hover{color:var(--tx1);border-color:var(--b3);background:var(--bg3)}
-    .page-wrap{max-width:1100px;margin:0 auto;padding:32px 20px 60px}
-    .page-header{padding-bottom:24px;border-bottom:1px solid var(--b1);margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
-    .page-header h1{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800}
-    .page-header h1 span{color:var(--or)}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}
-    .card{background:var(--bg2);border:1px solid var(--b1);border-radius:12px;overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column;transition:border-color .2s,transform .2s}
-    .card:hover{border-color:var(--b3);transform:translateY(-2px)}
-    .card-img{height:180px;overflow:hidden;background:var(--bg3)}
-    .card-img img{width:100%;height:100%;object-fit:cover;transition:transform .3s}
-    .card:hover .card-img img{transform:scale(1.04)}
-    .card-body{padding:16px;flex:1;display:flex;flex-direction:column;gap:8px}
-    .card-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-    .card-tag{background:var(--or2);color:var(--or);border:1px solid var(--or);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase}
-    .card-date{color:var(--tx3);font-size:12px}
-    .card-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;line-height:1.3;color:var(--tx1)}
-    .card-ozet{font-size:13px;color:var(--tx2);line-height:1.6;margin-top:auto}
+    .page-wrap{max-width:900px;margin:0 auto;padding:32px 20px 60px}
+    
+    /* Haber Detay Stilleri */
+    .haber-header { margin-bottom: 24px; border-bottom: 1px solid var(--b1); padding-bottom: 24px; }
+    .haber-header h1 { font-family: 'Barlow Condensed', sans-serif; font-size: 36px; font-weight: 800; color: var(--tx1); line-height: 1.2; margin-bottom: 16px; }
+    .haber-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--tx3); flex-wrap: wrap; }
+    .haber-tag { background: var(--or2); color: var(--or); border: 1px solid var(--or); border-radius: 20px; padding: 4px 12px; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: .4px; }
+    .haber-kapak { width: 100%; border-radius: 12px; overflow: hidden; margin-bottom: 32px; background: var(--bg3); }
+    .haber-kapak img { width: 100%; height: auto; display: block; max-height: 500px; object-fit: cover; }
+    .haber-icerik { font-size: 16px; line-height: 1.8; color: var(--tx1); }
+    .haber-icerik p { margin-bottom: 20px; }
+    .haber-icerik img { max-width: 100%; border-radius: 8px; margin: 20px 0; }
+    .haber-icerik a { color: var(--or); text-decoration: none; }
+    .haber-icerik a:hover { text-decoration: underline; }
+
+    /* Yükleniyor / Hata Stilleri */
     .skeleton{background:var(--bg3);border-radius:8px;animation:pulse 1.4s ease-in-out infinite}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-    .sk-card{background:var(--bg2);border:1px solid var(--b1);border-radius:12px;overflow:hidden}
-    .sk-img{height:180px;background:var(--bg3);animation:pulse 1.4s ease-in-out infinite}
-    .sk-body{padding:16px;display:flex;flex-direction:column;gap:10px}
-    .sk-line{height:14px;border-radius:4px;background:var(--bg3);animation:pulse 1.4s ease-in-out infinite}
+    .sk-title { height: 40px; width: 70%; margin-bottom: 16px; }
+    .sk-meta { height: 20px; width: 30%; margin-bottom: 24px; }
+    .sk-img { height: 400px; width: 100%; margin-bottom: 32px; border-radius: 12px; }
+    .sk-text { height: 16px; width: 100%; margin-bottom: 12px; }
+    .sk-text.short { width: 80%; }
+    
     .err{text-align:center;padding:60px 20px;color:var(--tx2)}
     .err-icon{font-size:40px;margin-bottom:12px}
-    .load-more{display:block;margin:32px auto 0;padding:12px 32px;background:var(--bg2);border:1px solid var(--b2);border-radius:8px;color:var(--tx2);font-size:14px;cursor:pointer;transition:all .2s;font-family:'Barlow',sans-serif}
-    .load-more:hover{border-color:var(--or);color:var(--or);background:var(--or2)}
-    .load-more:disabled{opacity:.4;cursor:not-allowed}
+    
     footer{text-align:center;padding:32px 20px;color:var(--tx3);font-size:13px;border-top:1px solid var(--b1)}
     footer a{color:var(--tx2);text-decoration:none}
     footer a:hover{color:var(--or)}
@@ -61,15 +61,18 @@
     <div class="topbar-mark"><img src="https://i.hizliresim.com/gbleupf.png" alt="ScorePop Logo"/></div>
     <div class="topbar-title">SCORE<em>POP</em></div>
   </a>
-  <a class="topbar-back" href="/">← Ana Sayfa</a>
+  <a class="topbar-back" href="/haberler">← Haberlere Dön</a>
 </nav>
 
 <div class="page-wrap">
-  <div class="page-header">
-    <h1>Spor <span>Haberleri</span></h1>
+  <div id="haber-detay">
+    <div class="skeleton sk-title"></div>
+    <div class="skeleton sk-meta"></div>
+    <div class="skeleton sk-img"></div>
+    <div class="skeleton sk-text"></div>
+    <div class="skeleton sk-text"></div>
+    <div class="skeleton sk-text short"></div>
   </div>
-  <div id="grid" class="grid"></div>
-  <button id="load-more" class="load-more" style="display:none">Daha fazla yükle</button>
 </div>
 
 <footer>
@@ -77,84 +80,70 @@
 </footer>
 
 <script>
-const SUPABASE_URL = 'https://qyebmwiuvrmfxlgdaarc.supabase.co';
-const ANON_KEY    = 'sb_publishable_AL5OMxT8SzcNnxslOt9YSg_3j0qYkL5';
-const PAGE_SIZE   = 18;
-let offset = 0, loading = false, total = 0;
+(function() {
+  'use strict';
+  
+  // URL'den slug değerini al (Örn: scorepop.com.tr/haber/fenerbahce-maci-ozeti -> slug = fenerbahce-maci-ozeti)
+  const pathParts = window.location.pathname.split('/').filter(Boolean);
+  const slug = pathParts[pathParts.length - 1];
+  const detayKutusu = document.getElementById('haber-detay');
 
-function fmtDate(str) {
-  try {
-    const d = new Date(str);
-    const months = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-  } catch { return ''; }
-}
-
-function cardHTML(h) {
-  const ozet = h.ozet ? h.ozet.slice(0, 110) + (h.ozet.length > 110 ? '…' : '') : '';
-  return `<a class="card" href="/haber/${h.slug}">
-    <div class="card-img"><img src="${h.kapak_url||''}" alt="${h.baslik||''}" loading="lazy" onerror="this.parentElement.style.background='var(--bg4)'"/></div>
-    <div class="card-body">
-      <div class="card-meta">
-        <span class="card-tag">${h.kategori||'Genel'}</span>
-        <span class="card-date">${fmtDate(h.yayin_tarihi)}</span>
-      </div>
-      <div class="card-title">${h.baslik||''}</div>
-      <p class="card-ozet">${ozet}</p>
-    </div>
-  </a>`;
-}
-
-function skeletons(n) {
-  return Array.from({length:n}, () =>
-    `<div class="sk-card"><div class="sk-img"></div><div class="sk-body">
-      <div class="sk-line" style="width:40%"></div>
-      <div class="sk-line" style="width:90%"></div>
-      <div class="sk-line" style="width:75%"></div>
-      <div class="sk-line" style="width:60%"></div>
-    </div></div>`
-  ).join('');
-}
-
-async function fetchNews() {
-  if (loading) return;
-  loading = true;
-  const grid = document.getElementById('grid');
-  const btn  = document.getElementById('load-more');
-  btn.disabled = true;
-
-  if (offset === 0) grid.innerHTML = skeletons(9);
-
-  try {  // ✅ EKSİK OLAN TRY EKLENDİ
-    const res = await fetch(`/api/haberler?limit=${PAGE_SIZE}&offset=${offset}`);
-    if (!res.ok) throw new Error('API hatası: ' + res.status);
-    const count = res.headers.get('content-range');
-    if (count) total = parseInt(count.split('/')[1]) || 0;
-    const data = await res.json();
-
-    if (offset === 0) grid.innerHTML = '';
-    grid.insertAdjacentHTML('beforeend', data.map(cardHTML).join(''));
-    offset += data.length;
-
-    if (offset < total && data.length === PAGE_SIZE) {
-      btn.style.display = 'block';
-      btn.textContent = 'Daha fazla yükle';
-      btn.disabled = false;
-    } else {
-      btn.style.display = 'none';
-    }
-
-    if (offset === 0 || data.length === 0) {
-      grid.innerHTML = '<div class="err"><div class="err-icon">📰</div><p>Henüz haber bulunmuyor.</p></div>';
-    }
-  } catch(e) {
-    grid.innerHTML = `<div class="err"><div class="err-icon">⚠️</div><p>Haberler yüklenemedi.<br><small>${e.message}</small></p></div>`;
+  function fmtDate(str) {
+    try {
+      const d = new Date(str);
+      const months = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+      return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    } catch { return ''; }
   }
-  loading = false;
-}
 
-document.getElementById('load-more').addEventListener('click', fetchNews);
-fetchNews();
+  async function fetchArticle() {
+    // Eğer slug yoksa veya hala ana dizindeyse hata ver
+    if (!slug || slug === 'haber') {
+      detayKutusu.innerHTML = '<div class="err"><div class="err-icon">⚠️</div><p>Haber bulunamadı. Lütfen geçerli bir haber bağlantısı kullanın.</p></div>';
+      return;
+    }
+
+    try {
+      // Slug parametresine göre API'ye istek atıyoruz
+      const res = await fetch(`/api/haberler?slug=${slug}`);
+      if (!res.ok) throw new Error('API hatası: ' + res.status);
+      
+      const data = await res.json();
+      
+      // API'den dönen veri dizi ise ilk elemanı alıyoruz, obje ise direkt kendisini kullanıyoruz
+      const haber = Array.isArray(data) ? data[0] : data;
+
+      if (!haber) {
+        detayKutusu.innerHTML = '<div class="err"><div class="err-icon">📭</div><p>Aradığınız haber bulunamadı veya yayından kaldırılmış olabilir.</p></div>';
+        return;
+      }
+
+      // Sayfa başlığını güncelliyoruz
+      document.title = (haber.baslik || 'Haber Detayı') + ' — ScorePop';
+
+      // Haberi Ekrana Basıyoruz
+      detayKutusu.innerHTML = `
+        <div class="haber-header">
+          <h1>${haber.baslik || ''}</h1>
+          <div class="haber-meta">
+            <span class="haber-tag">${haber.kategori || 'Genel'}</span>
+            <span>${fmtDate(haber.yayin_tarihi)}</span>
+          </div>
+        </div>
+        ${haber.kapak_url ? `<div class="haber-kapak"><img src="${haber.kapak_url}" alt="${haber.baslik || ''}" /></div>` : ''}
+        <div class="haber-icerik">
+          ${haber.icerik || haber.ozet || ''}
+        </div>
+      `;
+      
+    } catch(e) {
+      detayKutusu.innerHTML = `<div class="err"><div class="err-icon">⚠️</div><p>Haber yüklenirken bir sorun oluştu.<br><small>${e.message}</small></p></div>`;
+    }
+  }
+
+  // Fonksiyonu çalıştır
+  fetchArticle();
+})();
 </script>
 </body>
 </html>
