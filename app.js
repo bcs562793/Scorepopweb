@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v7.3 — Arşiv Desteği)
+   SCOREPOP — app.js  (v7.4 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -2202,7 +2202,7 @@ function renderSignalCard(fixtureId, sofa1x2, mac1x2, curOu25) {
     if (!mac1x2) return ''; /* Mackolik fiyatı da yoksa hiçbir şey gösterme */
     return `
       <div class="sim-wrap" id="sim-wrap-${fixtureId}">
-        <button class="sim-btn" onclick="runSimAnalysisV2(${fixtureId}, ${mac1x2Json}, ${curOu25Json})">
+        <button class="sim-btn" onclick="runSimAnalysisV2(${fixtureId}, ${mac1x2Json}, ${curOu25Json}, ${sofaJson})">
           📊 Benzer Oranlı Geçmiş Maçları Analiz Et
         </button>
         <div class="sim-result" id="sim-result-${fixtureId}"></div>
@@ -2247,7 +2247,7 @@ function renderSignalCard(fixtureId, sofa1x2, mac1x2, curOu25) {
     </div>
 
     <div class="sim-wrap" id="sim-wrap-${fixtureId}" style="padding-top:4px;">
-      <button class="sim-btn" onclick="runSimAnalysisV2(${fixtureId}, ${mac1x2Json}, ${curOu25Json})">
+      <button class="sim-btn" onclick="runSimAnalysisV2(${fixtureId}, ${mac1x2Json}, ${curOu25Json}, ${sofaJson})">
         🔍 Geçmiş Maçları Tara — Detaylı Analiz
       </button>
       <div class="sim-result" id="sim-result-${fixtureId}"></div>
@@ -2267,25 +2267,23 @@ function renderSignalCard(fixtureId, sofa1x2, mac1x2, curOu25) {
      3. KG Var varlık filtresi
      4. Ev1.5 / Dep1.5 (türetilmiş beklenti)
 ───────────────────────────────────────────────────────────────────── */
-async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
+async function runSimAnalysisV2(fixtureId, cur1x2, curOu25, curSofa) {
   const resultEl = document.getElementById(`sim-result-${fixtureId}`);
   if (!resultEl) return;
-
   resultEl.innerHTML = '<div class="sim-loading">⏳ Benzer maçlar aranıyor…</div>';
-
+ 
   let all;
   try { all = await loadAllGzMatches(); }
   catch(e) { resultEl.innerHTML = '<div class="sim-err">⚠️ Veri yüklenemedi</div>'; return; }
   if (!all || !all.length) { resultEl.innerHTML = '<div class="sim-err">⚠️ Arşiv boş</div>'; return; }
-
+ 
   /* ── Yardımcılar ── */
   const getResult = m => {
     const h = m.home_score, a = m.away_score;
     if (h == null || a == null) return null;
     return h > a ? '1' : h < a ? '2' : 'X';
   };
-
-  /* Mackolik market değeri */
+ 
   const getMac = (m, mktName, outName) => {
     for (const mk of (m.mackolik_markets || [])) {
       if (mk.market_name === mktName) {
@@ -2295,48 +2293,84 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
     }
     return null;
   };
-
-  /* Sofascore 1X2 change hareketi */
+ 
+  /* Arşiv maçının Sofascore 1X2 change yönünü oku */
   const getSofaChange = m => {
     for (const sm of (m.sofascore_markets || [])) {
       if (sm.market_group === '1X2' || sm.market_name === 'Full time' || sm.market_name === '1X2') {
         const cm = {};
         for (const c of (sm.choices || [])) cm[c.name] = c;
         if (cm['1'] !== undefined && cm['X'] !== undefined && cm['2'] !== undefined) {
-          return { '1': cm['1'].change ?? 0, 'X': cm['X'].change ?? 0, '2': cm['2'].change ?? 0 };
+          return {
+            '1': cm['1'].change ?? 0,
+            'X': cm['X'].change ?? 0,
+            '2': cm['2'].change ?? 0,
+          };
         }
       }
     }
     return null;
   };
-
+ 
   const ok = (val, ref, tol) => val != null && ref != null && Math.abs(val - ref) <= tol;
-
+ 
   /* ── Mevcut maç parametreleri ── */
-  /* cur1x2: { home, draw, away } — Mackolik kapanış fiyatları */
-  const mac1  = cur1x2?.home ?? null;
-  const macX  = cur1x2?.draw ?? null;
-  const mac2  = cur1x2?.away ?? null;
-  const macU  = curOu25?.under ?? null;
-  const macO  = curOu25?.over  ?? null;
-
-  /* Ev/Dep 1.5 Üst beklentisi — MS oranından tahmin */
+  const mac1 = cur1x2?.home  ?? null;
+  const macX = cur1x2?.draw  ?? null;
+  const mac2 = cur1x2?.away  ?? null;
+  const macU = curOu25?.under ?? null;
+  const macO = curOu25?.over  ?? null;
+ 
+  /* Sofascore change yönleri — tam eşleşme için kullanılacak */
+  const curCh1 = curSofa?.['1']?.change ?? null;
+  const curChX = curSofa?.['x']?.change ?? null;  // sofa1x2'de key küçük 'x'
+  const curCh2 = curSofa?.['2']?.change ?? null;
+  const hasSofaChange = curCh1 !== null && curChX !== null && curCh2 !== null;
+ 
   const expEv15  = mac1 != null ? (mac1 < 1.70 ? 1.35 : mac1 < 2.00 ? 1.50 : mac1 < 2.50 ? 1.70 : 1.90) : null;
   const expDep15 = mac2 != null ? (mac2 < 2.00 ? 1.80 : mac2 < 2.50 ? 1.60 : mac2 < 3.00 ? 1.45 : 1.30) : null;
-
-  /* ── Filtre havuzu ── */
+ 
+  /* ── Başlangıç: sonucu olan maçlar ── */
+  let matches = all.filter(m => getResult(m) !== null);
+ 
+  /* ═══════════════════════════════════════════════════════════════
+     ÖNCELİK 1 — Sofascore 1X2 change TAM EŞLEŞME
+     Eğer curSofa varsa, arşivde aynı yönde hareket eden maçları
+     filtrele. Bu filtre hiç tolerans içermez: +1/-1/0 tam eşleşme.
+  ═══════════════════════════════════════════════════════════════ */
+  let sofaFiltered = matches;
+  let sofaApplied  = false;
+ 
+  if (hasSofaChange) {
+    const withSameSofa = matches.filter(m => {
+      const sc = getSofaChange(m);
+      if (!sc) return false;
+      return sc['1'] === curCh1 &&
+             sc['X'] === curChX &&
+             sc['2'] === curCh2;
+    });
+ 
+    if (withSameSofa.length >= 5) {
+      sofaFiltered = withSameSofa;
+      sofaApplied  = true;
+    }
+    /* 5'ten az çıkarsa sofa filtresini es geçip sadece oran filtresiyle devam et */
+  }
+ 
+  matches = sofaFiltered;
+ 
+  /* ═══════════════════════════════════════════════════════════════
+     ÖNCELİK 2 — Mackolik 1X2 ORAN FİLTRESİ (kademeli sıkılaştırma)
+     Sofa change ile önceden filtrelenmiş havuzda çalışır.
+     Sofa yoksa doğrudan tüm havuzda çalışır.
+  ═══════════════════════════════════════════════════════════════ */
   const TARGET_MIN = 5;
   const TARGET_MAX = 30;
   const MAX_STEPS  = 40;
-
+ 
   const FILTERS = [
-
-    /* 0. Sofascore change combo — arşiv maçının kendi change'ini kontrol et */
-    /* cur1x2'de change alanları yoktur (Mackolik fiyatı), bu filtre arşivde sofascore'dan okur */
-    /* Gelecekte sofa_1x2 geçirilirse burası aktif olur — şimdilik skip */
-    /* { id:'Combo', skip: true, ... } */
-
-    /* 1. MS oranı — 6 kademe */
+ 
+    /* MS oranı — 6 kademe, ±0.20'den ±0.03'e */
     {
       id: 'MS', skip: mac1 == null,
       levels: [
@@ -2353,8 +2387,8 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
         ok(getMac(m,'Maç Sonucu','2'), mac2, tol)
       ),
     },
-
-    /* 2. 2.5 Alt/Üst */
+ 
+    /* 2.5 Alt/Üst */
     {
       id: '2.5AÜ', skip: macO == null,
       levels: [
@@ -2368,15 +2402,15 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
         ok(getMac(m,'2,5 Alt/Üst','Üst'), macO, tol)
       ),
     },
-
-    /* 3. KG Var varlık filtresi */
+ 
+    /* KG varlık */
     {
       id: 'KG', skip: false,
       levels: [{ tol: 999, label: 'KG varlık' }],
       fn: arr => arr.filter(m => getMac(m,'Karşılıklı Gol','Var') != null),
     },
-
-    /* 4. Ev 1.5 Üst */
+ 
+    /* Ev 1.5 */
     {
       id: 'Ev1.5', skip: expEv15 == null,
       levels: [
@@ -2386,8 +2420,8 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
       ],
       fn: (arr, tol) => arr.filter(m => ok(getMac(m,'Evsahibi 1,5 Alt/Üst','Alt'), expEv15, tol)),
     },
-
-    /* 5. Dep 1.5 Üst */
+ 
+    /* Dep 1.5 */
     {
       id: 'Dep1.5', skip: expDep15 == null,
       levels: [
@@ -2397,20 +2431,17 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
       ],
       fn: (arr, tol) => arr.filter(m => ok(getMac(m,'Deplasman 1,5 Alt/Üst','Alt'), expDep15, tol)),
     },
-
+ 
   ].filter(f => !f.skip);
-
-  /* ── Başlangıç: sonucu olan maçlar ── */
-  let matches = all.filter(m => getResult(m) !== null);
-
+ 
   const lvlIdx  = Object.fromEntries(FILTERS.map(f => [f.id, 0]));
   const applied = {};
   let step = 0;
-
+ 
   while (matches.length > TARGET_MAX && step < MAX_STEPS) {
     step++;
     let bestFilter = null, bestResult = null, bestScore = Infinity;
-
+ 
     for (const flt of FILTERS) {
       const idx = lvlIdx[flt.id];
       if (idx >= flt.levels.length) continue;
@@ -2421,7 +2452,7 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
       const better = score < bestScore || (score === bestScore && bestResult && narrowed.length < bestResult.length);
       if (better) { bestScore = score; bestResult = narrowed; bestFilter = flt; }
     }
-
+ 
     if (!bestFilter) break;
     const lvl = bestFilter.levels[lvlIdx[bestFilter.id]];
     applied[bestFilter.id] = lvl.label;
@@ -2429,14 +2460,14 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
     matches = bestResult;
     if (matches.length <= TARGET_MAX) break;
   }
-
+ 
   /* ── İstatistik ── */
   const total = matches.length;
   if (total < 3) {
     resultEl.innerHTML = '<div class="sim-empty">🔍 Yeterli benzer maç bulunamadı (min. 3)</div>';
     return;
   }
-
+ 
   const cnt = { '1':0, 'X':0, '2':0 };
   let o15 = 0, o25 = 0, o35 = 0, kg = 0;
   matches.forEach(m => {
@@ -2448,7 +2479,7 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
     if (tg > 3.5) o35++;
     if (m.home_score > 0 && m.away_score > 0) kg++;
   });
-
+ 
   /* ── Render ── */
   const pct  = (n, t) => t > 0 ? Math.round(n / t * 100) : 0;
   const bar  = (n, t, cls) => {
@@ -2459,9 +2490,10 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
     const d = +(v - base).toFixed(1);
     return d > 0 ? `<span class="delta-pos">+${d}%</span>` : d < 0 ? `<span class="delta-neg">${d}%</span>` : '';
   };
-
-  const filterLabel = Object.values(applied).join(' + ') || 'Genel';
-
+ 
+  const sofaLabel    = sofaApplied ? `🎯 Sofa(${curCh1},${curChX},${curCh2}) + ` : '';
+  const filterLabel  = sofaLabel + (Object.values(applied).join(' + ') || 'Genel');
+ 
   resultEl.innerHTML = `
     <div class="sim-card">
       <div class="sim-header">
