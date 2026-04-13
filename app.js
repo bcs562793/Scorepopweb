@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v6.9 — Arşiv Desteği)
+   SCOREPOP — app.js  (v7.0— Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -375,6 +375,7 @@ async function _boot() {
   try { if (typeof Payment !== 'undefined') Payment.init(S.sb); } catch(e) {}
 
   buildDateStrip();
+  _buildOddsDateStrip();
   bindEvents();
 
   /* 4. Router */
@@ -414,6 +415,17 @@ function navigate(page) {
   document.querySelectorAll('.sb-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.page === page));
 
+  /* Oran Analizi sayfası ayrı view — date-strip gizli */
+  if (page === 'odds') {
+    document.getElementById('date-strip').style.display = 'none';
+    const calBtn2 = document.querySelector('.tb-cal-btn');
+    if (calBtn2) calBtn2.style.display = 'none';
+    stopRealtime();
+    showView('odds');
+    loadOddsPage();
+    return;
+  }
+
   const showDate = page !== 'live';
   document.getElementById('date-strip').style.display = showDate ? 'flex' : 'none';
   const calBtn2 = document.querySelector('.tb-cal-btn');
@@ -447,6 +459,10 @@ function openDetail(id, isLive) {
 function closeDetail(reload = true) {
   try { if (typeof Forum !== 'undefined') Forum.close(); } catch(e) {}
   S.detail = null;
+  if (S.page === 'odds') {
+    showView('odds');
+    return;
+  }
   showView('matches');
   if (reload) loadMatches();
 }
@@ -454,6 +470,8 @@ function closeDetail(reload = true) {
 function showView(v) {
   document.getElementById('view-matches').classList.toggle('hidden', v !== 'matches');
   document.getElementById('view-detail').classList.toggle('hidden', v !== 'detail');
+  const vo = document.getElementById('view-odds');
+  if (vo) vo.classList.toggle('hidden', v !== 'odds');
   document.getElementById('col-hdr').style.display = v === 'matches' ? '' : 'none';
 }
 
@@ -512,6 +530,32 @@ function buildDateStrip() {
 function _activateDateBtn(activeBtn) {
   document.querySelectorAll('#date-strip .dp').forEach(p => p.classList.remove('active'));
   if (activeBtn) activeBtn.classList.add('active');
+}
+
+/* Oran Analizi sayfasına özel tarih strip */
+function _buildOddsDateStrip() {
+  const el = document.getElementById('oa-date-strip');
+  if (!el) return;
+  el.innerHTML = '';
+  const dow = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+
+  for (let i = -1; i <= 5; i++) {
+    const d = new Date(); d.setDate(d.getDate() + i);
+    const s = fmtDate(d);
+    const btn = document.createElement('button');
+    btn.className = 'oa-dp' + (i === 0 ? ' active' : '');
+    btn.dataset.dateVal = s;
+    const dd = pad2(d.getDate()) + '/' + pad2(d.getMonth()+1);
+    const lbl = i === 0 ? 'Bugün' : i === 1 ? 'Yarın' : i === -1 ? 'Dün' : dow[d.getDay()];
+    btn.innerHTML = `<span class="oa-dp-d">${dd}</span><span class="oa-dp-w">${lbl}</span>`;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#oa-date-strip .oa-dp').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      OA.date = s;
+      loadOddsPage();
+    });
+    el.appendChild(btn);
+  }
 }
 
 /* ── LOAD ────────────────────────────────────── */
@@ -789,6 +833,241 @@ async function loadUpcoming() {
   });
 
   render(rows, false);
+}
+
+
+
+/* ══════════════════════════════════════════════════════════════════
+   ORAN ANALİZİ SAYFASI
+   ─────────────────────────────────────────────────────────────────
+   future_matches ve match_odds'tan oranları çeker,
+   her maç için sinyal kartını hesaplayarak listeler.
+   Maça tıklayınca normal loadDetail açılır.
+══════════════════════════════════════════════════════════════════ */
+
+/* Sayfa durumu */
+const OA = {
+  date:      todayStr(),
+  league:    'all',
+  matches:   [],      /* normFix edilmiş maçlar */
+  oddsMap:   {},      /* fixture_id → odds_data */
+  loading:   false,
+};
+
+async function loadOddsPage() {
+  if (OA.loading) return;
+  OA.loading = true;
+
+  const root = document.getElementById('odds-matches-root');
+  if (!root) { OA.loading = false; return; }
+  root.innerHTML = `<div class="empty"><div class="empty-i">⏳</div><div class="empty-t">Maçlar yükleniyor…</div></div>`;
+
+  try {
+    /* ── 1. future_matches + live_matches (bugün veya seçili tarih) ── */
+    const isToday = OA.date === todayStr();
+    const isFuture = OA.date > todayStr();
+
+    let rows = [];
+
+    if (isFuture) {
+      const { data } = await S.sb.from('future_matches').select('*')
+        .eq('date', OA.date).order('fixture_id').limit(300);
+      (data || []).forEach(r => {
+        if (r.raw_data) try { rows.push(normFix({...r,...JSON.parse(r.raw_data)})); return; } catch(e){}
+        if (r.data) { let d=r.data; if(typeof d==='string') try{d=JSON.parse(d)}catch(e){d=null}; if(d){(Array.isArray(d)?d:[d]).forEach(m=>rows.push(normFix({...r,...m}))); return;} }
+        rows.push(normFix(r));
+      });
+    } else if (isToday) {
+      /* bugün: live + future birleşimi */
+      const [liveRes, futRes] = await Promise.all([
+        S.sb.from('live_matches').select('*').limit(200),
+        S.sb.from('future_matches').select('*').eq('date', OA.date).limit(300),
+      ]);
+      const map = new Map();
+      const addRow = (r) => {
+        let n = null;
+        if (r.raw_data) try { n = normFix({...r,...JSON.parse(r.raw_data)}); } catch(e){}
+        if (!n && r.data) { let d=r.data; if(typeof d==='string') try{d=JSON.parse(d)}catch(e){d=null}; if(d){ const list=Array.isArray(d)?d:[d]; n=normFix({...r,...list[0]}); } }
+        if (!n) n = normFix(r);
+        if (!n.fixture_id) return;
+        if (!map.has(n.fixture_id)) map.set(n.fixture_id, n);
+      };
+      (liveRes.data||[]).forEach(addRow);
+      (futRes.data||[]).forEach(addRow);
+      rows = Array.from(map.values());
+    } else {
+      /* geçmiş gün — loadArchive mantığıyla */
+      rows = Object.values(S.archiveCache).map(m => normFix(m));
+      if (!rows.length) {
+        root.innerHTML = `<div class="empty"><div class="empty-i">📂</div><div class="empty-t">Bu tarih için arşiv yüklü değil.<br>Önce maçlar sekmesinden tarihi aç.</div></div>`;
+        OA.loading = false;
+        return;
+      }
+    }
+
+    /* Oranı olmayan maçları at */
+    rows = rows.filter(m => m.fixture_id);
+    OA.matches = rows;
+
+    if (!rows.length) {
+      root.innerHTML = `<div class="empty"><div class="empty-i">📭</div><div class="empty-t">Bu tarihte maç bulunamadı</div></div>`;
+      OA.loading = false;
+      return;
+    }
+
+    /* ── 2. match_odds toplu çek ── */
+    const ids = rows.map(m => m.fixture_id).filter(Boolean);
+    OA.oddsMap = {};
+
+    if (ids.length) {
+      const { data: oddsData } = await S.sb.from('match_odds').select('fixture_id, odds_data, updated_at')
+        .in('fixture_id', ids);
+      (oddsData || []).forEach(o => {
+        OA.oddsMap[String(o.fixture_id)] = o;
+      });
+    }
+
+    /* ── 3. gz oranları (geçmiş tarih / arşiv) ── */
+    /* Arşiv maçlarında match_odds boşsa fetchGzOdds ile doldur */
+    if (!isFuture && !isToday) {
+      const gzPromises = rows
+        .filter(m => !OA.oddsMap[String(m.fixture_id)])
+        .map(async m => {
+          const date = (m.kickoff_time||'').slice(0,10) || OA.date;
+          const gz = await fetchGzOdds(date, m.home_team, m.away_team).catch(()=>null);
+          if (gz) OA.oddsMap[String(m.fixture_id)] = gz;
+        });
+      await Promise.all(gzPromises);
+    }
+
+    /* ── 4. Render ── */
+    _renderOddsPage(root, rows);
+
+  } catch(e) {
+    console.error('[OddsPage]', e);
+    root.innerHTML = `<div class="empty"><div class="empty-i">⚠️</div><div class="empty-t">Yükleme hatası</div></div>`;
+  }
+
+  OA.loading = false;
+}
+
+function _renderOddsPage(root, rows) {
+  /* Lig grupları */
+  const groups = {};
+  rows.forEach(m => {
+    const k = m.league_id ? String(m.league_id) : `${(m.league_country||'').toLowerCase()}__${(m.league_name||'Diğer').toLowerCase()}`;
+    if (!groups[k]) groups[k] = { name: m.league_name||'Diğer', logo: m.league_logo||'', country: m.league_country||'', matches: [] };
+    groups[k].matches.push(m);
+  });
+
+  const sorted = _sortLeagueGroups(Object.values(groups));
+  let html = '';
+
+  const hasOdds = (m) => {
+    const od = OA.oddsMap[String(m.fixture_id)];
+    return od?.odds_data?.markets?.['1x2'] != null;
+  };
+
+  sorted.forEach(g => {
+    /* Oran olan maçları öne al */
+    const withOdds    = g.matches.filter(m =>  hasOdds(m));
+    const withoutOdds = g.matches.filter(m => !hasOdds(m));
+    const orderedMatches = [...withOdds, ...withoutOdds];
+
+    html += `<div class="lg-grp" data-league="${esc(g.name)}">
+      <div class="lg-hdr">
+        ${g.logo ? `<img src="${esc(g.logo)}" width="16" height="16" onerror="this.style.display='none'" alt="">` : ''}
+        <span class="lg-name">${esc(g.name)}</span>
+        <span class="lg-ct">${g.matches.length}</span>
+      </div>`;
+
+    orderedMatches.forEach(m => { html += _buildOddsMatchRow(m); });
+    html += `</div>`;
+  });
+
+  root.innerHTML = html || `<div class="empty"><div class="empty-t">Gösterilecek maç yok</div></div>`;
+}
+
+function _buildOddsMatchRow(m) {
+  const st = statusInfo(m);
+  const hs = m.home_score != null ? m.home_score : '-';
+  const as = m.away_score != null ? m.away_score : '-';
+  const isNS = !['1H','2H','HT','ET','BT','P','LIVE','FT','AET','PEN'].includes(m.status_short);
+
+  /* Oran verisi */
+  const odRow = OA.oddsMap[String(m.fixture_id)];
+  const od    = odRow?.odds_data ?? null;
+  const mk    = od?.markets ?? null;
+  const sofa  = od?.sofa_1x2 ?? null;
+
+  /* 1X2 oranları */
+  const o1x2 = mk?.['1x2'] ?? null;
+  const h1   = o1x2?.home, hX = o1x2?.draw, h2 = o1x2?.away;
+
+  /* Sofascore hareketi */
+  const ch1 = sofa?.['1']?.change ?? null;
+  const chX = sofa?.['x']?.change ?? null;
+  const ch2 = sofa?.['2']?.change ?? null;
+
+  const arrow  = v => v === 1 ? '<span class="oa-up">↑</span>' : v === -1 ? '<span class="oa-dn">↓</span>' : '<span class="oa-eq">→</span>';
+  const hasCh  = ch1 !== null && chX !== null && ch2 !== null;
+
+  /* Sinyal badge */
+  let sigBadge = '';
+  if (hasCh) {
+    const sig = buildSignals(sofa);
+    if (sig && sig.tier !== 'none') {
+      const tierCls = { strong: 'oa-sig-strong', medium: 'oa-sig-medium', weak: 'oa-sig-weak' };
+      const tierLbl = { strong: '⬡ Güçlü', medium: '◈ Orta', weak: '◇ Zayıf' };
+      sigBadge = `<span class="oa-sig-badge ${tierCls[sig.tier]}">${tierLbl[sig.tier]} · %${sig.winnerPct.toFixed(0)} ${sig.winnerLabel}</span>`;
+    }
+  }
+
+  /* Logolar */
+  const hLogo = m.home_logo ? `<img src="${esc(m.home_logo)}" width="20" height="20" onerror="this.style.display='none'" alt="">` : '';
+  const aLogo = m.away_logo ? `<img src="${esc(m.away_logo)}" width="20" height="20" onerror="this.style.display='none'" alt="">` : '';
+
+  return `
+    <div class="oa-row" onclick="openDetail(${m.fixture_id}, ${st.live})">
+      <div class="oa-left">
+        <div class="oa-time">
+          <span class="mr-t1 ${st.cls}">${st.label}</span>
+        </div>
+        <div class="oa-teams">
+          <div class="oa-team">${hLogo}<span>${esc(m.home_team||'')}</span></div>
+          <div class="oa-score">${isNS ? '<span class="oa-vs">vs</span>' : `<span>${hs}</span><span class="oa-sep">:</span><span>${as}</span>`}</div>
+          <div class="oa-team away">${aLogo}<span>${esc(m.away_team||'')}</span></div>
+        </div>
+      </div>
+      <div class="oa-right">
+        ${o1x2 ? `
+          <div class="oa-odds">
+            <div class="oa-odd-cell">
+              <span class="oa-odd-lbl">1</span>
+              <span class="oa-odd-val ${h1 < 1.8 ? 'oa-fav' : ''}">${h1 ? h1.toFixed(2) : '-'}</span>
+              ${hasCh ? arrow(ch1) : ''}
+            </div>
+            <div class="oa-odd-cell">
+              <span class="oa-odd-lbl">X</span>
+              <span class="oa-odd-val">${hX ? hX.toFixed(2) : '-'}</span>
+              ${hasCh ? arrow(chX) : ''}
+            </div>
+            <div class="oa-odd-cell">
+              <span class="oa-odd-lbl">2</span>
+              <span class="oa-odd-val ${h2 < 1.8 ? 'oa-fav' : ''}">${h2 ? h2.toFixed(2) : '-'}</span>
+              ${hasCh ? arrow(ch2) : ''}
+            </div>
+          </div>
+          ${sigBadge}
+        ` : `<div class="oa-no-odds">Oran yok</div>`}
+      </div>
+    </div>`;
+}
+
+/* ─── Oran sayfası date-strip ─────────────────── */
+function oddsSetDate(d) {
+  OA.date = d;
+  loadOddsPage();
 }
 
 
@@ -1871,21 +2150,8 @@ function buildSignalDesc(ch1, chx, ch2, winner, pct, delta, ou25Delta, n) {
    buildDetail içindeki sim-wrap bloğunu şununla değiştir:
      html += renderSignalCard(m.fixture_id, cur1x2, curOu25);
 ───────────────────────────────────────────────────────────────────── */
-/**
- * @param sofa1x2  Sofascore oran hareketi: { '1':{change}, 'x':{change}, '2':{change} }
- *                 buildSignals() bu objeyi kullanır — null ise sinyal kartı gizlenir.
- * @param mac1x2   Mackolik kapanış fiyatları: { home, draw, away }
- *                 runSimAnalysisV2() butona geçirilir — fiyat bazlı filtre için.
- * @param curOu25  Mackolik 2.5 Alt/Üst: { under, over }
- */
-function renderSignalCard(fixtureId, sofa1x2, mac1x2, curOu25) {
-  /* buildSignals sadece oran HAREKETİ (change) bekliyor — Mackolik fiyatı değil */
-  const sig = buildSignals(sofa1x2);
-
-  /* runSimAnalysisV2 butonu için JSON'lar:
-     cur1x2 olarak mac1x2 (fiyat) geçiriyoruz — kademeli fiyat filtresi için */
-  const mac1x2Json  = JSON.stringify(mac1x2  || null).replace(/"/g,'&quot;');
-  const curOu25Json = JSON.stringify(curOu25 || null).replace(/"/g,'&quot;');
+function renderSignalCard(fixtureId, cur1x2, curOu25) {
+  const sig = buildSignals(cur1x2);
 
   const tierLabel = {
     strong: '⬡ GÜÇLÜ SİNYAL',
@@ -1904,8 +2170,6 @@ function renderSignalCard(fixtureId, sofa1x2, mac1x2, curOu25) {
   const dCls  = d => d > 0 ? 'delta-pos' : d < 0 ? 'delta-neg' : '';
   const dSign = d => d > 0 ? `+${d}` : `${d}`;
 
-  const mktValCls = d => Math.abs(d) >= 6 ? 'sp-mkt--high' : Math.abs(d) >= 3 ? 'sp-mkt--mid' : 'sp-mkt--low';
-
   /* Market blokları */
   const mktBlock = (title, items) => `
     <div class="sim-mkt-block">
@@ -1923,12 +2187,13 @@ function renderSignalCard(fixtureId, sofa1x2, mac1x2, curOu25) {
         </div>`).join('')}
     </div>`;
 
+  const mktValCls = d => Math.abs(d) >= 6 ? 'sp-mkt--high' : Math.abs(d) >= 3 ? 'sp-mkt--mid' : 'sp-mkt--low';
+
   if (!sig) {
-    /* Sofascore hareketi yok — sadece "Benzer Maçları Ara" butonu göster */
-    if (!mac1x2) return ''; /* oran verisi hiç yok */
+    /* Oran değişimi verisi yok ama buton yine de çalışsın */
     return `
       <div class="sim-wrap" id="sim-wrap-${fixtureId}">
-        <button class="sim-btn" onclick="runSimAnalysisV2(${fixtureId}, ${mac1x2Json}, ${curOu25Json})">
+        <button class="sim-btn" onclick="runSimAnalysisV2(${fixtureId}, ${JSON.stringify(cur1x2).replace(/"/g,'&quot;')}, ${JSON.stringify(curOu25||null).replace(/"/g,'&quot;')})">
           📊 Benzer Oranlı Geçmiş Maçları Analiz Et
         </button>
         <div class="sim-result" id="sim-result-${fixtureId}"></div>
@@ -1973,7 +2238,7 @@ function renderSignalCard(fixtureId, sofa1x2, mac1x2, curOu25) {
     </div>
 
     <div class="sim-wrap" id="sim-wrap-${fixtureId}" style="padding-top:4px;">
-      <button class="sim-btn" onclick="runSimAnalysisV2(${fixtureId}, ${mac1x2Json}, ${curOu25Json})">
+      <button class="sim-btn" onclick="runSimAnalysisV2(${fixtureId}, ${JSON.stringify(cur1x2).replace(/"/g,'&quot;')}, ${JSON.stringify(curOu25||null).replace(/"/g,'&quot;')})">
         🔍 Geçmiş Maçları Tara — Detaylı Analiz
       </button>
       <div class="sim-result" id="sim-result-${fixtureId}"></div>
@@ -1987,237 +2252,81 @@ function renderSignalCard(fixtureId, sofa1x2, mac1x2, curOu25) {
    gol marketleri (2.5 Alt/Üst, KG) ayrı bloklarda gösterilir.
 ───────────────────────────────────────────────────────────────────── */
 async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
-  /* ═══════════════════════════════════════════════════════════════════
-     AKILLI BENZERLİK ANALİZİ
-     ─────────────────────────────────────────────────────────────────
-     Filtre sırası (kademeli daraltma):
-       1. Sofascore oran hareketi kombinasyonu  (1↑/→/↓ × X × 2)
-       2. MS Mackolik fiyatı (±tolerans, kademeli)
-       3. 2.5 Alt/Üst Mackolik fiyatı (±tolerans)
-       4. KG Var/Yok Mackolik fiyatı (±tolerans)
-       5. İlk Yarı Sonucu Mackolik fiyatı (±tolerans)
-       6. Ev1.5 / Dep1.5 (türetilmiş beklenti)
-
-     Hedef: TARGET_MIN (5) ile TARGET_MAX (30) arası maç.
-     Her adımda en az maç bırakan ama MIN altına düşmeyen filtre seçilir.
-  ═══════════════════════════════════════════════════════════════════ */
+  const wrapEl   = document.getElementById(`sim-wrap-${fixtureId}`);
   const resultEl = document.getElementById(`sim-result-${fixtureId}`);
   if (!resultEl) return;
 
-  resultEl.innerHTML = '<div class="sim-loading">⏳ Benzer maçlar aranıyor…</div>';
+  resultEl.innerHTML = '<div class="sim-loading">⏳ Geçmiş maçlar taranıyor…</div>';
 
-  let all;
-  try { all = await loadAllGzMatches(); }
-  catch(e) { resultEl.innerHTML = '<div class="sim-err">⚠️ Veri yüklenemedi</div>'; return; }
-  if (!all || !all.length) { resultEl.innerHTML = '<div class="sim-err">⚠️ Arşiv boş</div>'; return; }
-
-  /* ── Yardımcılar ─────────────────────────────────────────────── */
-
-  const getResult = m => {
-    const h = m.home_score, a = m.away_score;
-    if (h == null || a == null) return null;
-    return h > a ? '1' : h < a ? '2' : 'X';
-  };
-
-  /* Mackolik market adıyla outcome değerini bul */
-  const getMac = (m, mktName, outName) => {
-    for (const mk of (m.mackolik_markets || [])) {
-      if (mk.market_name === mktName) {
-        const oc = (mk.outcomes || []).find(o => o.name === outName);
-        return oc?.odds ?? null;
-      }
-    }
-    return null;
-  };
-
-  /* Sofascore 1X2 change hareketi: { '1': -1/0/1, 'X': ..., '2': ... } */
-  const getSofaChange = m => {
-    for (const sm of (m.sofascore_markets || [])) {
-      /* market_group veya market_name üzerinden eşleştir — her ikisini de dene */
-      const isFullTime = sm.market_group === '1X2' ||
-                         sm.market_name  === 'Full time' ||
-                         sm.market_name  === '1X2';
-      if (!isFullTime) continue;
-      const cm = {};
-      for (const c of (sm.choices || [])) cm[c.name] = c;
-      if (cm['1'] !== undefined && cm['X'] !== undefined && cm['2'] !== undefined) {
-        return {
-          '1': cm['1'].change ?? 0,
-          'X': cm['X'].change ?? 0,
-          '2': cm['2'].change ?? 0,
-        };
-      }
-    }
-    return null;
-  };
-
-  const ok = (val, ref, tol) =>
-    val != null && ref != null && Math.abs(val - ref) <= tol;
-
-  /* ── Mevcut maç parametreleri ────────────────────────────────── */
-
-  /* cur1x2: { home, draw, away } — Mackolik kapanış fiyatları */
-  const mac1  = cur1x2?.home ?? null;
-  const macX  = cur1x2?.draw ?? null;
-  const mac2  = cur1x2?.away ?? null;
-  const macU  = curOu25?.under ?? null;
-  const macO  = curOu25?.over  ?? null;
-
-  /* Sofascore hareketi — cur1x2'de varsa (sofa_1x2 formatı da olabilir) */
-  const ch1Ref = cur1x2?.['1']?.change ?? null;
-  const chXRef = cur1x2?.['x']?.change ?? cur1x2?.['X']?.change ?? null;
-  const ch2Ref = cur1x2?.['2']?.change ?? null;
-  const hasSofaRef = ch1Ref !== null && chXRef !== null && ch2Ref !== null;
-
-  /* Ev/Dep 1.5 Üst beklentisi — MS oranından tahmin et */
-  const expEv15  = mac1  != null ? (mac1  < 1.70 ? 1.35 : mac1  < 2.00 ? 1.50 : mac1  < 2.50 ? 1.70 : 1.90) : null;
-  const expDep15 = mac2  != null ? (mac2  < 2.00 ? 1.80 : mac2  < 2.50 ? 1.60 : mac2  < 3.00 ? 1.45 : 1.30) : null;
-
-  /* ── Filtre havuzu ───────────────────────────────────────────── */
-
-  const TARGET_MIN = 5;
-  const TARGET_MAX = 30;
-  const MAX_STEPS  = 40;
-
-  /* Tüm filtreler: { id, levels:[{tol,label}], fn, skip } */
-  const FILTERS = [
-
-    /* 0. Sofascore hareket kombinasyonu — var ise ilk ön filtre */
-    {
-      id: 'Combo', skip: !hasSofaRef,
-      levels: [{ tol: 0, label: `1${ch1Ref===1?'↑':ch1Ref===-1?'↓':'→'} X${chXRef===1?'↑':chXRef===-1?'↓':'→'} 2${ch2Ref===1?'↑':ch2Ref===-1?'↓':'→'}` }],
-      fn: (arr) => arr.filter(m => {
-        const ch = getSofaChange(m);
-        if (!ch) return false;
-        return ch['1'] === ch1Ref && ch['X'] === chXRef && ch['2'] === ch2Ref;
-      }),
-    },
-
-    /* 1. MS oranı — 5 kademe */
-    {
-      id: 'MS', skip: mac1 == null,
-      levels: [
-        { tol: 0.20, label: 'MS±0.20' },
-        { tol: 0.15, label: 'MS±0.15' },
-        { tol: 0.10, label: 'MS±0.10' },
-        { tol: 0.07, label: 'MS±0.07' },
-        { tol: 0.05, label: 'MS±0.05' },
-        { tol: 0.03, label: 'MS±0.03' },
-      ],
-      fn: (arr, tol) => arr.filter(m =>
-        ok(getMac(m,'Maç Sonucu','1'), mac1, tol) &&
-        ok(getMac(m,'Maç Sonucu','X'), macX, tol) &&
-        ok(getMac(m,'Maç Sonucu','2'), mac2, tol)
-      ),
-    },
-
-    /* 2. 2.5 Alt/Üst */
-    {
-      id: '2.5AÜ', skip: macO == null,
-      levels: [
-        { tol: 0.15, label: '2.5AÜ±0.15' },
-        { tol: 0.10, label: '2.5AÜ±0.10' },
-        { tol: 0.07, label: '2.5AÜ±0.07' },
-        { tol: 0.05, label: '2.5AÜ±0.05' },
-      ],
-      fn: (arr, tol) => arr.filter(m =>
-        ok(getMac(m,'2,5 Alt/Üst','Alt'), macU, tol) &&
-        ok(getMac(m,'2,5 Alt/Üst','Üst'), macO, tol)
-      ),
-    },
-
-    /* 3. KG Var oranı */
-    {
-      id: 'KG', skip: false,
-      levels: [
-        { tol: 0.20, label: 'KG±0.20' },
-        { tol: 0.12, label: 'KG±0.12' },
-        { tol: 0.08, label: 'KG±0.08' },
-      ],
-      fn: (arr, tol) => {
-        const ref = getMac({ mackolik_markets: [] /* dummy */ },'Karşılıklı Gol','Var');
-        /* KG referans değeri: mevcut maçtaki KG Var oranını al */
-        /* cur1x2 objesinde btts yoksa varlık filtresi uygula */
-        return arr.filter(m => getMac(m,'Karşılıklı Gol','Var') != null);
-      },
-    },
-
-    /* 4. Ev 1.5 Üst */
-    {
-      id: 'Ev1.5', skip: expEv15 == null,
-      levels: [
-        { tol: 0.25, label: 'Ev1.5±0.25' },
-        { tol: 0.18, label: 'Ev1.5±0.18' },
-        { tol: 0.12, label: 'Ev1.5±0.12' },
-      ],
-      fn: (arr, tol) => arr.filter(m =>
-        ok(getMac(m,'Evsahibi 1,5 Alt/Üst','Alt'), expEv15, tol)
-      ),
-    },
-
-    /* 5. Dep 1.5 Üst */
-    {
-      id: 'Dep1.5', skip: expDep15 == null,
-      levels: [
-        { tol: 0.30, label: 'Dep1.5±0.30' },
-        { tol: 0.20, label: 'Dep1.5±0.20' },
-        { tol: 0.12, label: 'Dep1.5±0.12' },
-      ],
-      fn: (arr, tol) => arr.filter(m =>
-        ok(getMac(m,'Deplasman 1,5 Alt/Üst','Alt'), expDep15, tol)
-      ),
-    },
-
-  ].filter(f => !f.skip);
-
-  /* ── Başlangıç: sonucu olan tüm maçlar ─────────────────────── */
-  let matches = all.filter(m => getResult(m) !== null);
-
-  /* Her filtre için seviye sayacı */
-  const lvlIdx  = Object.fromEntries(FILTERS.map(f => [f.id, 0]));
-  const applied = {};   /* id → label */
-
-  let step = 0;
-
-  while (matches.length > TARGET_MAX && step < MAX_STEPS) {
-    step++;
-
-    let bestFilter = null, bestResult = null, bestScore = Infinity;
-
-    for (const flt of FILTERS) {
-      const idx = lvlIdx[flt.id];
-      if (idx >= flt.levels.length) continue;      /* seviyeleri bitti */
-
-      let narrowed;
-      try { narrowed = flt.fn(matches, flt.levels[idx].tol); }
-      catch(e) { continue; }
-
-      if (narrowed.length < TARGET_MIN) continue;  /* çok daralıyor */
-
-      const score = narrowed.length <= TARGET_MAX ? 0 : narrowed.length - TARGET_MAX;
-      const better = score < bestScore ||
-        (score === bestScore && bestResult && narrowed.length < bestResult.length);
-
-      if (better) { bestScore = score; bestResult = narrowed; bestFilter = flt; }
-    }
-
-    if (!bestFilter) break;   /* daha fazla daralamıyor */
-
-    const lvl = bestFilter.levels[lvlIdx[bestFilter.id]];
-    applied[bestFilter.id] = lvl.label;
-    lvlIdx[bestFilter.id]++;
-    matches = bestResult;
-
-    if (matches.length <= TARGET_MAX) break;
-  }
-
-  /* ── İstatistik ──────────────────────────────────────────────── */
-  const total = matches.length;
-  if (total < 3) {
-    resultEl.innerHTML = '<div class="sim-empty">🔍 Yeterli benzer maç bulunamadı (min. 3)</div>';
+  /* Tüm gz dosyalarını çek */
+  const all = await loadAllGzMatches();
+  if (!all.length) {
+    resultEl.innerHTML = '<div class="sim-err">⚠️ Veri yüklenemedi</div>';
     return;
   }
 
+  /* Yardımcılar */
+  const getResult = m => {
+    const hs = m.home_score ?? m.home_score_ft;
+    const as = m.away_score ?? m.away_score_ft;
+    if (hs == null || as == null) return null;
+    return hs > as ? '1' : hs < as ? '2' : 'X';
+  };
+
+  const getTotalGoals = m => {
+    const hs = m.home_score ?? 0;
+    const as = m.away_score ?? 0;
+    return hs + as;
+  };
+
+  const getKg = m => (m.home_score > 0 && m.away_score > 0);
+
+  const getSofaChange = m => {
+    const sm = m.sofascore_markets || [];
+    for (const mkt of sm) {
+      if (mkt.market_group === '1X2' && mkt.market_period === 'Full-time') {
+        const cm = {};
+        for (const c of (mkt.choices || [])) cm[c.name] = c;
+        if (cm['1'] && cm['X'] && cm['2']) {
+          return { '1': cm['1'].change, 'X': cm['X'].change, '2': cm['2'].change };
+        }
+      }
+    }
+    return null;
+  };
+
+  const getOddsVal = (m, mktName, outcomeName) => {
+    const mm = m.mackolik_markets || [];
+    const mkt = mm.find(x => x.market_name === mktName);
+    if (!mkt) return null;
+    const out = (mkt.outcomes || []).find(x => x.name === outcomeName);
+    return out?.odds ?? null;
+  };
+
+  /* Mevcut maç 1x2 kombinasyonu */
+  const myChange = {
+    '1': cur1x2?.['1']?.change ?? cur1x2?.home?.change ?? 0,
+    'X': cur1x2?.['x']?.change ?? cur1x2?.draw?.change ?? 0,
+    '2': cur1x2?.['2']?.change ?? cur1x2?.away?.change ?? 0,
+  };
+  const myOu25 = curOu25 ? (curOu25.over ?? curOu25.over25 ?? null) : null;
+
+  /* Filtre: sonucu olan maçlar */
+  let matches = all.filter(m => getResult(m) !== null);
+
+  /* Akıllı daraltma (mevcut kodla uyumlu) */
+  const TARGET_MIN = 30, TARGET_MAX = 300;
+
+  /* Önce kombinasyon eşleştir */
+  const comboFiltered = matches.filter(m => {
+    const ch = getSofaChange(m);
+    if (!ch) return false;
+    return ch['1'] === myChange['1'] && ch['X'] === myChange['X'] && ch['2'] === myChange['2'];
+  });
+  if (comboFiltered.length >= TARGET_MIN) matches = comboFiltered;
+
+  /* İstatistik hesapla */
+  const total = matches.length;
   const cnt = { '1':0, 'X':0, '2':0 };
   let over25 = 0, over35 = 0, over15 = 0, kgVar = 0;
 
@@ -2225,34 +2334,39 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
     const res = getResult(m);
     if (!res) return;
     cnt[res]++;
-    const tg = (m.home_score ?? 0) + (m.away_score ?? 0);
-    if (tg > 1.5) over15++;
+    const tg = getTotalGoals(m);
     if (tg > 2.5) over25++;
     if (tg > 3.5) over35++;
-    if (m.home_score > 0 && m.away_score > 0) kgVar++;
+    if (tg > 1.5) over15++;
+    if (getKg(m)) kgVar++;
   });
 
-  /* ── Render ──────────────────────────────────────────────────── */
-  const pct  = (n, t) => t > 0 ? Math.round(n / t * 100) : 0;
-  const bar  = (n, t, cls) => {
+  const pct = (n, t) => t > 0 ? Math.round(n / t * 100) : 0;
+  const bar = (n, t, cls) => {
     const w = pct(n, t);
-    return `<div class="sim-bar-wrap"><div class="sim-bar ${cls}" style="width:${w}%"></div><span>${n} (%${w})</span></div>`;
+    return `<div class="sim-bar-wrap">
+      <div class="sim-bar ${cls}" style="width:${w}%"></div>
+      <span>${n} (%${w})</span>
+    </div>`;
   };
+
   const dSign = (v, base) => {
-    const d = +(v - base).toFixed(1);
+    const d = (v - base).toFixed(1);
     if (d > 0) return `<span class="delta-pos">+${d}%</span>`;
     if (d < 0) return `<span class="delta-neg">${d}%</span>`;
     return '';
   };
 
-  /* Uygulanan filtre etiketi */
-  const filterLabel = Object.values(applied).join(' + ') || 'Tüm Arşiv';
+  /* Combo etiket */
+  const comboLabel = comboFiltered.length >= TARGET_MIN
+    ? `1${myChange['1']===1?'↑':myChange['1']===-1?'↓':'→'} X${myChange['X']===1?'↑':myChange['X']===-1?'↓':'→'} 2${myChange['2']===1?'↑':myChange['2']===-1?'↓':'→'}`
+    : 'Genel (oran verisi yok)';
 
   resultEl.innerHTML = `
     <div class="sim-card">
       <div class="sim-header">
         <span class="sim-count">${total} Benzer Maç</span>
-        <span class="sim-filter" title="Uygulanan filtreler">✅ ${filterLabel}</span>
+        <span class="sim-filter">✅ Combo: ${comboLabel}</span>
       </div>
 
       <div class="sim-results">
@@ -2281,12 +2395,12 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
             <span class="sim-mkt-val">%${pct(over15,total)} ${dSign(pct(over15,total),74.3)}</span>
           </div>
           <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-blue" style="width:${pct(over15,total)}%"></div></div>
-          <div class="sim-mkt-row" style="margin-top:6px">
+          <div class="sim-mkt-row" style="margin-top:6px;">
             <span class="sim-mkt-label">2.5 Üst</span>
             <span class="sim-mkt-val">%${pct(over25,total)} ${dSign(pct(over25,total),SP_BASE.ou25)}</span>
           </div>
           <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-blue" style="width:${pct(over25,total)}%"></div></div>
-          <div class="sim-mkt-row" style="margin-top:6px">
+          <div class="sim-mkt-row" style="margin-top:6px;">
             <span class="sim-mkt-label">3.5 Üst</span>
             <span class="sim-mkt-val">%${pct(over35,total)} ${dSign(pct(over35,total),SP_BASE.ou35)}</span>
           </div>
@@ -2299,12 +2413,12 @@ async function runSimAnalysisV2(fixtureId, cur1x2, curOu25) {
             <span class="sim-mkt-val">%${pct(kgVar,total)} ${dSign(pct(kgVar,total),SP_BASE.kg)}</span>
           </div>
           <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-green" style="width:${pct(kgVar,total)}%"></div></div>
-          <div class="sim-mkt-row" style="margin-top:6px">
+          <div class="sim-mkt-row" style="margin-top:6px;">
             <span class="sim-mkt-label">KG Yok</span>
             <span class="sim-mkt-val">%${pct(total-kgVar,total)}</span>
           </div>
           <div class="sim-mkt-bar-wrap"><div class="sim-mkt-bar bar-amber" style="width:${pct(total-kgVar,total)}%"></div></div>
-          <div style="font-size:10px;color:var(--tx2);margin-top:8px">
+          <div style="font-size:10px;color:var(--tx2);margin-top:8px;">
             baza KG Var: %${SP_BASE.kg.toFixed(0)}
           </div>
         </div>
@@ -2696,12 +2810,9 @@ if (od && od.markets) {
 
      /* ── BENZERİ ORANLARIN ANALİZİ ── */
   {
-  /* sofa1x2 → oran hareketi (-1/0/1) — sinyal kartı (renderSignalCard/buildSignals) için
-     mac1x2  → Mackolik kapanış fiyatları { home, draw, away } — benzer maç araması için */
-  const sofa1x2 = od?.sofa_1x2 ?? null;
-  const mac1x2  = od?.markets?.['1x2']  ?? null;
-  const curOu25 = od?.markets?.['ou25'] ?? null;
-  html += renderSignalCard(m.fixture_id, sofa1x2, mac1x2, curOu25);
+  const cur1x2 = od?.markets?.['1x2'];
+  const curOu25 = od?.markets?.['ou25'];
+  html += renderSignalCard(m.fixture_id, cur1x2, curOu25);
 }
 
   /* ══════════════════════════════════════
