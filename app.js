@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v7.0— Arşiv Desteği)
+   SCOREPOP — app.js  (v7.1— Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -375,7 +375,6 @@ async function _boot() {
   try { if (typeof Payment !== 'undefined') Payment.init(S.sb); } catch(e) {}
 
   buildDateStrip();
-  _buildOddsDateStrip();
   bindEvents();
 
   /* 4. Router */
@@ -415,17 +414,6 @@ function navigate(page) {
   document.querySelectorAll('.sb-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.page === page));
 
-  /* Oran Analizi sayfası ayrı view — date-strip gizli */
-  if (page === 'odds') {
-    document.getElementById('date-strip').style.display = 'none';
-    const calBtn2 = document.querySelector('.tb-cal-btn');
-    if (calBtn2) calBtn2.style.display = 'none';
-    stopRealtime();
-    showView('odds');
-    loadOddsPage();
-    return;
-  }
-
   const showDate = page !== 'live';
   document.getElementById('date-strip').style.display = showDate ? 'flex' : 'none';
   const calBtn2 = document.querySelector('.tb-cal-btn');
@@ -459,10 +447,6 @@ function openDetail(id, isLive) {
 function closeDetail(reload = true) {
   try { if (typeof Forum !== 'undefined') Forum.close(); } catch(e) {}
   S.detail = null;
-  if (S.page === 'odds') {
-    showView('odds');
-    return;
-  }
   showView('matches');
   if (reload) loadMatches();
 }
@@ -470,8 +454,6 @@ function closeDetail(reload = true) {
 function showView(v) {
   document.getElementById('view-matches').classList.toggle('hidden', v !== 'matches');
   document.getElementById('view-detail').classList.toggle('hidden', v !== 'detail');
-  const vo = document.getElementById('view-odds');
-  if (vo) vo.classList.toggle('hidden', v !== 'odds');
   document.getElementById('col-hdr').style.display = v === 'matches' ? '' : 'none';
 }
 
@@ -530,32 +512,6 @@ function buildDateStrip() {
 function _activateDateBtn(activeBtn) {
   document.querySelectorAll('#date-strip .dp').forEach(p => p.classList.remove('active'));
   if (activeBtn) activeBtn.classList.add('active');
-}
-
-/* Oran Analizi sayfasına özel tarih strip */
-function _buildOddsDateStrip() {
-  const el = document.getElementById('oa-date-strip');
-  if (!el) return;
-  el.innerHTML = '';
-  const dow = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
-
-  for (let i = -1; i <= 5; i++) {
-    const d = new Date(); d.setDate(d.getDate() + i);
-    const s = fmtDate(d);
-    const btn = document.createElement('button');
-    btn.className = 'oa-dp' + (i === 0 ? ' active' : '');
-    btn.dataset.dateVal = s;
-    const dd = pad2(d.getDate()) + '/' + pad2(d.getMonth()+1);
-    const lbl = i === 0 ? 'Bugün' : i === 1 ? 'Yarın' : i === -1 ? 'Dün' : dow[d.getDay()];
-    btn.innerHTML = `<span class="oa-dp-d">${dd}</span><span class="oa-dp-w">${lbl}</span>`;
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#oa-date-strip .oa-dp').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      OA.date = s;
-      loadOddsPage();
-    });
-    el.appendChild(btn);
-  }
 }
 
 /* ── LOAD ────────────────────────────────────── */
@@ -833,241 +789,6 @@ async function loadUpcoming() {
   });
 
   render(rows, false);
-}
-
-
-
-/* ══════════════════════════════════════════════════════════════════
-   ORAN ANALİZİ SAYFASI
-   ─────────────────────────────────────────────────────────────────
-   future_matches ve match_odds'tan oranları çeker,
-   her maç için sinyal kartını hesaplayarak listeler.
-   Maça tıklayınca normal loadDetail açılır.
-══════════════════════════════════════════════════════════════════ */
-
-/* Sayfa durumu */
-const OA = {
-  date:      todayStr(),
-  league:    'all',
-  matches:   [],      /* normFix edilmiş maçlar */
-  oddsMap:   {},      /* fixture_id → odds_data */
-  loading:   false,
-};
-
-async function loadOddsPage() {
-  if (OA.loading) return;
-  OA.loading = true;
-
-  const root = document.getElementById('odds-matches-root');
-  if (!root) { OA.loading = false; return; }
-  root.innerHTML = `<div class="empty"><div class="empty-i">⏳</div><div class="empty-t">Maçlar yükleniyor…</div></div>`;
-
-  try {
-    /* ── 1. future_matches + live_matches (bugün veya seçili tarih) ── */
-    const isToday = OA.date === todayStr();
-    const isFuture = OA.date > todayStr();
-
-    let rows = [];
-
-    if (isFuture) {
-      const { data } = await S.sb.from('future_matches').select('*')
-        .eq('date', OA.date).order('fixture_id').limit(300);
-      (data || []).forEach(r => {
-        if (r.raw_data) try { rows.push(normFix({...r,...JSON.parse(r.raw_data)})); return; } catch(e){}
-        if (r.data) { let d=r.data; if(typeof d==='string') try{d=JSON.parse(d)}catch(e){d=null}; if(d){(Array.isArray(d)?d:[d]).forEach(m=>rows.push(normFix({...r,...m}))); return;} }
-        rows.push(normFix(r));
-      });
-    } else if (isToday) {
-      /* bugün: live + future birleşimi */
-      const [liveRes, futRes] = await Promise.all([
-        S.sb.from('live_matches').select('*').limit(200),
-        S.sb.from('future_matches').select('*').eq('date', OA.date).limit(300),
-      ]);
-      const map = new Map();
-      const addRow = (r) => {
-        let n = null;
-        if (r.raw_data) try { n = normFix({...r,...JSON.parse(r.raw_data)}); } catch(e){}
-        if (!n && r.data) { let d=r.data; if(typeof d==='string') try{d=JSON.parse(d)}catch(e){d=null}; if(d){ const list=Array.isArray(d)?d:[d]; n=normFix({...r,...list[0]}); } }
-        if (!n) n = normFix(r);
-        if (!n.fixture_id) return;
-        if (!map.has(n.fixture_id)) map.set(n.fixture_id, n);
-      };
-      (liveRes.data||[]).forEach(addRow);
-      (futRes.data||[]).forEach(addRow);
-      rows = Array.from(map.values());
-    } else {
-      /* geçmiş gün — loadArchive mantığıyla */
-      rows = Object.values(S.archiveCache).map(m => normFix(m));
-      if (!rows.length) {
-        root.innerHTML = `<div class="empty"><div class="empty-i">📂</div><div class="empty-t">Bu tarih için arşiv yüklü değil.<br>Önce maçlar sekmesinden tarihi aç.</div></div>`;
-        OA.loading = false;
-        return;
-      }
-    }
-
-    /* Oranı olmayan maçları at */
-    rows = rows.filter(m => m.fixture_id);
-    OA.matches = rows;
-
-    if (!rows.length) {
-      root.innerHTML = `<div class="empty"><div class="empty-i">📭</div><div class="empty-t">Bu tarihte maç bulunamadı</div></div>`;
-      OA.loading = false;
-      return;
-    }
-
-    /* ── 2. match_odds toplu çek ── */
-    const ids = rows.map(m => m.fixture_id).filter(Boolean);
-    OA.oddsMap = {};
-
-    if (ids.length) {
-      const { data: oddsData } = await S.sb.from('match_odds').select('fixture_id, odds_data, updated_at')
-        .in('fixture_id', ids);
-      (oddsData || []).forEach(o => {
-        OA.oddsMap[String(o.fixture_id)] = o;
-      });
-    }
-
-    /* ── 3. gz oranları (geçmiş tarih / arşiv) ── */
-    /* Arşiv maçlarında match_odds boşsa fetchGzOdds ile doldur */
-    if (!isFuture && !isToday) {
-      const gzPromises = rows
-        .filter(m => !OA.oddsMap[String(m.fixture_id)])
-        .map(async m => {
-          const date = (m.kickoff_time||'').slice(0,10) || OA.date;
-          const gz = await fetchGzOdds(date, m.home_team, m.away_team).catch(()=>null);
-          if (gz) OA.oddsMap[String(m.fixture_id)] = gz;
-        });
-      await Promise.all(gzPromises);
-    }
-
-    /* ── 4. Render ── */
-    _renderOddsPage(root, rows);
-
-  } catch(e) {
-    console.error('[OddsPage]', e);
-    root.innerHTML = `<div class="empty"><div class="empty-i">⚠️</div><div class="empty-t">Yükleme hatası</div></div>`;
-  }
-
-  OA.loading = false;
-}
-
-function _renderOddsPage(root, rows) {
-  /* Lig grupları */
-  const groups = {};
-  rows.forEach(m => {
-    const k = m.league_id ? String(m.league_id) : `${(m.league_country||'').toLowerCase()}__${(m.league_name||'Diğer').toLowerCase()}`;
-    if (!groups[k]) groups[k] = { name: m.league_name||'Diğer', logo: m.league_logo||'', country: m.league_country||'', matches: [] };
-    groups[k].matches.push(m);
-  });
-
-  const sorted = _sortLeagueGroups(Object.values(groups));
-  let html = '';
-
-  const hasOdds = (m) => {
-    const od = OA.oddsMap[String(m.fixture_id)];
-    return od?.odds_data?.markets?.['1x2'] != null;
-  };
-
-  sorted.forEach(g => {
-    /* Oran olan maçları öne al */
-    const withOdds    = g.matches.filter(m =>  hasOdds(m));
-    const withoutOdds = g.matches.filter(m => !hasOdds(m));
-    const orderedMatches = [...withOdds, ...withoutOdds];
-
-    html += `<div class="lg-grp" data-league="${esc(g.name)}">
-      <div class="lg-hdr">
-        ${g.logo ? `<img src="${esc(g.logo)}" width="16" height="16" onerror="this.style.display='none'" alt="">` : ''}
-        <span class="lg-name">${esc(g.name)}</span>
-        <span class="lg-ct">${g.matches.length}</span>
-      </div>`;
-
-    orderedMatches.forEach(m => { html += _buildOddsMatchRow(m); });
-    html += `</div>`;
-  });
-
-  root.innerHTML = html || `<div class="empty"><div class="empty-t">Gösterilecek maç yok</div></div>`;
-}
-
-function _buildOddsMatchRow(m) {
-  const st = statusInfo(m);
-  const hs = m.home_score != null ? m.home_score : '-';
-  const as = m.away_score != null ? m.away_score : '-';
-  const isNS = !['1H','2H','HT','ET','BT','P','LIVE','FT','AET','PEN'].includes(m.status_short);
-
-  /* Oran verisi */
-  const odRow = OA.oddsMap[String(m.fixture_id)];
-  const od    = odRow?.odds_data ?? null;
-  const mk    = od?.markets ?? null;
-  const sofa  = od?.sofa_1x2 ?? null;
-
-  /* 1X2 oranları */
-  const o1x2 = mk?.['1x2'] ?? null;
-  const h1   = o1x2?.home, hX = o1x2?.draw, h2 = o1x2?.away;
-
-  /* Sofascore hareketi */
-  const ch1 = sofa?.['1']?.change ?? null;
-  const chX = sofa?.['x']?.change ?? null;
-  const ch2 = sofa?.['2']?.change ?? null;
-
-  const arrow  = v => v === 1 ? '<span class="oa-up">↑</span>' : v === -1 ? '<span class="oa-dn">↓</span>' : '<span class="oa-eq">→</span>';
-  const hasCh  = ch1 !== null && chX !== null && ch2 !== null;
-
-  /* Sinyal badge */
-  let sigBadge = '';
-  if (hasCh) {
-    const sig = buildSignals(sofa);
-    if (sig && sig.tier !== 'none') {
-      const tierCls = { strong: 'oa-sig-strong', medium: 'oa-sig-medium', weak: 'oa-sig-weak' };
-      const tierLbl = { strong: '⬡ Güçlü', medium: '◈ Orta', weak: '◇ Zayıf' };
-      sigBadge = `<span class="oa-sig-badge ${tierCls[sig.tier]}">${tierLbl[sig.tier]} · %${sig.winnerPct.toFixed(0)} ${sig.winnerLabel}</span>`;
-    }
-  }
-
-  /* Logolar */
-  const hLogo = m.home_logo ? `<img src="${esc(m.home_logo)}" width="20" height="20" onerror="this.style.display='none'" alt="">` : '';
-  const aLogo = m.away_logo ? `<img src="${esc(m.away_logo)}" width="20" height="20" onerror="this.style.display='none'" alt="">` : '';
-
-  return `
-    <div class="oa-row" onclick="openDetail(${m.fixture_id}, ${st.live})">
-      <div class="oa-left">
-        <div class="oa-time">
-          <span class="mr-t1 ${st.cls}">${st.label}</span>
-        </div>
-        <div class="oa-teams">
-          <div class="oa-team">${hLogo}<span>${esc(m.home_team||'')}</span></div>
-          <div class="oa-score">${isNS ? '<span class="oa-vs">vs</span>' : `<span>${hs}</span><span class="oa-sep">:</span><span>${as}</span>`}</div>
-          <div class="oa-team away">${aLogo}<span>${esc(m.away_team||'')}</span></div>
-        </div>
-      </div>
-      <div class="oa-right">
-        ${o1x2 ? `
-          <div class="oa-odds">
-            <div class="oa-odd-cell">
-              <span class="oa-odd-lbl">1</span>
-              <span class="oa-odd-val ${h1 < 1.8 ? 'oa-fav' : ''}">${h1 ? h1.toFixed(2) : '-'}</span>
-              ${hasCh ? arrow(ch1) : ''}
-            </div>
-            <div class="oa-odd-cell">
-              <span class="oa-odd-lbl">X</span>
-              <span class="oa-odd-val">${hX ? hX.toFixed(2) : '-'}</span>
-              ${hasCh ? arrow(chX) : ''}
-            </div>
-            <div class="oa-odd-cell">
-              <span class="oa-odd-lbl">2</span>
-              <span class="oa-odd-val ${h2 < 1.8 ? 'oa-fav' : ''}">${h2 ? h2.toFixed(2) : '-'}</span>
-              ${hasCh ? arrow(ch2) : ''}
-            </div>
-          </div>
-          ${sigBadge}
-        ` : `<div class="oa-no-odds">Oran yok</div>`}
-      </div>
-    </div>`;
-}
-
-/* ─── Oran sayfası date-strip ─────────────────── */
-function oddsSetDate(d) {
-  OA.date = d;
-  loadOddsPage();
 }
 
 
@@ -2439,32 +2160,33 @@ async function loadAllGzMatches() {
   const cached = Object.values(S.gzOddsCache).flat();
   if (cached.length >= 5000) return cached; /* yeterli veri */
 
-  /* Liste dosyasından tüm gz tarihlerini çek */
+  /* Liste dosyasından GERÇEK dosya adlarını çek
+     Dosya adları: odds_2025-05-01_2025-05-31.json.gz (aylık paket)
+     HATA: eski kod d='2025-05-01' → 'odds_2025-05-01.json.gz' (404!)
+     DOĞRU: oranveri.txt'deki fname'i olduğu gibi kullan */
   try {
     const listResp = await fetch('https://www.onlinescoreboard.store/oranveri.txt');
     if (!listResp.ok) throw new Error('liste yok');
-    const lines = (await listResp.text()).split('\n').map(l => l.trim())
+    const fnames = (await listResp.text()).split('\n')
+      .map(l => l.trim())
       .filter(l => l.startsWith('odds_') && l.endsWith('.json.gz'));
 
-    /* Son 180 gün — en fazla 180 dosya */
-    const toLoad = lines.slice(-180).reverse();
-
-    for (const fname of toLoad) {
-      const d = fname.replace('odds_','').replace('.json.gz','').slice(0,10);
-      if (S.gzOddsCache[d] !== undefined) continue;
+    /* Tüm dosyaları yükle — cache key olarak fname kullan */
+    for (const fname of fnames) {
+      if (S.gzOddsCache[fname] !== undefined) continue; /* zaten var */
       try {
-        const url = `${ORANCEK_BASE}/odds_${d}.json.gz`;
+        const url  = `${ORANCEK_BASE}/${fname}`;
         const resp = await fetch(url);
-        if (!resp.ok) { S.gzOddsCache[d] = []; continue; }
+        if (!resp.ok) { S.gzOddsCache[fname] = []; continue; }
         const buf  = await resp.arrayBuffer();
         const ds   = new DecompressionStream('gzip');
         const wr   = ds.writable.getWriter();
         wr.write(new Uint8Array(buf)); wr.close();
         const out  = await new Response(ds.readable).arrayBuffer();
-        S.gzOddsCache[d] = JSON.parse(new TextDecoder().decode(out));
-      } catch { S.gzOddsCache[d] = []; }
+        S.gzOddsCache[fname] = JSON.parse(new TextDecoder().decode(out));
+      } catch { S.gzOddsCache[fname] = []; }
     }
-  } catch(e) { console.warn('loadAllGzMatches hata:', e); }
+  } catch(e) { console.warn('[loadAllGzMatches] hata:', e); }
 
   return Object.values(S.gzOddsCache).flat();
 }
@@ -2496,34 +2218,46 @@ function buildMatchBadges(sofaMarkets) {
 
 async function fetchGzOdds(date, homeTeam, awayTeam) {
   if (!date || date.length < 10) return null;
-  const d = date.slice(0,10);
 
-  /* Cache'te yoksa GitHub'dan çek */
-  if (!S.gzOddsCache[d]) {
-    const url = `${ORANCEK_BASE}/odds_${d}.json.gz`;
+  /* Önce zaten yüklenmiş tüm veriyi kullan (loadAllGzMatches'in cache'i) */
+  let pool = Object.values(S.gzOddsCache).flat();
+
+  /* Veri yoksa oranveri.txt'den GERÇEK dosya adlarıyla yükle
+     HATA: eski kod `odds_${d}.json.gz` → 404 (dosyalar aylık: odds_2025-05-01_2025-05-31.json.gz)
+     DOĞRU: oranveri.txt'deki fname'leri doğrudan kullan */
+  if (!pool.length) {
     try {
-      const resp = await fetch(url);
-      if (!resp.ok) { S.gzOddsCache[d] = []; return null; }
-      const buf  = await resp.arrayBuffer();
-      const ds   = new DecompressionStream('gzip');
-      const writer = ds.writable.getWriter();
-      writer.write(new Uint8Array(buf));
-      writer.close();
-      const out  = await new Response(ds.readable).arrayBuffer();
-      S.gzOddsCache[d] = JSON.parse(new TextDecoder().decode(out));
+      const listResp = await fetch('https://www.onlinescoreboard.store/oranveri.txt');
+      if (listResp.ok) {
+        const fnames = (await listResp.text()).split('\n')
+          .map(l => l.trim())
+          .filter(l => l.startsWith('odds_') && l.endsWith('.json.gz'));
+
+        for (const fname of fnames) {
+          if (S.gzOddsCache[fname] !== undefined) continue;
+          try {
+            const resp = await fetch(`${ORANCEK_BASE}/${fname}`);
+            if (!resp.ok) { S.gzOddsCache[fname] = []; continue; }
+            const buf = await resp.arrayBuffer();
+            const ds  = new DecompressionStream('gzip');
+            const wr  = ds.writable.getWriter();
+            wr.write(new Uint8Array(buf)); wr.close();
+            const out = await new Response(ds.readable).arrayBuffer();
+            S.gzOddsCache[fname] = JSON.parse(new TextDecoder().decode(out));
+          } catch { S.gzOddsCache[fname] = []; }
+        }
+        pool = Object.values(S.gzOddsCache).flat();
+      }
     } catch(e) {
-      console.warn('[gz odds] fetch hatası:', e);
-      S.gzOddsCache[d] = [];
-      return null;
+      console.warn('[fetchGzOdds] liste yüklenemedi:', e);
     }
   }
 
-  const arr = S.gzOddsCache[d];
-  if (!arr.length) return null;
+  if (!pool.length) return null;
 
   /* Takım adı benzerliğiyle eşleştir */
   let best = null, bestScore = 0;
-  for (const m of arr) {
+  for (const m of pool) {
     const h = _sim(homeTeam, m.home_team);
     const a = _sim(awayTeam, m.away_team);
     const score = (h + a) / 2;
