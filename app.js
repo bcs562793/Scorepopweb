@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v8.5 — Arşiv Desteği)
+   SCOREPOP — app.js  (v8.6 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -1489,7 +1489,7 @@ function _scheduleVisualScale() {
    GitHub orancek repo'sundan gz oran verisi çek ve maçı eşleştir
    ══════════════════════════════════════════════════════════════ */
 
-const ORANCEK_BASE = 'https://github.com/bcs562793/orancek/tree/main/data';
+const ORANCEK_BASE = 'https://raw.githubusercontent.com/bcs562793/orancek/main/data';
 
 function _normTeam(name) {
   return (name || '').toLowerCase()
