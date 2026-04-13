@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — style.css v1.5
+   SCOREPOP — style.css v1.6
    Layout: Fixed sidebar 240px + fluid main
    Match row: Home→Score←Away (Mackolik style)
    Palette: Near-black + Electric Orange accent
@@ -2476,3 +2476,126 @@ img { display: block; }
 .bar-blue  { background: #3b82f6; }
 .bar-red   { background: #f87171; }
 .bar-amber { background: #fbbf24; }
+
+/* ══════════════════════════════════════════════
+   ORAN ANALİZİ SAYFASI  (view-odds)
+══════════════════════════════════════════════ */
+
+.oa-page { padding-bottom: 40px; }
+
+.oa-header {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  margin-bottom: 6px;
+}
+.oa-header-title { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: .4px; }
+.oa-header-sub   { font-size: 11px; color: var(--tx2); margin-top: 2px; }
+
+/* Tarih strip */
+.oa-date-strip {
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 10px 8px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.oa-date-strip::-webkit-scrollbar { display: none; }
+.oa-dp {
+  flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 5px 10px; border-radius: 7px;
+  background: var(--b2); border: 1px solid rgba(255,255,255,.07);
+  cursor: pointer; transition: all .15s;
+  font-size: 11px; color: var(--tx2);
+}
+.oa-dp:hover   { border-color: rgba(255,107,0,.25); color: var(--tx); }
+.oa-dp.active  { background: var(--or2); border-color: rgba(255,107,0,.35); color: var(--or); }
+.oa-dp-d       { font-weight: 700; font-size: 12px; }
+.oa-dp-w       { font-size: 10px; }
+
+/* ── Maç satırı ── */
+.oa-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  cursor: pointer; transition: background .12s;
+}
+.oa-row:hover { background: rgba(255,255,255,.03); }
+.oa-row:last-child { border-bottom: none; }
+
+.oa-left {
+  display: flex; align-items: center; gap: 10px;
+  flex: 1; min-width: 0;
+}
+
+.oa-time {
+  flex-shrink: 0; width: 38px; text-align: center;
+}
+
+.oa-teams {
+  display: flex; flex-direction: column; gap: 4px;
+  flex: 1; min-width: 0;
+}
+.oa-team {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.oa-team.away { justify-content: flex-start; }
+.oa-team img  { flex-shrink: 0; border-radius: 2px; }
+.oa-score {
+  display: flex; align-items: center; gap: 4px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--tx2);
+  padding-left: 26px;
+}
+.oa-sep  { color: var(--tx3); }
+.oa-vs   { font-size: 11px; color: var(--tx3); padding-left: 0; }
+
+/* ── Sağ: oranlar + sinyal ── */
+.oa-right {
+  flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
+}
+
+.oa-odds {
+  display: flex; gap: 6px;
+}
+.oa-odd-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  min-width: 42px;
+  background: var(--b3);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 5px;
+  padding: 4px 6px;
+}
+.oa-odd-lbl { font-size: 9px; color: var(--tx3); letter-spacing: .4px; }
+.oa-odd-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; font-weight: 700; color: var(--tx);
+}
+.oa-odd-val.oa-fav { color: var(--or); }
+.oa-up { font-size: 10px; color: #4ade80; line-height: 1; }
+.oa-dn { font-size: 10px; color: #f87171; line-height: 1; }
+.oa-eq { font-size: 10px; color: var(--tx3); line-height: 1; }
+
+.oa-no-odds {
+  font-size: 11px; color: var(--tx3);
+  padding: 4px 8px;
+  background: var(--b3); border-radius: 5px;
+  border: 1px solid rgba(255,255,255,.05);
+}
+
+/* Sinyal badge */
+.oa-sig-badge {
+  font-size: 10px; font-weight: 600;
+  padding: 2px 8px; border-radius: 20px;
+  letter-spacing: .2px;
+}
+.oa-sig-strong { background: rgba(16,185,129,.15); color: #10b981; border: 1px solid rgba(16,185,129,.25); }
+.oa-sig-medium { background: rgba(251,191,36,.12); color: #fbbf24; border: 1px solid rgba(251,191,36,.20); }
+.oa-sig-weak   { background: rgba(255,255,255,.05); color: var(--tx2); border: 1px solid rgba(255,255,255,.09); }
+
+/* Mobil */
+@media (max-width: 520px) {
+  .oa-odd-cell  { min-width: 36px; }
+  .oa-odd-val   { font-size: 11px; }
+  .oa-team      { font-size: 12px; }
+  .oa-sig-badge { font-size: 9px; }
+}
