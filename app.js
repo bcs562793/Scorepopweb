@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v9.3 — Arşiv Desteği)
+   SCOREPOP — app.js  (v9.4 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -2741,7 +2741,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = 
     html += `
       <div class="d-tabs" style="border-bottom:1px solid rgba(255,255,255,.07)">
         <div class="d-tab active" onclick="switchTab('or',this)">📊 Oran Analizi</div>
-        <div class="d-tab" onclick="switchTab('ev',this)">Maç Bilgisi</div>
+        <div class="d-tab" onclick="switchTab('bi',this)">Maç Bilgisi</div>
         <div class="d-tab" onclick="switchTab('h2',this)">H2H</div>
       </div>`;
   }
