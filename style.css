@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — style.css v1.8
+   SCOREPOP — style.css v1.9
    Layout: Fixed sidebar 240px + fluid main
    Match row: Home→Score←Away (Mackolik style)
    Palette: Near-black + Electric Orange accent
@@ -2663,3 +2663,215 @@ img { display: block; }
 .res-1 { background: #4ade80; color: #06200c; }
 .res-X { background: #fbbf24; color: #2a1a02; }
 .res-2 { background: #f87171; color: #2d0a0a; }
+
+/* ═══════════════════════════════════════════════
+   SCOREPOP — MAÇ BİLGİSİ (MATCH INFO) TASARIMI
+════════════════════════════════════════════════ */
+
+.mi-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+/* 1. Üst Bilgi Grid'i */
+.mi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.mi-box {
+  background: var(--bg3);
+  border: 1px solid var(--b2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color .2s;
+}
+
+.mi-box:hover {
+  border-color: rgba(242,100,25,.3);
+}
+
+.mi-icon {
+  width: 36px;
+  height: 36px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.05);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.mi-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.mi-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--tx3);
+}
+
+.mi-val {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--tx1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 2. Bölüm Başlıkları */
+.mi-section {
+  background: var(--bg3);
+  border: 1px solid var(--b2);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.mi-sec-title {
+  padding: 12px 16px;
+  background: rgba(255,255,255,.02);
+  border-bottom: 1px solid var(--b1);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--or);
+  text-transform: uppercase;
+}
+
+/* 3. Maç Önü Notlar */
+.mi-note-card {
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--tx2);
+  border-bottom: 1px solid var(--b1);
+}
+
+.mi-note-card:last-child {
+  border-bottom: none;
+}
+
+/* 4. Hakem İstatistikleri */
+.mi-ref-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--b1);
+}
+
+.mi-ref-box {
+  background: var(--bg3);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mi-ref-lbl {
+  font-size: 10px;
+  color: var(--tx3);
+}
+
+.mi-ref-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tx1);
+}
+
+/* 5. Akıllı Analiz */
+.mi-analysis-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.mi-analysis-card {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--b1);
+}
+
+.mi-analysis-card:last-child {
+  border-bottom: none;
+}
+
+.mi-sa-market {
+  display: inline-block;
+  background: var(--or2);
+  color: var(--or);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.mi-sa-comment {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--tx1);
+  margin-bottom: 12px;
+}
+
+.mi-sa-odds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mi-sa-odd-box {
+  background: var(--bg4);
+  border: 1px solid var(--b2);
+  border-radius: 6px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mi-sa-oname {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tx2);
+}
+
+.mi-sa-oval {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: #4ade80;
+}
+
+.mi-sa-opct {
+  font-size: 10px;
+  color: var(--tx3);
+  background: rgba(255,255,255,.05);
+  padding: 2px 6px;
+  border-radius: 12px;
+}
+
+/* Mobil Uyumluluk */
+@media (max-width: 600px) {
+  .mi-ref-grid {
+    grid-template-columns: 1fr;
+  }
+}
