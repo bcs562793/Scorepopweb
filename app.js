@@ -2796,42 +2796,57 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = 
   }
 
   // 2. Maç Önü Notlar
+  // ── YARDIMCI: Maç Bilgisi Accordion (Açılır/Kapanır) Grubu ──
+  const miGroup = (icon, title, content, openByDefault = false) => {
+    return `
+      <div class="mi-group ${openByDefault ? 'open' : ''}">
+        <div class="mi-group-hdr" onclick="this.closest('.mi-group').classList.toggle('open')">
+          <span class="mi-group-icon">${icon}</span>
+          <span class="mi-group-title">${title}</span>
+          <span class="mi-group-arrow">›</span>
+        </div>
+        <div class="mi-group-body">${content}</div>
+      </div>`;
+  };
+
+  // 2. Maç Önü Notlar
   if (preMatchNotes.notes && preMatchNotes.notes.length > 0) {
-    biHtml += `<div class="mi-section"><div class="mi-sec-title">📝 Maç Önü Notları</div>`;
+    let notesContent = '';
     preMatchNotes.notes.forEach(note => {
-      biHtml += `<div class="mi-note-card">${esc(note)}</div>`;
+      notesContent += `<div class="mi-note-card">${esc(note)}</div>`;
     });
-    biHtml += `</div>`;
+    biHtml += miGroup('📝', 'Maç Önü Notları', notesContent, true); // true = varsayılan olarak açık
   }
 
   // 3. Hakem İstatistikleri
   if (preMatchNotes.refereeStats && Object.keys(preMatchNotes.refereeStats).length > 0) {
-    biHtml += `<div class="mi-section"><div class="mi-sec-title">⚖️ Hakem İstatistikleri</div><div class="mi-ref-grid">`;
+    let refContent = `<div class="mi-ref-grid">`;
     for (const [key, val] of Object.entries(preMatchNotes.refereeStats)) {
-      biHtml += `<div class="mi-ref-box"><div class="mi-ref-lbl">${esc(key)}</div><div class="mi-ref-val">${esc(val)}</div></div>`;
+      refContent += `<div class="mi-ref-box"><div class="mi-ref-lbl">${esc(key)}</div><div class="mi-ref-val">${esc(val)}</div></div>`;
     }
-    biHtml += `</div></div>`;
+    refContent += `</div>`;
+    biHtml += miGroup('⚖️', 'Hakem İstatistikleri', refContent, false); // false = varsayılan olarak kapalı
   }
 
   // 4. Akıllı Analiz (Yapay Zeka Yorumları ve Oranlar)
   if (smartAnalysis && smartAnalysis.length > 0) {
-    biHtml += `<div class="mi-section"><div class="mi-sec-title">🧠 Akıllı Analiz</div><div class="mi-analysis-list">`;
+    let saContent = `<div class="mi-analysis-list">`;
     smartAnalysis.forEach(sa => {
-      biHtml += `<div class="mi-analysis-card">`;
-      if (sa.market) biHtml += `<div class="mi-sa-market">${esc(sa.market)}</div>`;
-      if (sa.comment) biHtml += `<div class="mi-sa-comment">${esc(sa.comment)}</div>`;
+      saContent += `<div class="mi-analysis-card">`;
+      if (sa.market) saContent += `<div class="mi-sa-market">${esc(sa.market)}</div>`;
+      if (sa.comment) saContent += `<div class="mi-sa-comment">${esc(sa.comment)}</div>`;
       if (sa.odds && sa.odds.length > 0) {
-        biHtml += `<div class="mi-sa-odds">`;
+        saContent += `<div class="mi-sa-odds">`;
         sa.odds.forEach(o => {
-          biHtml += `<div class="mi-sa-odd-box"><span class="mi-sa-oname">${esc(o.name)}</span><span class="mi-sa-oval">${esc(o.value)}</span><span class="mi-sa-opct">${esc(o.percentage)}</span></div>`;
+          saContent += `<div class="mi-sa-odd-box"><span class="mi-sa-oname">${esc(o.name)}</span><span class="mi-sa-oval">${esc(o.value)}</span><span class="mi-sa-opct">${esc(o.percentage)}</span></div>`;
         });
-        biHtml += `</div>`;
+        saContent += `</div>`;
       }
-      biHtml += `</div>`;
+      saContent += `</div>`;
     });
-    biHtml += `</div></div>`;
+    saContent += `</div>`;
+    biHtml += miGroup('🧠', 'Akıllı Analiz', saContent, true); // true = varsayılan olarak açık
   }
-
   // Eğer hiçbir veri yoksa
   if (biHtml === `<div class="d-panel ${!oddsOnly ? 'active' : ''}" id="d-bi"><div class="mi-wrap">`) {
     biHtml += `<div class="empty"><div class="empty-i">ℹ️</div><div class="empty-t">Detaylı maç bilgisi bulunamadı</div></div>`;
