@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — style.css v1.9
+   SCOREPOP — style.css v2.0
    Layout: Fixed sidebar 240px + fluid main
    Match row: Home→Score←Away (Mackolik style)
    Palette: Near-black + Electric Orange accent
@@ -2736,28 +2736,78 @@ img { display: block; }
 }
 
 /* 2. Bölüm Başlıkları */
-.mi-section {
+/* ═══════════════════════════════════════════════
+   SCOREPOP — MAÇ BİLGİSİ ACCORDION (YENİ)
+════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════
+   SCOREPOP — MAÇ BİLGİSİ ACCORDION (YENİ)
+════════════════════════════════════════════════ */
+
+.mi-group {
   background: var(--bg3);
   border: 1px solid var(--b2);
   border-radius: 10px;
   overflow: hidden;
+  margin-bottom: 12px;
 }
 
-.mi-sec-title {
-  padding: 12px 16px;
+.mi-group:last-child {
+  margin-bottom: 0;
+}
+
+.mi-group-hdr {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
   background: rgba(255,255,255,.02);
-  border-bottom: 1px solid var(--b1);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.mi-group-hdr:hover {
+  background: rgba(255,255,255,.04);
+}
+
+.mi-group-icon {
+  font-size: 16px;
+  margin-right: 10px;
+}
+
+.mi-group-title {
+  flex: 1;
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.5px;
   color: var(--or);
   text-transform: uppercase;
 }
 
+.mi-group-arrow {
+  font-size: 18px;
+  color: var(--tx3);
+  transition: transform 0.3s ease;
+  line-height: 1;
+}
+
+.mi-group.open .mi-group-arrow {
+  transform: rotate(90deg);
+}
+
+.mi-group-body {
+  display: none;
+  border-top: 1px solid var(--b1);
+}
+
+.mi-group.open .mi-group-body {
+  display: block;
+}
+
 /* 3. Maç Önü Notlar */
 .mi-note-card {
-  padding: 12px 16px;
+  padding: 14px 16px;
   font-size: 13px;
   line-height: 1.6;
   color: var(--tx2);
@@ -2803,7 +2853,7 @@ img { display: block; }
 }
 
 .mi-analysis-card {
-  padding: 14px 16px;
+  padding: 16px;
   border-bottom: 1px solid var(--b1);
 }
 
