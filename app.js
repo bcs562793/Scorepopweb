@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v8.9 — Arşiv Desteği)
+   SCOREPOP — app.js  (v9.0 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -596,7 +596,13 @@ function _renderOddsPage(root, rows) {
   rows.forEach(m => {
     const k = m.league_id ? String(m.league_id)
       : `${(m.league_country||'').toLowerCase()}__${(m.league_name||'Diğer').toLowerCase()}`;
-    if (!groups[k]) groups[k] = { name: m.league_name||'Diğer', logo: m.league_logo||'', country: m.league_country||'', matches: [] };
+    if (!groups[k]) groups[k] = { 
+      name: m.league_name||'Diğer', 
+      logo: m.league_logo||'', 
+      country: m.league_country||'', 
+      flag: m.league_flag||'', 
+      matches: [] 
+    };
     groups[k].matches.push(m);
   });
   const sorted = _sortLeagueGroups(Object.values(groups));
@@ -607,11 +613,30 @@ function _renderOddsPage(root, rows) {
   sorted.forEach(g => {
     const with_ = g.matches.filter(m =>  hasOdds(m));
     const without_ = g.matches.filter(m => !hasOdds(m));
+    
+    // Doğru hizalama için bayrak, logo ve isim tanımlamaları ana sayfadaki gibi yapıldı
+    const logo = g.logo
+      ? `<img src="${esc(g.logo)}" onerror="this.style.display='none'" alt="" style="width:16px;height:16px;object-fit:contain;flex-shrink:0">`
+      : '';
+    const countryFlag = g.flag
+      ? `<img src="${g.flag}" onerror="this.style.display='none'" alt="" style="width:16px;height:11px;object-fit:cover;border-radius:2px;flex-shrink:0">`
+      : '';
+    const fullName = g.country
+      ? `${esc(g.country)} ${esc(g.name)}`
+      : esc(g.name);
+
+    // Flex kapsayıcılar ile 56px taşma sorunu engellendi
     html += `<div class="lg-grp" data-league="${esc(g.name)}">
-      <div class="lg-hdr">
-        ${g.logo ? `<img src="${esc(g.logo)}" width="16" height="16" onerror="this.style.display='none'" alt="">` : ''}
-        <span class="lg-name">${esc(g.name)}</span>
-        <span class="lg-ct">${g.matches.length}</span>
+      <div class="lg-hdr" onclick="this.closest('.lg-grp').classList.toggle('closed')">
+        <div style="display:flex;align-items:center;gap:6px;flex:1;flex-wrap:nowrap">
+          ${countryFlag}
+          ${logo}
+          <span class="lg-hdr-name" style="white-space:nowrap;font-size:13px;font-weight:500">${fullName}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+          <span class="lg-ct">${g.matches.length}</span>
+          <span class="lg-arrow">▾</span>
+        </div>
       </div>`;
     [...with_, ...without_].forEach(m => { html += _buildOddsRow(m); });
     html += `</div>`;
@@ -2701,9 +2726,9 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, oddsOnly = false) {
 
     html += `
       <div class="d-tabs">
-        <div class="d-tab" onclick="switchTab('ev',this)">Olaylar</div>
+        <div class="d-tab active" onclick="switchTab('ev',this)">Olaylar</div>
         <div class="d-tab" onclick="switchTab('st',this)">İstatistik</div>
-        <div class="d-tab active" onclick="switchTab('or',this)">Oranlar</div>
+        <div class="d-tab" onclick="switchTab('or',this)">Oranlar</div>
         <div class="d-tab" onclick="switchTab('lu',this)">Kadro</div>
         <div class="d-tab" onclick="switchTab('h2',this)">H2H</div>
         <div class="d-tab" onclick="switchTab('fr',this)">Forum</div>
@@ -2713,9 +2738,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, oddsOnly = false) {
     html += `
       <div class="d-tabs" style="border-bottom:1px solid rgba(255,255,255,.07)">
         <div class="d-tab active" onclick="switchTab('or',this)">📊 Oran Analizi</div>
-        <div class="d-tab" onclick="switchTab('ev',this)">Olaylar</div>
-        <div class="d-tab" onclick="switchTab('st',this)">İstatistik</div>
-        <div class="d-tab" onclick="switchTab('lu',this)">Kadro</div>
+        <div class="d-tab" onclick="switchTab('ev',this)">Maç Bilgisi</div>
         <div class="d-tab" onclick="switchTab('h2',this)">H2H</div>
       </div>`;
   }
@@ -2769,6 +2792,19 @@ if (kickoffFmt || referee || venue) {
   </div>` : ''}
 </div>`;
 }
+   /* YENİ: Eğer Oran Analizi sayfasındaysak, "Bilgi" sekmesi için yeni bir d-bi paneli oluşturuyoruz */
+  if (oddsOnly) {
+    html += `<div class="d-panel" id="d-bi">
+      ${infoCardHtml || '<div class="empty"><div class="empty-t">Maç bilgisi bulunamadı</div></div>'}
+    </div>`;
+  }
+
+  html += `<div class="d-panel" id="d-ev">`;
+  
+  /* Normal sayfalardaysak (Canlı, Bugün vb.) bilgi kartı eskisi gibi Olaylar (d-ev) panelinin en üstünde kalsın */
+  if (!oddsOnly) {
+    html += infoCardHtml;
+  }
    
   if (!evs.length) {
     html += `<div class="ev-list"><div class="ev-none">Henüz olay yok</div></div>`;
