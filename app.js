@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v9.1 — Arşiv Desteği)
+   SCOREPOP — app.js  (v9.2 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -1452,13 +1452,15 @@ async function loadDetail(id, isLive, oddsOnly = false) {
   { data: stats },
   { data: lus  },
   { data: pred },
-  { data: dbOdds },  // ← EKLENMELİ    
+  { data: dbOdds },  // ← EKLENMELİ 
+  { data: matchInfoData }, // YENİ: match_info verisi     
 ] = await Promise.all([
   sq(S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time')),
   sq(S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle()),
   sq(S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle()),
   sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
-  sq(S.sb.from('match_odds').select('*').eq('fixture_id', id).maybeSingle()) // <-- EKSİK OLAN SORGUNU BURAYA EKLE
+  sq(S.sb.from('match_odds').select('*').eq('fixture_id', id).maybeSingle()), // <-- EKSİK OLAN SORGUNU BURAYA EKLE
+  sq(S.sb.from('match_info').select('*').eq('fixture_id', id).maybeSingle()) // YENİ SORGUMUZ     
 ]);
 
 /* H2H ayrı — .then() zinciri sq() ile uyumsuz olduğu için */
@@ -1473,7 +1475,7 @@ if (m.home_team_id && m.away_team_id) {
 }
 
     // ✅ oranlar direkt match_odds'tan gelir, gz sadece sim analizi için
-       buildDetail(m, evs||[], stats, lus, h2h, pred, dbOdds || null, oddsOnly);
+       buildDetail(m, evs||[], stats, lus, h2h, pred, dbOdds || null, matchInfoData || null, oddsOnly);
   } catch (e) {
     console.error(e);
     setDetailHTML(`<div class="empty"><div class="empty-t">Hata: ${esc(e.message)}</div></div>`);
@@ -2635,7 +2637,7 @@ async function fetchGzOdds(date, homeTeam, awayTeam) {
   };
 }
 
-function buildDetail(m, evs, stats, lus, h2h, pred, odds, oddsOnly = false) {
+function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = false) {
   const st = statusInfo(m);
   const hs = m.home_score ?? '-', as = m.away_score ?? '-';
 
@@ -2726,7 +2728,8 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, oddsOnly = false) {
 
     html += `
       <div class="d-tabs">
-        <div class="d-tab active" onclick="switchTab('ev',this)">Olaylar</div>
+        <div class="d-tab active" onclick="switchTab('bi',this)">Bilgi</div>  
+        <div class="d-tab" onclick="switchTab('ev',this)">Olaylar</div>
         <div class="d-tab" onclick="switchTab('st',this)">İstatistik</div>
         <div class="d-tab" onclick="switchTab('or',this)">Oranlar</div>
         <div class="d-tab" onclick="switchTab('lu',this)">Kadro</div>
@@ -2774,36 +2777,102 @@ const kickoffFmt = kickoff ? new Date(kickoff).toLocaleString('tr-TR', {
   timeZone:'Europe/Istanbul'
 }) : null;
 
-let infoCardHtml = '';
-if (kickoffFmt || referee || venue) {
-  infoCardHtml = `<div class="match-info-card">
-  ${kickoffFmt ? `<div class="mic-item">
-    <span class="mic-icon">🕐</span>
-    <span class="mic-text">${kickoffFmt}</span>
-  </div>` : ''}
-  ${referee ? `<div class="mic-item">
-    <span class="mic-icon">🟡</span>
-    <span class="mic-text">${esc(referee)}</span>
-  </div>` : ''}
-  ${venue ? `<div class="mic-item">
-    <span class="mic-icon">🏟️</span>
-    <span class="mic-text">${esc(venue)}${city ? `, ${esc(city)}` : ''}</span>
-  </div>` : ''}
-</div>`;
-}
-   /* YENİ: Eğer Oran Analizi sayfasındaysak, "Bilgi" sekmesi için yeni bir d-bi paneli oluşturuyoruz */
-  if (oddsOnly) {
-    html += `<div class="d-panel" id="d-bi">
-      ${infoCardHtml || '<div class="empty"><div class="empty-t">Maç bilgisi bulunamadı</div></div>'}
-    </div>`;
+// ── YEPYENİ MAÇ BİLGİSİ (MATCH INFO) PANELİ ──
+  let mi = matchInfo || {};
+  
+  // JSON Parse işlemleri (Güvenli)
+  let smartAnalysis = [];
+  let preMatchNotes = { notes: [], refereeStats: {} };
+  try { if (typeof mi.smart_analysis === 'string') smartAnalysis = JSON.parse(mi.smart_analysis); else if (mi.smart_analysis) smartAnalysis = mi.smart_analysis; } catch(e){}
+  try { if (typeof mi.pre_match_notes === 'string') preMatchNotes = JSON.parse(mi.pre_match_notes); else if (mi.pre_match_notes) preMatchNotes = mi.pre_match_notes; } catch(e){}
+
+  // API'den gelen yedek verileri ayarla
+  let apiReferee = null, apiVenue = null, apiCity = null, apiKickoff = null;
+  try {
+    let fx = null;
+    if (m.raw_data) fx = JSON.parse(m.raw_data)?.fixture || null;
+    if (!fx && m._fixture) fx = m._fixture;
+    if (!fx && m.fixture && typeof m.fixture === 'object') fx = m.fixture;
+    if (fx) {
+      apiReferee = fx.referee || null;
+      apiVenue   = fx.venue?.name || null;
+      apiCity    = fx.venue?.city || null;
+      apiKickoff = fx.date || null;
+    }
+  } catch(e) {}
+
+  const kickoff = m.kickoff_time || apiKickoff || null;
+  const kickoffFmt = kickoff ? new Date(kickoff).toLocaleString('tr-TR', {
+    day:'2-digit', month:'long', hour:'2-digit', minute:'2-digit', timeZone:'Europe/Istanbul'
+  }) : null;
+
+  // Supabase'den gelen veriyi önceliklendir, yoksa API'yi kullan
+  const dRef   = mi.referee || apiReferee;
+  const dVen   = mi.venue || apiVenue;
+  const dBroad = mi.broadcaster || null;
+  const dLg    = mi.league_detail || null;
+
+  // "Bilgi" Panelini İnşa Et (Normalde İlk Sekme)
+  let biHtml = `<div class="d-panel ${!oddsOnly ? 'active' : ''}" id="d-bi"><div class="mi-wrap">`;
+
+  // 1. Üst Bilgi Izgarası (Saat, Hakem, Saha, Yayıncı vs.)
+  if (kickoffFmt || dRef || dVen || dBroad || dLg) {
+    biHtml += `<div class="mi-grid">`;
+    if (kickoffFmt) biHtml += `<div class="mi-box"><div class="mi-icon">🕒</div><div class="mi-txt"><div class="mi-lbl">Tarih & Saat</div><div class="mi-val">${esc(kickoffFmt)}</div></div></div>`;
+    if (dLg)        biHtml += `<div class="mi-box"><div class="mi-icon">🏆</div><div class="mi-txt"><div class="mi-lbl">Lig Detayı</div><div class="mi-val">${esc(dLg)}</div></div></div>`;
+    if (dRef)       biHtml += `<div class="mi-box"><div class="mi-icon">🟡</div><div class="mi-txt"><div class="mi-lbl">Hakem</div><div class="mi-val">${esc(dRef)}</div></div></div>`;
+    if (dVen)       biHtml += `<div class="mi-box"><div class="mi-icon">🏟️</div><div class="mi-txt"><div class="mi-lbl">Saha</div><div class="mi-val">${esc(dVen)}${apiCity ? `, ${esc(apiCity)}` : ''}</div></div></div>`;
+    if (dBroad)     biHtml += `<div class="mi-box"><div class="mi-icon">📺</div><div class="mi-txt"><div class="mi-lbl">Yayıncı</div><div class="mi-val">${esc(dBroad)}</div></div></div>`;
+    biHtml += `</div>`;
   }
 
-  html += `<div class="d-panel" id="d-ev">`;
-  
-  /* Normal sayfalardaysak (Canlı, Bugün vb.) bilgi kartı eskisi gibi Olaylar (d-ev) panelinin en üstünde kalsın */
-  if (!oddsOnly) {
-    html += infoCardHtml;
+  // 2. Maç Önü Notlar
+  if (preMatchNotes.notes && preMatchNotes.notes.length > 0) {
+    biHtml += `<div class="mi-section"><div class="mi-sec-title">📝 Maç Önü Notları</div>`;
+    preMatchNotes.notes.forEach(note => {
+      biHtml += `<div class="mi-note-card">${esc(note)}</div>`;
+    });
+    biHtml += `</div>`;
   }
+
+  // 3. Hakem İstatistikleri
+  if (preMatchNotes.refereeStats && Object.keys(preMatchNotes.refereeStats).length > 0) {
+    biHtml += `<div class="mi-section"><div class="mi-sec-title">⚖️ Hakem İstatistikleri</div><div class="mi-ref-grid">`;
+    for (const [key, val] of Object.entries(preMatchNotes.refereeStats)) {
+      biHtml += `<div class="mi-ref-box"><div class="mi-ref-lbl">${esc(key)}</div><div class="mi-ref-val">${esc(val)}</div></div>`;
+    }
+    biHtml += `</div></div>`;
+  }
+
+  // 4. Akıllı Analiz (Yapay Zeka Yorumları ve Oranlar)
+  if (smartAnalysis && smartAnalysis.length > 0) {
+    biHtml += `<div class="mi-section"><div class="mi-sec-title">🧠 Akıllı Analiz</div><div class="mi-analysis-list">`;
+    smartAnalysis.forEach(sa => {
+      biHtml += `<div class="mi-analysis-card">`;
+      if (sa.market) biHtml += `<div class="mi-sa-market">${esc(sa.market)}</div>`;
+      if (sa.comment) biHtml += `<div class="mi-sa-comment">${esc(sa.comment)}</div>`;
+      if (sa.odds && sa.odds.length > 0) {
+        biHtml += `<div class="mi-sa-odds">`;
+        sa.odds.forEach(o => {
+          biHtml += `<div class="mi-sa-odd-box"><span class="mi-sa-oname">${esc(o.name)}</span><span class="mi-sa-oval">${esc(o.value)}</span><span class="mi-sa-opct">${esc(o.percentage)}</span></div>`;
+        });
+        biHtml += `</div>`;
+      }
+      biHtml += `</div>`;
+    });
+    biHtml += `</div></div>`;
+  }
+
+  // Eğer hiçbir veri yoksa
+  if (biHtml === `<div class="d-panel ${!oddsOnly ? 'active' : ''}" id="d-bi"><div class="mi-wrap">`) {
+    biHtml += `<div class="empty"><div class="empty-i">ℹ️</div><div class="empty-t">Detaylı maç bilgisi bulunamadı</div></div>`;
+  }
+  
+  biHtml += `</div></div>`;
+  html += biHtml;
+
+  // Eski d-ev (Olaylar) panelinin başlangıcı
+  html += `<div class="d-panel" id="d-ev">`;
    
   if (!evs.length) {
     html += `<div class="ev-list"><div class="ev-none">Henüz olay yok</div></div>`;
