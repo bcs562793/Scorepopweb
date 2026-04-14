@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v9.2 — Arşiv Desteği)
+   SCOREPOP — app.js  (v9.3 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -2745,37 +2745,6 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = 
         <div class="d-tab" onclick="switchTab('h2',this)">H2H</div>
       </div>`;
   }
-
-  // ── MAÇ BİLGİ KARTI ── sadece veri varsa göster
-let referee = null, venue = null, city = null;
-let _kickoffFromRaw = null;
-try {
-  /* raw_data: live_matches; _fixture: future_matches parse; fixture: diğer */
-  let fx = null;
-  if (m.raw_data) {
-    const raw = JSON.parse(m.raw_data);
-    fx = raw?.fixture || null;
-    if (!fx && raw?.referee) { referee = raw.referee; }
-  }
-  if (!fx && m._fixture) fx = m._fixture;
-  if (!fx && m.fixture && typeof m.fixture === 'object') fx = m.fixture;
-  if (!fx && m.data) {
-    const d = typeof m.data === 'string' ? JSON.parse(m.data) : m.data;
-    fx = (Array.isArray(d) ? d[0] : d)?.fixture || null;
-  }
-  if (fx) {
-    referee        = fx.referee      || null;
-    venue          = fx.venue?.name  || null;
-    city           = fx.venue?.city  || null;
-    _kickoffFromRaw = fx.date        || null; /* live_matches'te kickoff_time yok */
-  }
-} catch(e) {}
-/* kickoff_time yoksa raw_data'daki fixture.date'i kullan */
-const kickoff = m.kickoff_time || _kickoffFromRaw || null;
-const kickoffFmt = kickoff ? new Date(kickoff).toLocaleString('tr-TR', {
-  day:'2-digit', month:'long', hour:'2-digit', minute:'2-digit',
-  timeZone:'Europe/Istanbul'
-}) : null;
 
 // ── YEPYENİ MAÇ BİLGİSİ (MATCH INFO) PANELİ ──
   let mi = matchInfo || {};
