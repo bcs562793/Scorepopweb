@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v9.4 — Arşiv Desteği)
+   SCOREPOP — app.js  (v9.5 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -2916,8 +2916,8 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = 
   }
   html += `</div>`;
 
- /* ── ORANLAR PANELİ ────────────────────────── */
-html += `<div class="d-panel active" id="d-or">`;
+/* ── ORANLAR PANELİ ────────────────────────── */
+html += `<div class="d-panel ${oddsOnly ? 'active' : ''}" id="d-or">`;
 const od = odds?.odds_data ?? null;
 
 if (od && od.markets) {
