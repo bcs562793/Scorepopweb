@@ -16,6 +16,7 @@ const Router = (() => {
     iletisim:   /^\/?iletisim\/?$/i,
     haberler:   /^\/?(haberler)\/?$/i,
     haber:      /^\/?(haber)\/([^/]+)\/?$/i,
+    tvrehberi:  /^\/?tv-rehberi(?:\/(?:index\.html)?)?\/?$/i,
     puandurumu: /^\/?puan-durumu(?:\/(?:index\.html)?)?\/?$/i,
   };
 
@@ -103,6 +104,14 @@ const Router = (() => {
 
     if (ROUTES.haber.test(path)) {
       // /haber/slug → haber/index.html dinamik olarak yükler
+      return;
+    }
+
+    // tv-rehberi sayfası — fiziksel HTML dosyasını göster
+    if (ROUTES.tvrehberi.test(path)) {
+      if (path === '/tv-rehberi') {
+        window.location.replace('/tv-rehberi/');
+      }
       return;
     }
 

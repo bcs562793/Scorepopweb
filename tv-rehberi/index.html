@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>TV Yayın Rehberi — ScorePop | Hangi Maç Hangi Kanalda?</title>
+  <meta name="description" content="Bugün ve yaklaşan futbol maçlarını hangi kanalda izleyebilirsiniz? S Sport, beIN Sports, EXXEN, Tivibu yayın rehberi ScorePop'ta."/>
+  <meta name="robots" content="index,follow"/>
+  <link rel="canonical" href="https://scorepop.com.tr/tv-rehberi"/>
+  <meta property="og:title" content="TV Yayın Rehberi — ScorePop"/>
+  <meta property="og:description" content="Hangi maç hangi kanalda? S Sport, beIN Sports, EXXEN, Tivibu ve daha fazlası."/>
+  <meta property="og:url" content="https://scorepop.com.tr/tv-rehberi"/>
+  <meta property="og:type" content="website"/>
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-JS4J2RCJJ9"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-JS4J2RCJJ9');
+  </script>
+
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6664942674336301" crossorigin="anonymous"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+  <script src="/config.js?v=0"></script>
+
+  <style>
+    :root {
+      --bg:#0b0d11; --bg2:#0f1218; --bg3:#141921; --bg4:#1a2030; --bg5:#1f2638;
+      --b1:rgba(255,255,255,.05); --b2:rgba(255,255,255,.08); --b3:rgba(255,255,255,.12);
+      --tx1:#dde4ef; --tx2:#8899b0; --tx3:#4a5a70;
+      --or:#f26419; --or2:rgba(242,100,25,.15); --or-glow:rgba(242,100,25,.35);
+      --tv:#3b82f6; --tv2:rgba(59,130,246,.15); --tv-glow:rgba(59,130,246,.3);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--tx1);
+      font-family: 'Barlow', sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--b1);
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 20px; height: 52px;
+    }
+    .topbar-brand {
+      display: flex; align-items: center; gap: 9px;
+      text-decoration: none; color: var(--tx1);
+      flex-shrink: 0;
+    }
+    .topbar-mark {
+      width: 30px; height: 30px;
+      background: var(--or);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 14px var(--or-glow);
+      overflow: hidden; flex-shrink: 0;
+    }
+    .topbar-mark img { width: 30px; height: 30px; object-fit: cover; }
+    .topbar-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 800; font-size: 18px; letter-spacing: .5px;
+    }
+    .topbar-title em { color: var(--or); font-style: normal; }
+    .topbar-sep { flex: 1; }
+    .topbar-back {
+      display: flex; align-items: center; gap: 6px;
+      color: var(--tx2); text-decoration: none; font-size: 13px;
+      padding: 6px 12px; border-radius: 6px;
+      border: 1px solid var(--b2);
+      transition: all .2s;
+      white-space: nowrap;
+    }
+    .topbar-back:hover { color: var(--tx1); border-color: var(--b3); background: var(--bg3); }
+
+    /* ── PAGE LAYOUT ── */
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 80px; }
+
+    .page-header {
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--b1);
+      margin-bottom: 32px;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+    }
+    .page-header-left h1 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 30px; font-weight: 800; line-height: 1.1;
+    }
+    .page-header-left h1 span { color: var(--or); }
+    .page-header-left p {
+      margin-top: 6px; color: var(--tx2); font-size: 13px;
+    }
+    .page-header-badge {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--tv2); border: 1px solid var(--tv);
+      color: var(--tv); border-radius: 20px;
+      padding: 6px 14px; font-size: 12px; font-weight: 600;
+      letter-spacing: .4px; white-space: nowrap;
+    }
+
+    /* ── FILTER BAR ── */
+    .filter-bar {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 28px; flex-wrap: wrap;
+    }
+    .filter-lbl { color: var(--tx3); font-size: 12px; margin-right: 4px; }
+    .filter-btn {
+      padding: 5px 14px; border-radius: 20px;
+      border: 1px solid var(--b2);
+      background: transparent; color: var(--tx2);
+      font-size: 12px; font-family: 'Barlow', sans-serif;
+      cursor: pointer; transition: all .18s; white-space: nowrap;
+    }
+    .filter-btn:hover { border-color: var(--b3); color: var(--tx1); }
+    .filter-btn.active {
+      background: var(--tv2); border-color: var(--tv);
+      color: var(--tv);
+    }
+
+    /* ── DATE GROUP ── */
+    .date-group { margin-bottom: 36px; }
+    .date-group-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 14px;
+    }
+    .date-group-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 15px; font-weight: 700;
+      color: var(--tx2); text-transform: uppercase; letter-spacing: .6px;
+    }
+    .date-group-line { flex: 1; height: 1px; background: var(--b1); }
+    .date-group-count {
+      font-size: 11px; color: var(--tx3); background: var(--bg3);
+      border: 1px solid var(--b1); border-radius: 10px;
+      padding: 2px 8px;
+    }
+
+    /* ── MATCH CARDS ── */
+    .match-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .match-card {
+      background: var(--bg2);
+      border: 1px solid var(--b1);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex; align-items: center; gap: 14px;
+      text-decoration: none; color: inherit;
+      transition: border-color .2s, background .2s, transform .15s;
+      position: relative; overflow: hidden;
+    }
+    .match-card::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 3px; background: var(--tv);
+      border-radius: 12px 0 0 12px;
+      opacity: 0; transition: opacity .2s;
+    }
+    .match-card:hover {
+      border-color: var(--b3); background: var(--bg3);
+      transform: translateX(2px);
+    }
+    .match-card:hover::before { opacity: 1; }
+
+    .match-time {
+      flex-shrink: 0; min-width: 44px;
+      text-align: center;
+    }
+    .match-time-val {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 18px; font-weight: 700; color: var(--tx1);
+      line-height: 1;
+    }
+    .match-time-day { font-size: 10px; color: var(--tx3); margin-top: 2px; }
+
+    .match-divider { width: 1px; height: 36px; background: var(--b1); flex-shrink: 0; }
+
+    .match-teams { flex: 1; min-width: 0; }
+    .match-team {
+      display: flex; align-items: center; gap: 8px;
+      padding: 3px 0;
+    }
+    .match-team-logo {
+      width: 20px; height: 20px; border-radius: 50%; object-fit: contain;
+      background: var(--bg4); flex-shrink: 0;
+    }
+    .match-team-logo-placeholder {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--bg4); border: 1px solid var(--b2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; color: var(--tx3); flex-shrink: 0;
+    }
+    .match-team-name {
+      font-size: 13px; font-weight: 500; color: var(--tx1);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .match-vs {
+      font-size: 10px; color: var(--tx3); padding: 1px 0 1px 28px;
+      line-height: 1;
+    }
+
+    .match-meta { flex-shrink: 0; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .match-league {
+      font-size: 11px; color: var(--tx3);
+      max-width: 140px; text-align: right;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .match-broadcaster {
+      display: flex; align-items: center; gap: 5px;
+      background: var(--tv2); border: 1px solid rgba(59,130,246,.3);
+      color: var(--tv); border-radius: 6px;
+      padding: 3px 8px; font-size: 11px; font-weight: 600;
+      white-space: nowrap; max-width: 160px;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .match-broadcaster-icon { flex-shrink: 0; font-size: 12px; }
+
+    /* Multiple channels pill */
+    .match-channels { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; max-width: 180px; }
+    .ch-pill {
+      background: var(--tv2); border: 1px solid rgba(59,130,246,.3);
+      color: var(--tv); border-radius: 6px;
+      padding: 2px 8px; font-size: 11px; font-weight: 600;
+      white-space: nowrap;
+    }
+    .ch-pill.alt {
+      background: rgba(242,100,25,.12); border-color: rgba(242,100,25,.3);
+      color: #f98f5a;
+    }
+
+    /* ── SKELETON ── */
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .sk-card {
+      background: var(--bg2); border: 1px solid var(--b1);
+      border-radius: 12px; padding: 14px 16px;
+      display: flex; align-items: center; gap: 14px;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    .sk-block { background: var(--bg3); border-radius: 6px; }
+
+    /* ── STATES ── */
+    .state-box {
+      text-align: center; padding: 60px 20px;
+      color: var(--tx2);
+    }
+    .state-icon { font-size: 42px; margin-bottom: 14px; }
+    .state-title { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700; margin-bottom: 6px; color: var(--tx1); }
+    .state-sub { font-size: 13px; color: var(--tx3); }
+
+    /* ── STATS BAR ── */
+    .stats-row {
+      display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap;
+    }
+    .stat-card {
+      flex: 1; min-width: 100px;
+      background: var(--bg2); border: 1px solid var(--b1); border-radius: 10px;
+      padding: 14px 16px; text-align: center;
+    }
+    .stat-num {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 26px; font-weight: 800; color: var(--tv);
+    }
+    .stat-lbl { font-size: 11px; color: var(--tx3); margin-top: 2px; }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center; padding: 32px 20px;
+      color: var(--tx3); font-size: 13px;
+      border-top: 1px solid var(--b1);
+    }
+    footer a { color: var(--tx2); text-decoration: none; }
+    footer a:hover { color: var(--or); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .page-wrap { padding: 20px 12px 60px; }
+      .match-card { padding: 12px 12px; gap: 10px; }
+      .match-league { max-width: 90px; }
+      .match-channels { max-width: 110px; }
+      .page-header-left h1 { font-size: 24px; }
+      .stats-row { gap: 8px; }
+      .stat-card { padding: 10px 12px; }
+      .stat-num { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="topbar">
+  <a class="topbar-brand" href="/">
+    <div class="topbar-mark">
+      <img src="https://i.hizliresim.com/gbleupf.png" alt="ScorePop Logo"/>
+    </div>
+    <div class="topbar-title">SCORE<em>POP</em></div>
+  </a>
+  <div class="topbar-sep"></div>
+  <a class="topbar-back" href="/">← Ana Sayfa</a>
+</nav>
+
+<div class="page-wrap">
+
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>📺 TV Yayın <span>Rehberi</span></h1>
+      <p>Hangi maç hangi kanalda? Türkiye'deki yayın haklarına göre güncel rehber.</p>
+    </div>
+    <div class="page-header-badge">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.2"/>
+        <circle cx="6" cy="6" r="2" fill="currentColor"/>
+      </svg>
+      Canlı Güncelleniyor
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row" id="stats-row" style="display:none">
+    <div class="stat-card">
+      <div class="stat-num" id="stat-total">—</div>
+      <div class="stat-lbl">Yayınlanan Maç</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-channels">—</div>
+      <div class="stat-lbl">Kanal</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-today">—</div>
+      <div class="stat-lbl">Bugün Yayında</div>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar" id="filter-bar" style="display:none">
+    <span class="filter-lbl">Kanal:</span>
+    <button class="filter-btn active" data-ch="tumu">Tümü</button>
+  </div>
+
+  <!-- Content -->
+  <div id="content">
+    <!-- Skeletons -->
+    <div id="skeletons">
+      <div style="margin-bottom:36px">
+        <div style="height:18px;width:160px;background:var(--bg3);border-radius:6px;animation:pulse 1.4s ease-in-out infinite;margin-bottom:14px"></div>
+        <div class="match-list">
+          <div class="sk-card"><div class="sk-block" style="width:44px;height:36px"></div><div style="width:1px;height:36px;background:var(--b1)"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px"><div class="sk-block" style="height:14px;width:55%"></div><div class="sk-block" style="height:14px;width:45%"></div></div><div class="sk-block" style="width:90px;height:24px;border-radius:6px"></div></div>
+          <div class="sk-card"><div class="sk-block" style="width:44px;height:36px"></div><div style="width:1px;height:36px;background:var(--b1)"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px"><div class="sk-block" style="height:14px;width:60%"></div><div class="sk-block" style="height:14px;width:40%"></div></div><div class="sk-block" style="width:80px;height:24px;border-radius:6px"></div></div>
+          <div class="sk-card"><div class="sk-block" style="width:44px;height:36px"></div><div style="width:1px;height:36px;background:var(--b1)"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px"><div class="sk-block" style="height:14px;width:50%"></div><div class="sk-block" style="height:14px;width:38%"></div></div><div class="sk-block" style="width:100px;height:24px;border-radius:6px"></div></div>
+        </div>
+      </div>
+      <div>
+        <div style="height:18px;width:140px;background:var(--bg3);border-radius:6px;animation:pulse 1.4s ease-in-out infinite;margin-bottom:14px"></div>
+        <div class="match-list">
+          <div class="sk-card"><div class="sk-block" style="width:44px;height:36px"></div><div style="width:1px;height:36px;background:var(--b1)"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px"><div class="sk-block" style="height:14px;width:52%"></div><div class="sk-block" style="height:14px;width:42%"></div></div><div class="sk-block" style="width:95px;height:24px;border-radius:6px"></div></div>
+          <div class="sk-card"><div class="sk-block" style="width:44px;height:36px"></div><div style="width:1px;height:36px;background:var(--b1)"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px"><div class="sk-block" style="height:14px;width:48%"></div><div class="sk-block" style="height:14px;width:36%"></div></div><div class="sk-block" style="width:85px;height:24px;border-radius:6px"></div></div>
+        </div>
+      </div>
+    </div>
+    <!-- Real content injected here -->
+    <div id="matches-root"></div>
+  </div>
+
+</div>
+
+<footer>
+  <p>&copy; 2026 ScorePop — <a href="/">Ana Sayfa</a> · <a href="/haberler">Haberler</a> · <a href="/tv-rehberi/">TV Rehberi</a> · <a href="/puan-durumu/">Puan Durumu</a> · <a href="/hakkimizda">Hakkımızda</a></p>
+</footer>
+
+<script>
+(function() {
+  'use strict';
+
+  /* ── HELPERS ── */
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function fmtTime(isoDate) {
+    try {
+      var d = new Date(isoDate);
+      return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    } catch(e) { return '--:--'; }
+  }
+
+  function fmtDayLabel(isoDate) {
+    try {
+      var d = new Date(isoDate);
+      var today = new Date();
+      var tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+      var dStr = d.toDateString();
+      if (dStr === today.toDateString()) return 'Bugün';
+      if (dStr === tomorrow.toDateString()) return 'Yarın';
+      var days = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+      var months = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+      return days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()];
+    } catch(e) { return ''; }
+  }
+
+  function fmtGroupKey(isoDate) {
+    try {
+      var d = new Date(isoDate);
+      return d.toDateString();
+    } catch(e) { return 'unknown'; }
+  }
+
+  function fmtGroupTitle(isoDate) {
+    try {
+      var d = new Date(isoDate);
+      var today = new Date(); var tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+      var dStr = d.toDateString();
+      var months = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+      var days = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+      var label = d.getDate() + ' ' + months[d.getMonth()];
+      if (dStr === today.toDateString()) return '📅 Bugün — ' + label;
+      if (dStr === tomorrow.toDateString()) return '📅 Yarın — ' + label;
+      return '📅 ' + days[d.getDay()] + ', ' + label;
+    } catch(e) { return ''; }
+  }
+
+  /* ── CHANNEL COLOR VARIANT ── */
+  var CH_ALT = ['S Sport', 'EXXEN'];
+  function isAlt(ch) {
+    return CH_ALT.some(function(p) { return ch.indexOf(p) !== -1; });
+  }
+
+  /* ── RENDER CARD ── */
+  function renderCard(m) {
+    var time = fmtTime(m.fixture_date);
+    var dayShort = fmtDayLabel(m.fixture_date);
+    var homeName = esc(m.home_name || '?');
+    var awayName = esc(m.away_name || '?');
+    var homeLogo = m.home_logo || '';
+    var awayLogo = m.away_logo || '';
+    var league   = esc(m.league_detail || m.league_name || '');
+    var channels = (m.broadcaster || '').split(',').map(function(c) { return c.trim(); }).filter(Boolean);
+    var fixtureId = m.fixture_id;
+
+    function logoOrPlaceholder(url, name) {
+      if (url) return '<img class="match-team-logo" src="' + esc(url) + '" alt="' + esc(name) + '" onerror="this.style.display=\'none\'">';
+      return '<div class="match-team-logo-placeholder">⚽</div>';
+    }
+
+    var pillsHtml = channels.map(function(ch, i) {
+      return '<span class="ch-pill' + (isAlt(ch) ? ' alt' : '') + '">' + esc(ch) + '</span>';
+    }).join('');
+
+    return '<a class="match-card" href="/mac/' + fixtureId + '" data-channels="' + esc(channels.join('|')) + '">' +
+      '<div class="match-time">' +
+        '<div class="match-time-val">' + esc(time) + '</div>' +
+        '<div class="match-time-day">' + esc(dayShort) + '</div>' +
+      '</div>' +
+      '<div class="match-divider"></div>' +
+      '<div class="match-teams">' +
+        '<div class="match-team">' + logoOrPlaceholder(homeLogo, m.home_name) + '<span class="match-team-name">' + homeName + '</span></div>' +
+        '<div class="match-vs">vs</div>' +
+        '<div class="match-team">' + logoOrPlaceholder(awayLogo, m.away_name) + '<span class="match-team-name">' + awayName + '</span></div>' +
+      '</div>' +
+      '<div class="match-meta">' +
+        (league ? '<div class="match-league">' + league + '</div>' : '') +
+        '<div class="match-channels">' + pillsHtml + '</div>' +
+      '</div>' +
+    '</a>';
+  }
+
+  /* ── RENDER ALL ── */
+  var allMatches = [];
+  var activeFilter = 'tumu';
+
+  function renderMatches(matches) {
+    var root = document.getElementById('matches-root');
+    if (!matches.length) {
+      root.innerHTML = '<div class="state-box"><div class="state-icon">📭</div><div class="state-title">Yayınlanan Maç Yok</div><div class="state-sub">Şu an yayın bilgisi olan yaklaşan maç bulunmuyor.</div></div>';
+      return;
+    }
+
+    /* Group by date */
+    var groups = {};
+    var groupOrder = [];
+    matches.forEach(function(m) {
+      var key = fmtGroupKey(m.fixture_date);
+      if (!groups[key]) { groups[key] = []; groupOrder.push(key); }
+      groups[key].push(m);
+    });
+
+    var html = '';
+    groupOrder.forEach(function(key) {
+      var grp = groups[key];
+      var title = fmtGroupTitle(grp[0].fixture_date);
+      html += '<div class="date-group">';
+      html += '<div class="date-group-header">';
+      html += '<div class="date-group-title">' + esc(title) + '</div>';
+      html += '<div class="date-group-line"></div>';
+      html += '<div class="date-group-count">' + grp.length + ' maç</div>';
+      html += '</div>';
+      html += '<div class="match-list">';
+      grp.forEach(function(m) { html += renderCard(m); });
+      html += '</div></div>';
+    });
+
+    root.innerHTML = html;
+  }
+
+  function applyFilter(ch) {
+    activeFilter = ch;
+    document.querySelectorAll('.filter-btn').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.ch === ch);
+    });
+    if (ch === 'tumu') {
+      renderMatches(allMatches);
+    } else {
+      var filtered = allMatches.filter(function(m) {
+        var channels = (m.broadcaster || '').split(',').map(function(c) { return c.trim(); });
+        return channels.some(function(c) { return c === ch; });
+      });
+      renderMatches(filtered);
+    }
+  }
+
+  function buildFilters(matches) {
+    var chSet = {};
+    matches.forEach(function(m) {
+      (m.broadcaster || '').split(',').forEach(function(c) {
+        c = c.trim();
+        if (c) chSet[c] = (chSet[c] || 0) + 1;
+      });
+    });
+
+    var bar = document.getElementById('filter-bar');
+    var sorted = Object.keys(chSet).sort();
+    sorted.forEach(function(ch) {
+      var btn = document.createElement('button');
+      btn.className = 'filter-btn';
+      btn.dataset.ch = ch;
+      btn.textContent = ch + ' (' + chSet[ch] + ')';
+      btn.addEventListener('click', function() { applyFilter(ch); });
+      bar.appendChild(btn);
+    });
+
+    document.querySelector('.filter-btn[data-ch="tumu"]').addEventListener('click', function() { applyFilter('tumu'); });
+    bar.style.display = 'flex';
+  }
+
+  function buildStats(matches) {
+    var chSet = {};
+    var today = new Date().toDateString();
+    var todayCount = 0;
+    matches.forEach(function(m) {
+      if (new Date(m.fixture_date).toDateString() === today) todayCount++;
+      (m.broadcaster || '').split(',').forEach(function(c) { c=c.trim(); if(c) chSet[c]=1; });
+    });
+    document.getElementById('stat-total').textContent = matches.length;
+    document.getElementById('stat-channels').textContent = Object.keys(chSet).length;
+    document.getElementById('stat-today').textContent = todayCount;
+    document.getElementById('stats-row').style.display = 'flex';
+  }
+
+  /* ── MAIN LOAD ── */
+  async function load() {
+    var sb;
+    try {
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } catch(e) {
+      document.getElementById('skeletons').style.display = 'none';
+      document.getElementById('matches-root').innerHTML =
+        '<div class="state-box"><div class="state-icon">⚠️</div><div class="state-title">Bağlantı Hatası</div><div class="state-sub">config.js yüklenemedi.</div></div>';
+      return;
+    }
+
+    try {
+      /* 1. match_info: broadcaster dolu olanlar */
+      var miRes = await sb.from('match_info')
+        .select('fixture_id, broadcaster, league_detail, match_date_str')
+        .not('broadcaster', 'is', null)
+        .neq('broadcaster', '');
+
+      if (miRes.error) throw miRes.error;
+      var miRows = miRes.data || [];
+      if (!miRows.length) {
+        document.getElementById('skeletons').style.display = 'none';
+        document.getElementById('matches-root').innerHTML =
+          '<div class="state-box"><div class="state-icon">📭</div><div class="state-title">Yayın Bilgisi Yok</div><div class="state-sub">Şu an yayın bilgisi eklenmiş maç bulunmuyor.</div></div>';
+        return;
+      }
+
+      var fixtureIds = miRows.map(function(r) { return r.fixture_id; });
+
+      /* 2. future_matches: o fixture_id'ler için takım/tarih bilgisi */
+      var fmRes = await sb.from('future_matches')
+        .select('fixture_id, data, date')
+        .in('fixture_id', fixtureIds);
+
+      var fmMap = {};
+      (fmRes.data || []).forEach(function(r) {
+        var d = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
+        fmMap[r.fixture_id] = { raw: d, date: r.date };
+      });
+
+      /* 3. Merge */
+      var now = new Date();
+      var merged = miRows.map(function(mi) {
+        var fm = fmMap[mi.fixture_id] || {};
+        var raw = fm.raw || {};
+        var fixture = raw.fixture || {};
+        var teams   = raw.teams  || {};
+        var league  = raw.league || {};
+
+        /* Date: prefer fixture.date (ISO string) from data, fall back to fm.date */
+        var fixtureDate = fixture.date || fm.date || null;
+
+        return {
+          fixture_id:   mi.fixture_id,
+          broadcaster:  mi.broadcaster,
+          league_detail: mi.league_detail || league.name || '',
+          league_name:  league.name || '',
+          fixture_date: fixtureDate,
+          home_name:    (teams.home || {}).name || '',
+          home_logo:    (teams.home || {}).logo || '',
+          away_name:    (teams.away || {}).name || '',
+          away_logo:    (teams.away || {}).logo || '',
+        };
+      })
+      /* Only include matches with a date, sorted ascending */
+      .filter(function(m) { return !!m.fixture_date; })
+      .sort(function(a, b) { return new Date(a.fixture_date) - new Date(b.fixture_date); });
+
+      allMatches = merged;
+
+      document.getElementById('skeletons').style.display = 'none';
+
+      if (!merged.length) {
+        document.getElementById('matches-root').innerHTML =
+          '<div class="state-box"><div class="state-icon">📭</div><div class="state-title">Yayın Bilgisi Yok</div><div class="state-sub">Şu an yayın bilgisi eklenmiş maç bulunmuyor.</div></div>';
+        return;
+      }
+
+      buildStats(merged);
+      buildFilters(merged);
+      renderMatches(merged);
+
+    } catch(err) {
+      document.getElementById('skeletons').style.display = 'none';
+      document.getElementById('matches-root').innerHTML =
+        '<div class="state-box"><div class="state-icon">❌</div><div class="state-title">Veri Yüklenemedi</div><div class="state-sub">' + esc(err.message) + '</div></div>';
+    }
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>
