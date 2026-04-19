@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v9.6 — Arşiv Desteği)
+   SCOREPOP — app.js  (v9.7 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -557,7 +557,7 @@ async function loadOddsPage() {
         const kt = n.kickoff_time || '';
         if (kt) {
           const ktDate = new Date(kt).toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
-          if (ktDate === OA.date && !map.has(n.fixture_id)) map.set(n.fixture_id, n);
+          if (ktDate === S.date && !map.has(n.fixture_id)) map.set(n.fixture_id, n);
         }
       });
 
@@ -847,49 +847,79 @@ async function loadLive(silent = false) {
   }
 }
 
-async function loadToday() {
+async function loadToday(silent = false) {
   _fetchLiveCount();
 
   if (S.date < todayStr()) {
-    await loadArchive(S.date);
+    if (silent && S.archiveCache && S.archiveCache._date === S.date) return;
+    await loadArchive(S.date, silent);
     return;
   }
 
-  // ─── 1. live_matches: canlı + NS (worker tarafından takip edilenler) ───
   const isToday = S.date === todayStr();
 
+  /* 🔧 ESKİ: .order('kickoff_time') vardı, kaldırıldı */
   const [liveRes, futureRes] = await Promise.all([
     isToday
-      ? S.sb.from('live_matches').select('*').order('league_name')   // updated_at dahil (stale dedektörü için)
+      ? S.sb.from('live_matches').select('*').order('league_name')
       : Promise.resolve({ data: [], error: null }),
-      S.sb.from('future_matches').select('*').eq('date',
-      S.date).order('kickoff_time').limit(300),
+    S.sb.from('future_matches').select('*').eq('date', S.date).limit(300),
   ]);
 
   if (liveRes.error)  console.error("live_matches hatası:", liveRes.error.message);
   if (futureRes.error) console.error("future_matches hatası:", futureRes.error.message);
 
-  // fixture_id bazlı dedupe — Set yerine Map kullanarak verileri birleştireceğiz
   const matchesMap = new Map();
 
-  // Tekil maçı Map'e ekleyen veya eksik verisini güncelleyen yardımcı fonksiyon
   function processNorm(norm) {
     if (!norm.fixture_id) return;
-
     if (!matchesMap.has(norm.fixture_id)) {
       matchesMap.set(norm.fixture_id, norm);
     } else {
-      // Maç zaten live_matches'ten eklenmişse, eksik verilerini (saat, ülke, logo) future_matches'ten yamala
       const existing = matchesMap.get(norm.fixture_id);
-      
       if (!existing.kickoff_time && norm.kickoff_time) existing.kickoff_time = norm.kickoff_time;
-      
-      // ▼ YENİ: Sıralama ve görsellik için eksik ülke/lig bilgilerini de tamamla ▼
       if (!existing.league_country && norm.league_country) existing.league_country = norm.league_country;
       if (!existing.league_flag && norm.league_flag) existing.league_flag = norm.league_flag;
       if (!existing.league_logo && norm.league_logo) existing.league_logo = norm.league_logo;
     }
   }
+
+  function parseRows(list) {
+    (list || []).forEach(r => {
+      if (r.raw_data) {
+        try {
+          const parsed = JSON.parse(r.raw_data);
+          processNorm(normFix({ ...r, ...parsed }));
+          return;
+        } catch(e) {}
+      }
+      if (r.data && typeof r.data === 'object') {
+        let d = r.data;
+        if (typeof d === 'string') { try { d = JSON.parse(d); } catch(e) { d = null; } }
+        if (d && typeof d === 'object') {
+          const list2 = Array.isArray(d) ? d : [d];
+          list2.forEach(m => processNorm(normFix({ ...r, ...m })));
+          return;
+        }
+      }
+      processNorm(normFix(r));
+    });
+  }
+
+  parseRows(liveRes.data);
+  parseRows(futureRes.data);
+
+  const rows = Array.from(matchesMap.values());
+  
+  /* 🔧 YENİ: JS'de kickoff_time'a göre sırala (DB'de order yok) */
+  rows.sort((a, b) => {
+    const ta = new Date(a.kickoff_time || 0).getTime();
+    const tb = new Date(b.kickoff_time || 0).getTime();
+    return ta - tb;
+  });
+  
+  render(rows, false);
+}
 
   function parseRows(list) {
     (list || []).forEach(r => {
@@ -1040,7 +1070,6 @@ async function loadUpcoming() {
     .select('*')
     .gt('date', S.date)
     .order('date')
-    .order('kickoff_time')
     .limit(200);
 
   if (error) {
@@ -1080,6 +1109,13 @@ async function loadUpcoming() {
 
     /* 4. Düz satır */
     rows.push(normFix(r));
+  });
+
+    /* 🔧 YENİ: JS'de sırala */
+  rows.sort((a, b) => {
+    const ta = new Date(a.kickoff_time || a.date || 0).getTime();
+    const tb = new Date(b.kickoff_time || b.date || 0).getTime();
+    return ta - tb;
   });
 
   render(rows, false);
