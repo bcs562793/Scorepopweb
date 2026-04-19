@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v9.8 — Arşiv Desteği)
+   SCOREPOP — app.js  (v9.9 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -918,35 +918,6 @@ async function loadToday(silent = false) {
     return ta - tb;
   });
   
-  render(rows, false);
-}
-
-  function parseRows(list) {
-    (list || []).forEach(r => {
-      if (r.raw_data) {
-        try {
-          const parsed = JSON.parse(r.raw_data);
-          processNorm(normFix({ ...r, ...parsed }));
-          return;
-        } catch(e) {}
-      }
-      if (r.data && typeof r.data === 'object') {
-        const list2 = Array.isArray(r.data) ? r.data : [r.data];
-        list2.forEach(m => {
-          processNorm(normFix({ ...r, ...m }));
-        });
-        return;
-      }
-      processNorm(normFix(r));
-    });
-  }
-
-  // Önce live_matches (öncelikli), sonra future_matches (ek NS maçlar)
-  parseRows(liveRes.data);
-  parseRows(futureRes.data);
-
-  // Map'in içindeki birleştirilmiş değerleri Diziye (Array) çevir
-  const rows = Array.from(matchesMap.values());
   render(rows, false);
 }
 
