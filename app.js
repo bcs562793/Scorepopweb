@@ -129,6 +129,31 @@ const LEAGUE_CONF = [
   { id: 414, source: "bilyoner", priority: 202, name: "İngiltere League Two" }
 ];
 
+/* Favori ligler — localStorage'dan oku/yaz */
+function getFavLeagues() {
+  try {
+    const raw = localStorage.getItem('sp_fav_leagues');
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveFavLeagues(arr) {
+  try { localStorage.setItem('sp_fav_leagues', JSON.stringify(arr)); } catch {}
+}
+
+function toggleFavLeague(name) {
+  const favs = getFavLeagues();
+  const idx = favs.indexOf(name);
+  if (idx >= 0) favs.splice(idx, 1);
+  else favs.push(name);
+  saveFavLeagues(favs);
+  return favs;
+}
+
+function isFavLeague(name) {
+  return getFavLeagues().includes(name);
+}
+
 function getLeaguePriority(id, name) {
   if (!id) return 999;
   
