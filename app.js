@@ -155,21 +155,22 @@ function isFavLeague(name) {
 }
 
 function getLeaguePriority(id, name) {
+  // Önce isme göre ara (ID eşleşmese bile çalışır)
+  const lowerName = _toLowerTr(name || '');
+  const byName = LEAGUE_CONF.find(l => _toLowerTr(l.name) === lowerName);
+  if (byName) return byName.priority;
+
   if (!id) return 999;
-  
   const matches = LEAGUE_CONF.filter(l => l.id == id);
   if (matches.length === 0) return 999;
   if (matches.length === 1) return matches[0].priority;
 
-  // Çakışma varsa (örneğin ID:43 hem Şampiyonlar Ligi hem Premier Lig) isme göre ayırt et
-  const lowerName = (name || '').toLowerCase();
+  const lowerN = (name || '').toLowerCase();
   const exact = matches.find(l => {
-      const checkWord = l.name.toLowerCase().split(' ')[0];
-      return lowerName.includes(checkWord);
+    const checkWord = l.name.toLowerCase().split(' ')[0];
+    return lowerN.includes(checkWord);
   });
-  
-  if (exact) return exact.priority;
-  return matches[0].priority;
+  return exact ? exact.priority : matches[0].priority;
 }
 
 function _toLowerTr(str) {
@@ -478,11 +479,11 @@ function _renderOddsPage(root, rows) {
     const k = `${_toLowerTr(m.league_country || '')}__${_toLowerTr(m.league_name || 'Diğer')}`;
     // DÜZELTME — id ekle
 if (!groups[k]) groups[k] = {
-  id:      m.league_id     || 0,  // ← bunu ekle
-  name:    m.league_name   || 'Diğer',
-  logo:    m.league_logo   || '',
+  id:      m.league_id    || null,  // ← ekle
+  name:    m.league_name  || 'Diğer',
+  logo:    m.league_logo  || '',
   country: m.league_country || '',
-  flag:    m.league_flag   || '',
+  flag:    m.league_flag  || '',
   matches: []
 };
     groups[k].matches.push(m);
