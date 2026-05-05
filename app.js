@@ -27,314 +27,143 @@ const S = {
   gzOddsCache: {},    /* YYYY-MM-DD → parsed gz array */
 };
 
-/* ── LİG ÖNCELİK SİSTEMİ ───────────────────── */
-/*
-   tier 1 = Üst ligler (sıralı)
-   tier 2 = Alt ligler (sıralı)
-   Eşleşme: league_name içinde keyword geçiyorsa eşleşir.
-   Aynı tier içinde order küçük olan önce gelir.
-*/
-/* ── LİG ÖNCELİK SİSTEMİ ───────────────────── */
-const LEAGUE_TIERS = [
-  /* ─── TIER 0: BÜYÜK ULUSLARARASI TURNUVALAR (HER ZAMAN EN ÜSTTE) ─── */
-  { tier: 0, order: 1,  keywords: ['world cup', 'dünya kupası', 'fifa world cup', 'wc qualifier', 'world cup qualifier', 'dünya kupası eleme', 'coupe du monde', 'weltmeisterschaft'] },
-  { tier: 0, order: 2,  keywords: ['euro 2024', 'euro 2025', 'euro 2026', 'euro 2027', 'avrupa şampiyonası', 'uefa european championship', 'european championship qualifier', 'euro qualifier', 'avrupa şampiyonası eleme', 'uefa euro'] },
-  { tier: 0, order: 3,  keywords: ['nations league', 'uluslar ligi', 'uefa nations', 'league a', 'league b', 'league c', 'league d'] },
-  { tier: 0, order: 4,  keywords: ['copa america', 'copa américa', 'conmebol', 'south america championship'] },
-  { tier: 0, order: 5,  keywords: ['africa cup', 'afcon', 'can 20', 'africa nations'] },
-  { tier: 0, order: 6,  keywords: ['asian cup', 'afc asian cup', 'asya kupası', 'asian championship'] },
-  { tier: 0, order: 7,  keywords: ['gold cup', 'concacaf gold', 'concacaf championship'] },
-
-  /* ─── TIER 1: AVRUPA KUPALARI & ÜST LİGLER (Mackolik JSON Öncelik Sıralaması) ─── */
-  
-  /* Şampiyonlar Ligi (Priority -4) */
-  { tier: 1, order: 1, keywords: ['champions league', 'şampiyonlar ligi', 'ucl'] },
-  /* Avrupa Ligi (Priority -3) */
-  { tier: 1, order: 2, keywords: ['europa league', 'avrupa ligi', 'uel'] },
-  /* Konferans Ligi (Priority -2) */
-  { tier: 1, order: 3, keywords: ['conference league', 'konferans ligi', 'uecl'] },
-  
-  /* Türkiye Süper Lig (Priority -1) */
-  { tier: 1, order: 4,  keywords: ['süper lig', 'super lig', 'trendyol süper', 'türkiye 1.', 'spor toto süper'], country: 'turkey' },
-  /* İngiltere Premier League (Priority 0) */
-  { tier: 1, order: 5,  keywords: ['premier league', 'ingiltere premier', 'england premier', 'premier lig'], country: 'england' },
-  /* Almanya Bundesliga (Priority 1) */
-  { tier: 1, order: 6,  keywords: ['bundesliga', 'almanya 1.', '1. bundesliga'], country: 'germany' },
-  /* İspanya La Liga (Priority 2) */
-  { tier: 1, order: 7,  keywords: ['la liga', 'laliga', 'ispanya 1.', 'primera división', 'primera division'], country: 'spain' },
-  /* İtalya Serie A (Priority 3) */
-  { tier: 1, order: 8,  keywords: ['serie a', 'italya 1.', 'serie a tim'], country: 'italy' },
-  /* Fransa Ligue 1 (Priority 4) */
-  { tier: 1, order: 9,  keywords: ['ligue 1', 'fransa 1.', 'ligue 1 mcdonald'], country: 'france' },
-  /* Hollanda Eredivisie (Priority 5) */
-  { tier: 1, order: 10, keywords: ['eredivisie', 'hollanda 1.', 'netherlands 1.'], country: 'netherlands' },
-  /* Portekiz Primeira Liga (Priority 6) */
-  { tier: 1, order: 11, keywords: ['primeira liga', 'liga portugal', 'portekiz 1.', 'liga nos'], country: 'portugal' },
-  /* İsviçre Super League (Priority 7) */
-  { tier: 1, order: 12, keywords: ['super league', 'swiss super', 'swiss league'], country: 'switzerland' },
-  /* Danimarka Superliga (Priority 8) */
-  { tier: 1, order: 13, keywords: ['superliga', 'danimarka 1.', 'danish superliga'], country: 'denmark' },
-  /* Hırvatistan HNL (Priority 9) */
-  { tier: 1, order: 14, keywords: ['hnl', 'hrvatska nogometna', 'croatian football', 'supersport hnl'], country: 'croatia' },
-  /* İskoçya Premiership (Priority 10) */
-  { tier: 1, order: 15, keywords: ['scottish premiership', 'scotland premier', 'premiership scotland'], country: 'scotland' },
-  /* Belçika Pro League (Priority 11) */
-  { tier: 1, order: 16, keywords: ['jupiler', 'pro league', 'belgian pro', 'belçika 1.', 'first division a'], country: 'belgium' },
-  /* Avusturya Bundesliga (Priority 12) */
-  { tier: 1, order: 17, keywords: ['bundesliga', 'austrian bundesliga', 'admiral bundesliga', 'avusturya 1.', 'österreichische'], country: 'austria' },
-  /* Polonya Ekstraklasa (Priority 13) */
-  { tier: 1, order: 18, keywords: ['ekstraklasa', 'polish ekstraklasa'], country: 'poland' },
-  /* Sırbistan Super Liga (Priority 14) */
-  { tier: 1, order: 19, keywords: ['superliga', 'srpska superliga', 'serbia superliga', 'super liga'], country: 'serbia' },
-  /* İsveç Allsvenskan (Priority 15) */
-  { tier: 1, order: 20, keywords: ['allsvenskan', 'swedish allsvenskan'], country: 'sweden' },
-  /* Norveç Eliteserien (Priority 16) */
-  { tier: 1, order: 21, keywords: ['eliteserien', 'norveç 1.', 'norway 1.'], country: 'norway' },
-  /* Finlandiya Veikkausliiga (Priority 17) */
-  { tier: 1, order: 22, keywords: ['veikkausliiga', 'finlandiya 1.'], country: 'finland' },
-  /* Bosna Hersek (Priority 18) */
-  { tier: 1, order: 23, keywords: ['bosna', 'premier league', 'bosnian premier'], country: 'bosnia' },
-
-  /* Geri Kalan 1. Ligler... */
-  { tier: 1, order: 24, keywords: ['chance liga', '1. liga', 'czech 1.', 'çekya 1.', 'fortuna liga'], country: 'czech' },
-  { tier: 1, order: 25, keywords: ['super league', 'yunanistan 1.', 'greek super', 'super league 1', 'super league greece'], country: 'greece' },
-  { tier: 1, order: 26, keywords: ['premier league', 'ligat ha\'al', 'israel premier', 'israeli premier'], country: 'israel' },
-  { tier: 1, order: 27, keywords: ['premier league', 'ukrainian premier', 'ukrayna premier', 'upl'], country: 'ukraine' },
-  { tier: 1, order: 28, keywords: ['premier league', 'cyprus first', 'cyta championship', 'cyprus championship', 'first division'], country: 'cyprus' },
-  { tier: 1, order: 29, keywords: ['nemzeti bajnokság', 'nb i', 'otp bank liga', 'hungarian nb'], country: 'hungary' },
-  { tier: 1, order: 30, keywords: ['liga i', 'liga 1', 'superliga', 'romanian liga'], country: 'romania' },
-
-
-  /* ─── TIER 2: 2. LİGLER VE ALT LİGLER (Priority 100 Serisi) ─── */
-  { tier: 2, order: 1,  keywords: ['1. lig', 'tff 1', 'türkiye 2.'], country: 'turkey' }, /* Priority 100 */
-  { tier: 2, order: 2,  keywords: ['championship', 'ingiltere 2.', 'efl championship'], country: 'england' }, /* Priority 101 */
-  { tier: 2, order: 3,  keywords: ['2. bundesliga', 'almanya 2.'], country: 'germany' }, /* Priority 102 */
-  { tier: 2, order: 4,  keywords: ['la liga 2', 'segunda', 'laliga2', 'ispanya 2.'], country: 'spain' }, /* Priority 103 */
-  { tier: 2, order: 5,  keywords: ['serie b', 'italya 2.'], country: 'italy' }, /* Priority 104 */
-  { tier: 2, order: 6,  keywords: ['ligue 2', 'fransa 2.'], country: 'france' }, /* Priority 105 */
-  { tier: 2, order: 7,  keywords: ['eerste divisie', 'hollanda 2.', 'keuken kampioen'], country: 'netherlands' }, /* Priority 106 */
-  { tier: 2, order: 8,  keywords: ['liga de honra', 'portekiz 2.', 'liga sabseg', 'segunda liga'], country: 'portugal' }, /* Priority 107 */
-  { tier: 2, order: 9,  keywords: ['challenge league', 'swiss challenge'], country: 'switzerland' }, /* Priority 108 */
-  { tier: 2, order: 10, keywords: ['1. division', 'danimarka 2.'], country: 'denmark' }, /* Priority 109 */
-  { tier: 2, order: 11, keywords: ['1.nl', 'hnl 2', 'hırvatistan 2.', 'prva nl'], country: 'croatia' }, /* Priority 110 */
-  { tier: 2, order: 12, keywords: ['scottish championship', 'championship scotland'], country: 'scotland' }, /* Priority 111 */
-  { tier: 2, order: 13, keywords: ['1b pro league', 'proximus league', 'first division b', 'belçika 2.', 'belgian 2.'], country: 'belgium' }, /* Priority 112 */
-  { tier: 2, order: 14, keywords: ['2. liga', 'austrian 2.', 'avusturya 2.'], country: 'austria' }, /* Priority 113 */
-  { tier: 2, order: 15, keywords: ['1.liga', 'i liga', 'polonya 2.', 'polish i liga'], country: 'poland' }, /* Priority 114 */
-  { tier: 2, order: 16, keywords: ['liga 2', 'prva liga srbije', 'sırbistan 2.'], country: 'serbia' }, /* Priority 115 */
-  { tier: 2, order: 17, keywords: ['superettan', 'isveç 2.', 'swedish superettan'], country: 'sweden' }, /* Priority 116 */
-
-  /* ─── TIER 3: DAHA ALT LİGLER VE KUPALAR (Priority 200, 300 Serisi) ─── */
-  { tier: 3, order: 1, keywords: ['2. lig', 'tff 2', 'türkiye 3. lig'], country: 'turkey' }, /* Priority 200 */
-  { tier: 3, order: 2, keywords: ['league two', 'efl league two'], country: 'england' }, /* Priority 202 */
-  
-  { tier: 4, order: 1, keywords: ['türkiye kupası', 'turkey cup'], country: 'turkey' }, /* Priority 300 */
-  { tier: 4, order: 2, keywords: ['league cup', 'efl cup', 'carabao cup'], country: 'england' }, /* Priority 302 */
-  { tier: 4, order: 3, keywords: ['community shield', 'fa cup'], country: 'england' }, /* Priority 303 */
-  { tier: 4, order: 99, keywords: ['süper kupa', 'super cup'] },
+/* ── LİG ÖNCELİK SİSTEMİ (JSON league_id tabanlı) ───────────────────── */
+const LEAGUE_CONF = [
+  { id: 1, source: "mackolik", priority: -1, name: "Türkiye Süper Lig" },
+  { id: 584, source: "bilyoner", priority: -1, name: "Türkiye Süper Lig" },
+  { id: 43, source: "mackolik", priority: -4, name: "Şampiyonlar Ligi" },
+  { id: 44, source: "bilyoner", priority: -4, name: "Şampiyonlar Ligi" },
+  { id: 126, source: "bilyoner", priority: -4, name: "Şampiyonlar Ligi" },
+  { id: 1650, source: "bilyoner", priority: -3, name: "Avrupa Ligi" },
+  { id: 588, source: "mackolik", priority: -3, name: "Avrupa Ligi" },
+  { id: 1644, source: "bilyoner", priority: -3, name: "Avrupa Ligi" },
+  { id: 11031, source: "bilyoner", priority: -3, name: "Avrupa Ligi" },
+  { id: 14037, source: "bilyoner", priority: -3, name: "Avrupa Ligi" },
+  { id: 13868, source: "bilyoner", priority: -3, name: "Avrupa Ligi" },
+  { id: 23986, source: "bilyoner", priority: -2, name: "Konferans Ligi" },
+  { id: 12748, source: "bilyoner", priority: -2, name: "Konferans Ligi" },
+  { id: 12861, source: "bilyoner", priority: -2, name: "Konferans Ligi" },
+  { id: 12597, source: "mackolik", priority: -2, name: "Konferans Ligi" },
+  { id: 13876, source: "bilyoner", priority: -2, name: "Konferans Ligi" },
+  { id: 24, source: "mackolik", priority: 0, name: "İngiltere Premier League" },
+  { id: 43, source: "bilyoner", priority: 0, name: "Premier League" },
+  { id: 3, source: "mackolik", priority: 1, name: "Almanya Bundesliga" },
+  { id: 45, source: "bilyoner", priority: 1, name: "Bundesliga" },
+  { id: 20, source: "mackolik", priority: 2, name: "İspanya La Liga" },
+  { id: 129, source: "bilyoner", priority: 2, name: "La Liga" },
+  { id: 15, source: "mackolik", priority: 3, name: "İtalya Serie A" },
+  { id: 143, source: "bilyoner", priority: 3, name: "Serie A" },
+  { id: 5, source: "mackolik", priority: 4, name: "Ligue 1" },
+  { id: 381, source: "bilyoner", priority: 4, name: "Ligue 1" },
+  { id: 75, source: "mackolik", priority: 300, name: "Türkiye Kupası" },
+  { id: 50, source: "mackolik", priority: 302, name: "İngiltere League Cup" },
+  { id: 51, source: "mackolik", priority: 303, name: "Community Shield" },
+  { id: 17, source: "mackolik", priority: 5, name: "Eredivisie" },
+  { id: 322, source: "bilyoner", priority: 5, name: "Eredivisie" },
+  { id: 1861, source: "bilyoner", priority: 5, name: "Eredivisie" },
+  { id: 19, source: "mackolik", priority: 6, name: "Primeira Liga" },
+  { id: 566, source: "bilyoner", priority: 6, name: "Primeira Liga" },
+  { id: 87, source: "mackolik", priority: 7, name: "İsviçre Super League" },
+  { id: 15, source: "bilyoner", priority: 7, name: "İsviçre Super League" },
+  { id: 221, source: "bilyoner", priority: 7, name: "İsviçre Super League" },
+  { id: 45241, source: "bilyoner", priority: 7, name: "İsviçre Super League" },
+  { id: 119, source: "mackolik", priority: 8, name: "Danimarka Superliga" },
+  { id: 1262, source: "bilyoner", priority: 8, name: "Danimarka Superliga" },
+  { id: 111, source: "mackolik", priority: 9, name: "Hırvatistan HNL" },
+  { id: 207, source: "bilyoner", priority: 9, name: "Hırvatistan HNL" },
+  { id: 33402, source: "bilyoner", priority: 9, name: "Hırvatistan HNL" },
+  { id: 179, source: "mackolik", priority: 10, name: "İskoçya Premiership" },
+  { id: 590, source: "bilyoner", priority: 10, name: "İskoçya Premiership" },
+  { id: 9, source: "mackolik", priority: 11, name: "Belçika Pro League" },
+  { id: 1220, source: "bilyoner", priority: 11, name: "Belçika Pro League" },
+  { id: 218, source: "mackolik", priority: 12, name: "Avusturya Bundesliga" },
+  { id: 1209, source: "bilyoner", priority: 12, name: "Avusturya Bundesliga" },
+  { id: 1211, source: "bilyoner", priority: 12, name: "Avusturya Bundesliga" },
+  { id: 106, source: "mackolik", priority: 13, name: "Polonya Ekstraklasa" },
+  { id: 202, source: "bilyoner", priority: 13, name: "Polonya Ekstraklasa" },
+  { id: 286, source: "mackolik", priority: 14, name: "Sırbistan Super Liga" },
+  { id: 25886, source: "bilyoner", priority: 14, name: "Sırbistan Super Liga" },
+  { id: 25887, source: "bilyoner", priority: 14, name: "Sırbistan Super Liga" },
+  { id: 22, source: "mackolik", priority: 15, name: "İsveç Allsvenskan" },
+  { id: 18, source: "mackolik", priority: 16, name: "Norveç Eliteserien" },
+  { id: 573, source: "bilyoner", priority: 16, name: "Norveç Eliteserien" },
+  { id: 13, source: "mackolik", priority: 17, name: "Finlandiya Veikkausliiga" },
+  { id: 628, source: "bilyoner", priority: 17, name: "Finlandiya Veikkausliiga" },
+  { id: 429, source: "mackolik", priority: 18, name: "Bosna Hersek" },
+  { id: 16324, source: "bilyoner", priority: 18, name: "Bosna Hersek" },
+  { id: 2, source: "mackolik", priority: 100, name: "Türkiye 1. Lig" },
+  { id: 1980, source: "bilyoner", priority: 100, name: "Türkiye 1. Lig" },
+  { id: 25, source: "mackolik", priority: 101, name: "Championship" },
+  { id: 52, source: "bilyoner", priority: 101, name: "Championship" },
+  { id: 4, source: "mackolik", priority: 102, name: "2. Bundesliga" },
+  { id: 132, source: "bilyoner", priority: 102, name: "2. Bundesliga" },
+  { id: 21, source: "mackolik", priority: 103, name: "Segunda División" },
+  { id: 1951, source: "bilyoner", priority: 103, name: "Segunda División" },
+  { id: 16, source: "mackolik", priority: 104, name: "Serie B" },
+  { id: 6, source: "mackolik", priority: 105, name: "Ligue 2" },
+  { id: 614, source: "bilyoner", priority: 105, name: "Ligue 2" },
+  { id: 120, source: "mackolik", priority: 106, name: "Eerste Divisie" },
+  { id: 474, source: "mackolik", priority: 107, name: "Liga de Honra" },
+  { id: 1897, source: "bilyoner", priority: 107, name: "Liga de Honra" },
+  { id: 114, source: "mackolik", priority: 108, name: "İsviçre Challenge League" },
+  { id: 1975, source: "bilyoner", priority: 108, name: "İsviçre Challenge League" },
+  { id: 416, source: "mackolik", priority: 109, name: "Danimarka 1.Division" },
+  { id: 13292, source: "bilyoner", priority: 110, name: "Hırvatistan 1.NL" },
+  { id: 26, source: "mackolik", priority: 111, name: "İskoçya Championship" },
+  { id: 577, source: "bilyoner", priority: 111, name: "İskoçya Championship" },
+  { id: 415, source: "mackolik", priority: 112, name: "Belçika 1B Pro League" },
+  { id: 219, source: "mackolik", priority: 113, name: "Avusturya 2.Liga" },
+  { id: 598, source: "bilyoner", priority: 113, name: "Avusturya 2.Liga" },
+  { id: 107, source: "mackolik", priority: 114, name: "Polonya 1.Liga" },
+  { id: 997, source: "bilyoner", priority: 114, name: "Polonya 1.Liga" },
+  { id: 287, source: "mackolik", priority: 115, name: "Sırbistan Liga 2" },
+  { id: 104, source: "mackolik", priority: 116, name: "İsveç Superettan" },
+  { id: 349, source: "bilyoner", priority: 116, name: "İsveç Superettan" },
+  { id: 1708, source: "bilyoner", priority: 200, name: "Türkiye 2. Lig" },
+  { id: 60, source: "mackolik", priority: 200, name: "Türkiye 3. Lig" },
+  { id: 61, source: "mackolik", priority: 200, name: "Türkiye 3. Lig" },
+  { id: 62, source: "mackolik", priority: 200, name: "Türkiye 3. Lig" },
+  { id: 63, source: "mackolik", priority: 200, name: "Türkiye 3. Lig" },
+  { id: 12, source: "mackolik", priority: 202, name: "İngiltere League Two" },
+  { id: 105, source: "bilyoner", priority: 202, name: "İngiltere League Two" },
+  { id: 414, source: "bilyoner", priority: 202, name: "İngiltere League Two" }
 ];
 
-/* Favori ligler — localStorage'dan oku/yaz */
-function getFavLeagues() {
-  try {
-    const raw = localStorage.getItem('sp_fav_leagues');
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+function getLeaguePriority(id, name) {
+  if (!id) return 999;
+  
+  const matches = LEAGUE_CONF.filter(l => l.id == id);
+  if (matches.length === 0) return 999;
+  if (matches.length === 1) return matches[0].priority;
+
+  // Çakışma varsa (örneğin ID:43 hem Şampiyonlar Ligi hem Premier Lig) isme göre ayırt et
+  const lowerName = (name || '').toLowerCase();
+  const exact = matches.find(l => {
+      const checkWord = l.name.toLowerCase().split(' ')[0];
+      return lowerName.includes(checkWord);
+  });
+  
+  if (exact) return exact.priority;
+  return matches[0].priority;
 }
 
-function saveFavLeagues(arr) {
-  try { localStorage.setItem('sp_fav_leagues', JSON.stringify(arr)); } catch {}
-}
-
-function toggleFavLeague(name) {
-  const favs = getFavLeagues();
-  const idx = favs.indexOf(name);
-  if (idx >= 0) favs.splice(idx, 1);
-  else favs.push(name);
-  saveFavLeagues(favs);
-  return favs;
-}
-
-function isFavLeague(name) {
-  return getFavLeagues().includes(name);
-}
-
-/*  Lig adından { tier, order } döndür — ülke filtresi destekler  */
-
-/* Mackolik Türkçe ülke adları → İngilizce eşlemesi */
-const COUNTRY_TR_MAP = {
-  'türkiye':   'turkey',
-  'ingiltere': 'england',
-  'ispanya':   'spain',
-  'italya':    'italy',
-  'almanya':   'germany',
-  'fransa':    'france',
-  'portekiz':  'portugal',
-  'hollanda':  'netherlands',
-  'belçika':   'belgium',
-  'isviçre':   'switzerland',
-  'İsviçre':   'switzerland',
-  'iskocya':   'scotland',
-  'İskoçya':   'scotland',
-  'polonya':   'poland',
-  'çekya':     'czech',
-  'çek cumhuriyeti': 'czech',
-  'avusturya': 'austria',
-  'norveç':    'norway',
-  'yunanistan':'greece',
-  'danimarka': 'denmark',
-  'İsrail':    'israel',
-  'israil':    'israel',
-  'ukrayna':   'ukraine',
-  'sırbistan': 'serbia',
-  'hırvatistan':'croatia',
-  'kıbrıs':   'cyprus',
-  'macaristan':'hungary',
-  'İsveç':     'sweden',
-  'isveç':     'sweden',
-  'romanya':   'romania',
-};
-
-/* --- YENİ: Türkçe karakterleri güvenle küçültme yardımcısı --- */
 function _toLowerTr(str) {
   if (!str) return '';
-  return str
-    .replace(/İ/g, 'i')
-    .replace(/I/g, 'ı')
-    .toLowerCase()
-    .trim();
+  return str.replace(/İ/g, 'i').replace(/I/g, 'ı').toLowerCase().trim();
 }
 
-function _normalizeCountry(country) {
-  const lower = _toLowerTr(country);
-  return COUNTRY_TR_MAP[lower] || lower;   /* Türkçe → İngilizce, yoksa olduğu gibi */
-}
-
-/*  Lig adından { tier, order } döndür — ülke filtresi destekler  */
-function _extractCountryFromName(leagueName) {
-  const lower = _toLowerTr(leagueName);
-
-  /* Türkçe ülke adları — COUNTRY_TR_MAP + ek ülkeler */
-  const TR_EXTRA = {
-    ...COUNTRY_TR_MAP,
-    'arjantin':'argentina','brezilya':'brazil','meksika':'mexico',
-    'abd':'usa','kanada':'canada','avustralya':'australia',
-    'japonya':'japan','cin':'china','rusya':'russia',
-    'bahreyn':'bahrain','suudi':'saudi','katar':'qatar',
-    'misir':'egypt','fas':'morocco','nijerya':'nigeria',
-    'gambiya':'gambia','ruanda':'rwanda','burkina':'burkina',
-    'bosna':'bosnia','karadag':'montenegro','faroe':'faroe',
-    'irak':'iraq','umman':'oman','urdun':'jordan',
-    'kolombiya':'colombia','sili':'chile','uruguay':'uruguay',
-    'peru':'peru','venezuela':'venezuela','ekvador':'ecuador',
-    'bolivya':'bolivia','paraguay':'paraguay','angola':'angola',
-    'kenya':'kenya','bulgaristan':'bulgaria','moldova':'moldova',
-    'slovakya':'slovakia','slovenya':'slovenia','arnavutluk':'albania',
-    'makedonya':'northmacedonia','ermenistan':'armenia',
-    'gurcistan':'georgia','azerbaycan':'azerbaijan',
-    'kazakistan':'kazakhstan','belarus':'belarus',
-    'litvanya':'lithuania','letonya':'latvia','estonya':'estonia',
-    'finlandiya':'finland','luksemburg':'luxembourg','malta':'malta',
-    'bae':'uae','hindistan':'india','endonezya':'indonesia',
-    'tayland':'thailand','vietnam':'vietnam','malezya':'malaysia',
-    'gana':'ghana','kamerun':'cameroon','senegal':'senegal',
-    'fildisi':'cotedivoire','zimbabve':'zimbabwe','zambia':'zambia',
-    'tunisia':'tunisia','tunus':'tunisia','cezayir':'algeria',
-    'libya':'libya','sudan':'sudan','etyopya':'ethiopia',
-    'tanzanya':'tanzania','kongo':'congo','mozambik':'mozambique',
-    'madagaskar':'madagascar','mali':'mali','niger':'niger',
-  };
-
-  for (const [trName, enName] of Object.entries(TR_EXTRA)) {
-    const trLower = _toLowerTr(trName);
-    if (trLower.length >= 3 && lower.includes(trLower)) return enName;
-  }
-
-  /* İngilizce ülke adları */
-  const EN_NAMES = [
-    'turkey','england','spain','italy','germany','france','portugal',
-    'netherlands','belgium','scotland','switzerland','austria','norway',
-    'greece','denmark','israel','ukraine','serbia','croatia','poland',
-    'cyprus','hungary','sweden','romania','czech','argentina','brazil',
-    'mexico','usa','canada','australia','japan','china','russia',
-    'bahrain','saudi','qatar','egypt','morocco','nigeria','gambia',
-    'rwanda','burkina','bosnia','montenegro','faroe','iraq','oman',
-    'jordan','colombia','chile','uruguay','peru','venezuela','ecuador',
-    'bolivia','paraguay','angola','kenya','bulgaria','moldova',
-    'slovakia','slovenia','albania','macedonia','armenia','georgia',
-    'azerbaijan','kazakhstan','belarus','lithuania','latvia','estonia',
-    'finland','luxembourg','malta','uae','india','indonesia',
-    'thailand','vietnam','malaysia','ghana','cameroon','senegal',
-    'zimbabwe','zambia','tunisia','algeria','libya','sudan',
-    'ethiopia','congo','mozambique','madagascar','mali','niger',
-    'singapore','philippines','myanmar','cambodia','laos',
-    'afghanistan','pakistan','bangladesh','nepal','srilanka',
-    'iran','syria','lebanon','kuwait','yemen','libya',
-  ];
-
-  for (const en of EN_NAMES) {
-    if (lower.includes(en)) return en;
-  }
-
-  return null;
-}
-
-/* Lig adından { tier, order } döndür — ülke filtresi destekler  */
-function _matchLeagueTier(leagueName, country) {
-  const lower        = _toLowerTr(leagueName);
-  const lowerCountry = _normalizeCountry(country);
-  const extracted    = _extractCountryFromName(leagueName);
-
-  for (const entry of LEAGUE_TIERS) {
-    for (const kw of entry.keywords) {
-      if (!lower.includes(kw)) continue;
-
-      /* 1. Ülke bağımsız bir turnuvaysa (Şampiyonlar Ligi vb.) direkt eşleşir */
-      if (!entry.country) return { tier: entry.tier, order: entry.order };
-
-      /* 2. API'den gelen ülke verisi varsa, eşleşmek ZORUNDA */
-      if (lowerCountry) {
-        if (lowerCountry.includes(entry.country)) {
-          return { tier: entry.tier, order: entry.order };
-        }
-        continue; /* Ülke tutmadıysa diğer keyword/lige geç (Örn: Mısır -> İngiltere'yi atlar) */
-      }
-
-      /* 3. API'de ülke yok ama lig adından ülke (mısır, arjantin vb.) çıkarabildiysek, eşleşmek ZORUNDA */
-      if (extracted) {
-        if (extracted === entry.country) {
-          return { tier: entry.tier, order: entry.order };
-        }
-        continue; /* Çıkarılan ülke tutmadıysa geç */
-      }
-
-      /* 4. Hem ülke boş hem de isimden ülke çıkarılamadıysa (Örn: Sadece "Premier League" yazıyorsa)
-         Eski kod burada direkt ilk bulduğuna (İngiltere) atıyordu, bu da Mısır/Bahreyn gibi
-         ülkesi boş gelen ligleri İngiltere Tier 1 yapıyordu.
-         Artık sadece keyword içinde bizzat ülke adı geçiyorsa eşleştiriyoruz. */
-      const trCountry = Object.keys(COUNTRY_TR_MAP).find(k => COUNTRY_TR_MAP[k] === entry.country);
-      if (kw.includes(entry.country) || (trCountry && kw.includes(trCountry))) {
-        return { tier: entry.tier, order: entry.order };
-      }
-    }
-  }
-  return { tier: 3, order: 999 };
-}
-
-/* Grup sıralama anahtarı: favori(0/1) → tier → order → alfabe  */
 function _leagueSortKey(group) {
   const fav = isFavLeague(group.name) ? 0 : 1;
-  const { tier, order } = _matchLeagueTier(group.name, group.country);
-  return { fav, tier, order, name: _toLowerTr(group.name) };
+  const priority = getLeaguePriority(group.id, group.name);
+  return { fav, priority, name: _toLowerTr(group.name) };
 }
 
 function _sortLeagueGroups(groups) {
   return [...groups].sort((a, b) => {
     const ka = _leagueSortKey(a);
     const kb = _leagueSortKey(b);
-    if (ka.fav !== kb.fav)   return ka.fav - kb.fav;
-    if (ka.tier !== kb.tier) return ka.tier - kb.tier;
-    if (ka.order !== kb.order) return ka.order - kb.order;
+    if (ka.fav !== kb.fav) return ka.fav - kb.fav;
+    if (ka.priority !== kb.priority) return ka.priority - kb.priority;
     return ka.name.localeCompare(kb.name, 'tr');
   });
 }
@@ -622,12 +451,13 @@ function _renderOddsPage(root, rows) {
   const groups = {};
   rows.forEach(m => {
     const k = `${_toLowerTr(m.league_country || '')}__${_toLowerTr(m.league_name || 'Diğer')}`;
-    if (!groups[k]) groups[k] = { 
-      name: m.league_name||'Diğer', 
-      logo: m.league_logo||'', 
-      country: m.league_country||'', 
-      flag: m.league_flag||'', 
-      matches: [] 
+    if (!groups[k]) groups[k] = {
+      id: m.league_id,    /* <--- YENİ EKLENEN SATIR */
+      name:    m.league_name  || 'Diğer',
+      logo:    m.league_logo    || '',
+      country: m.league_country || '',
+      flag:    m.league_flag    || '',
+      matches: []
     };
     groups[k].matches.push(m);
   });
