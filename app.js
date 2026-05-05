@@ -34,6 +34,7 @@ const S = {
    Eşleşme: league_name içinde keyword geçiyorsa eşleşir.
    Aynı tier içinde order küçük olan önce gelir.
 */
+/* ── LİG ÖNCELİK SİSTEMİ ───────────────────── */
 const LEAGUE_TIERS = [
   /* ─── TIER 0: BÜYÜK ULUSLARARASI TURNUVALAR (HER ZAMAN EN ÜSTTE) ─── */
   { tier: 0, order: 1,  keywords: ['world cup', 'dünya kupası', 'fifa world cup', 'wc qualifier', 'world cup qualifier', 'dünya kupası eleme', 'coupe du monde', 'weltmeisterschaft'] },
@@ -44,98 +45,93 @@ const LEAGUE_TIERS = [
   { tier: 0, order: 6,  keywords: ['asian cup', 'afc asian cup', 'asya kupası', 'asian championship'] },
   { tier: 0, order: 7,  keywords: ['gold cup', 'concacaf gold', 'concacaf championship'] },
 
-  /* ─── TIER 1: ÜST LİGLER (ülke önceliğiyle) ─── */
-  /* 1. Türkiye */
-  { tier: 1, order: 1,  keywords: ['süper lig', 'super lig', 'trendyol süper', 'türkiye 1.', 'spor toto süper'], country: 'turkey' },
-  /* 2. İngiltere */
-  { tier: 1, order: 2,  keywords: ['premier league', 'ingiltere premier', 'england premier', 'premier lig'], country: 'england' },
-  /* 3. İspanya */
-  { tier: 1, order: 3,  keywords: ['la liga', 'laliga', 'ispanya 1.', 'primera división', 'primera division'], country: 'spain' },
-  /* 4. Almanya */
-  { tier: 1, order: 4,  keywords: ['bundesliga', 'almanya 1.', '1. bundesliga'], country: 'germany' },
-  /* 5. Fransa */
-  { tier: 1, order: 5,  keywords: ['ligue 1', 'fransa 1.', 'ligue 1 mcdonald'], country: 'france' },
-  /* 6. İtalya */
-  { tier: 1, order: 6,  keywords: ['serie a', 'italya 1.', 'serie a tim'], country: 'italy' },
-  /* 7. Portekiz */
-  { tier: 1, order: 7,  keywords: ['primeira liga', 'liga portugal', 'portekiz 1.', 'liga nos'], country: 'portugal' },
-  /* 8. Hollanda */
-  { tier: 1, order: 8,  keywords: ['eredivisie', 'hollanda 1.', 'netherlands 1.'], country: 'netherlands' },
-  /* 9. Belçika */
-  { tier: 1, order: 9,  keywords: ['jupiler', 'pro league', 'belgian pro', 'belçika 1.', 'first division a'], country: 'belgium' },
-  /* 10. Çekya */
-  { tier: 1, order: 10, keywords: ['chance liga', '1. liga', 'czech 1.', 'çekya 1.', 'fortuna liga'], country: 'czech' },
-  /* 11. İskoçya */
-  { tier: 1, order: 11, keywords: ['scottish premiership', 'scotland premier', 'premiership scotland'], country: 'scotland' },
-  /* 12. İsviçre */
+  /* ─── TIER 1: AVRUPA KUPALARI & ÜST LİGLER (Mackolik JSON Öncelik Sıralaması) ─── */
+  
+  /* Şampiyonlar Ligi (Priority -4) */
+  { tier: 1, order: 1, keywords: ['champions league', 'şampiyonlar ligi', 'ucl'] },
+  /* Avrupa Ligi (Priority -3) */
+  { tier: 1, order: 2, keywords: ['europa league', 'avrupa ligi', 'uel'] },
+  /* Konferans Ligi (Priority -2) */
+  { tier: 1, order: 3, keywords: ['conference league', 'konferans ligi', 'uecl'] },
+  
+  /* Türkiye Süper Lig (Priority -1) */
+  { tier: 1, order: 4,  keywords: ['süper lig', 'super lig', 'trendyol süper', 'türkiye 1.', 'spor toto süper'], country: 'turkey' },
+  /* İngiltere Premier League (Priority 0) */
+  { tier: 1, order: 5,  keywords: ['premier league', 'ingiltere premier', 'england premier', 'premier lig'], country: 'england' },
+  /* Almanya Bundesliga (Priority 1) */
+  { tier: 1, order: 6,  keywords: ['bundesliga', 'almanya 1.', '1. bundesliga'], country: 'germany' },
+  /* İspanya La Liga (Priority 2) */
+  { tier: 1, order: 7,  keywords: ['la liga', 'laliga', 'ispanya 1.', 'primera división', 'primera division'], country: 'spain' },
+  /* İtalya Serie A (Priority 3) */
+  { tier: 1, order: 8,  keywords: ['serie a', 'italya 1.', 'serie a tim'], country: 'italy' },
+  /* Fransa Ligue 1 (Priority 4) */
+  { tier: 1, order: 9,  keywords: ['ligue 1', 'fransa 1.', 'ligue 1 mcdonald'], country: 'france' },
+  /* Hollanda Eredivisie (Priority 5) */
+  { tier: 1, order: 10, keywords: ['eredivisie', 'hollanda 1.', 'netherlands 1.'], country: 'netherlands' },
+  /* Portekiz Primeira Liga (Priority 6) */
+  { tier: 1, order: 11, keywords: ['primeira liga', 'liga portugal', 'portekiz 1.', 'liga nos'], country: 'portugal' },
+  /* İsviçre Super League (Priority 7) */
   { tier: 1, order: 12, keywords: ['super league', 'swiss super', 'swiss league'], country: 'switzerland' },
-  /* 13. Avusturya */
-  { tier: 1, order: 13, keywords: ['bundesliga', 'austrian bundesliga', 'admiral bundesliga', 'avusturya 1.', 'österreichische'], country: 'austria' },
-  /* 14. Norveç */
-  { tier: 1, order: 14, keywords: ['eliteserien', 'norveç 1.', 'norway 1.'], country: 'norway' },
-  /* 15. Yunanistan */
-  { tier: 1, order: 15, keywords: ['super league', 'yunanistan 1.', 'greek super', 'super league 1', 'super league greece'], country: 'greece' },
-  /* 16. Danimarka */
-  { tier: 1, order: 16, keywords: ['superliga', 'danimarka 1.', 'danish superliga'], country: 'denmark' },
-  /* 17. İsrail */
-  { tier: 1, order: 17, keywords: ['premier league', 'ligat ha\'al', 'israel premier', 'israeli premier'], country: 'israel' },
-  /* 18. Ukrayna */
-  { tier: 1, order: 18, keywords: ['premier league', 'ukrainian premier', 'ukrayna premier', 'upl'], country: 'ukraine' },
-  /* 19. Sırbistan */
+  /* Danimarka Superliga (Priority 8) */
+  { tier: 1, order: 13, keywords: ['superliga', 'danimarka 1.', 'danish superliga'], country: 'denmark' },
+  /* Hırvatistan HNL (Priority 9) */
+  { tier: 1, order: 14, keywords: ['hnl', 'hrvatska nogometna', 'croatian football', 'supersport hnl'], country: 'croatia' },
+  /* İskoçya Premiership (Priority 10) */
+  { tier: 1, order: 15, keywords: ['scottish premiership', 'scotland premier', 'premiership scotland'], country: 'scotland' },
+  /* Belçika Pro League (Priority 11) */
+  { tier: 1, order: 16, keywords: ['jupiler', 'pro league', 'belgian pro', 'belçika 1.', 'first division a'], country: 'belgium' },
+  /* Avusturya Bundesliga (Priority 12) */
+  { tier: 1, order: 17, keywords: ['bundesliga', 'austrian bundesliga', 'admiral bundesliga', 'avusturya 1.', 'österreichische'], country: 'austria' },
+  /* Polonya Ekstraklasa (Priority 13) */
+  { tier: 1, order: 18, keywords: ['ekstraklasa', 'polish ekstraklasa'], country: 'poland' },
+  /* Sırbistan Super Liga (Priority 14) */
   { tier: 1, order: 19, keywords: ['superliga', 'srpska superliga', 'serbia superliga', 'super liga'], country: 'serbia' },
-  /* 20. Hırvatistan */
-  { tier: 1, order: 20, keywords: ['hnl', 'hrvatska nogometna', 'croatian football', 'supersport hnl'], country: 'croatia' },
-  /* 21. Polonya */
-  { tier: 1, order: 21, keywords: ['ekstraklasa', 'polish ekstraklasa'], country: 'poland' },
-  /* 22. Kıbrıs */
-  { tier: 1, order: 22, keywords: ['premier league', 'cyprus first', 'cyta championship', 'cyprus championship', 'first division'], country: 'cyprus' },
-  /* 23. Macaristan */
-  { tier: 1, order: 23, keywords: ['nemzeti bajnokság', 'nb i', 'otp bank liga', 'hungarian nb'], country: 'hungary' },
-  /* 24. İsveç */
-  { tier: 1, order: 24, keywords: ['allsvenskan', 'swedish allsvenskan'], country: 'sweden' },
-  /* 25. Romanya */
-  { tier: 1, order: 25, keywords: ['liga i', 'liga 1', 'superliga', 'romanian liga'], country: 'romania' },
+  /* İsveç Allsvenskan (Priority 15) */
+  { tier: 1, order: 20, keywords: ['allsvenskan', 'swedish allsvenskan'], country: 'sweden' },
+  /* Norveç Eliteserien (Priority 16) */
+  { tier: 1, order: 21, keywords: ['eliteserien', 'norveç 1.', 'norway 1.'], country: 'norway' },
+  /* Finlandiya Veikkausliiga (Priority 17) */
+  { tier: 1, order: 22, keywords: ['veikkausliiga', 'finlandiya 1.'], country: 'finland' },
+  /* Bosna Hersek (Priority 18) */
+  { tier: 1, order: 23, keywords: ['bosna', 'premier league', 'bosnian premier'], country: 'bosnia' },
 
-  /* Avrupa Kulüp Kupaları — ülke liglerinden sonra */
-  { tier: 1, order: 90, keywords: ['champions league', 'şampiyonlar ligi', 'ucl'] },
-  { tier: 1, order: 91, keywords: ['europa league', 'avrupa ligi', 'uel'] },
-  { tier: 1, order: 92, keywords: ['conference league', 'konferans ligi', 'uecl'] },
+  /* Geri Kalan 1. Ligler... */
+  { tier: 1, order: 24, keywords: ['chance liga', '1. liga', 'czech 1.', 'çekya 1.', 'fortuna liga'], country: 'czech' },
+  { tier: 1, order: 25, keywords: ['super league', 'yunanistan 1.', 'greek super', 'super league 1', 'super league greece'], country: 'greece' },
+  { tier: 1, order: 26, keywords: ['premier league', 'ligat ha\'al', 'israel premier', 'israeli premier'], country: 'israel' },
+  { tier: 1, order: 27, keywords: ['premier league', 'ukrainian premier', 'ukrayna premier', 'upl'], country: 'ukraine' },
+  { tier: 1, order: 28, keywords: ['premier league', 'cyprus first', 'cyta championship', 'cyprus championship', 'first division'], country: 'cyprus' },
+  { tier: 1, order: 29, keywords: ['nemzeti bajnokság', 'nb i', 'otp bank liga', 'hungarian nb'], country: 'hungary' },
+  { tier: 1, order: 30, keywords: ['liga i', 'liga 1', 'superliga', 'romanian liga'], country: 'romania' },
 
-  /* ─── TIER 2: 2. LİGLER (aynı ülke sıralamasıyla) ─── */
-  { tier: 2, order: 1,  keywords: ['1. lig', 'tff 1', 'türkiye 2.'], country: 'turkey' },
-  { tier: 2, order: 2,  keywords: ['championship', 'ingiltere 2.', 'efl championship'], country: 'england' },
-  { tier: 2, order: 3,  keywords: ['la liga 2', 'segunda', 'laliga2', 'ispanya 2.'], country: 'spain' },
-  { tier: 2, order: 4,  keywords: ['2. bundesliga', 'almanya 2.'], country: 'germany' },
-  { tier: 2, order: 5,  keywords: ['ligue 2', 'fransa 2.'], country: 'france' },
-  { tier: 2, order: 6,  keywords: ['serie b', 'italya 2.'], country: 'italy' },
-  { tier: 2, order: 7,  keywords: ['portekiz 2.', 'liga sabseg', 'segunda liga'], country: 'portugal' },
-  { tier: 2, order: 8,  keywords: ['eerste divisie', 'hollanda 2.', 'keuken kampioen'], country: 'netherlands' },
-  { tier: 2, order: 9,  keywords: ['proximus league', 'first division b', 'belçika 2.', 'belgian 2.'], country: 'belgium' },
-  { tier: 2, order: 10, keywords: ['czech 2.', 'çekya 2.', 'fnl czech'], country: 'czech' },
-  { tier: 2, order: 11, keywords: ['scottish championship', 'championship scotland'], country: 'scotland' },
-  { tier: 2, order: 12, keywords: ['challenge league', 'swiss challenge'], country: 'switzerland' },
-  { tier: 2, order: 13, keywords: ['2. liga', 'austrian 2.', 'avusturya 2.'], country: 'austria' },
-  { tier: 2, order: 14, keywords: ['obos-ligaen', '1. divisjon', 'norveç 2.'], country: 'norway' },
-  { tier: 2, order: 15, keywords: ['super league 2', 'yunanistan 2.', 'greek 2.'], country: 'greece' },
-  { tier: 2, order: 16, keywords: ['1. division', 'danimarka 2.'], country: 'denmark' },
-  { tier: 2, order: 17, keywords: ['liga leumit', 'israeli national', 'leumit'], country: 'israel' },
-  { tier: 2, order: 18, keywords: ['persha liha', 'ukrayna 2.'], country: 'ukraine' },
-  { tier: 2, order: 19, keywords: ['prva liga srbije', 'sırbistan 2.'], country: 'serbia' },
-  { tier: 2, order: 20, keywords: ['hnl 2', 'hırvatistan 2.', 'prva nl'], country: 'croatia' },
-  { tier: 2, order: 21, keywords: ['i liga', 'polonya 2.', 'polish i liga'], country: 'poland' },
-  { tier: 2, order: 22, keywords: ['cyprus 2.', 'kıbrıs 2.', 'cyprus second'], country: 'cyprus' },
-  { tier: 2, order: 23, keywords: ['nb ii', 'macaristan 2.', 'hungarian nb ii'], country: 'hungary' },
-  { tier: 2, order: 24, keywords: ['superettan', 'isveç 2.', 'swedish superettan'], country: 'sweden' },
-  { tier: 2, order: 25, keywords: ['liga ii', 'romanya 2.', 'romanian liga ii'], country: 'romania' },
 
-  /* İngiltere alt ligler */
-  { tier: 2, order: 30, keywords: ['league one', 'efl league one'], country: 'england' },
-  { tier: 2, order: 31, keywords: ['league two', 'efl league two'], country: 'england' },
-  /* Türkiye alt ligler */
-  { tier: 2, order: 32, keywords: ['2. lig', 'tff 2'], country: 'turkey' },
-  { tier: 2, order: 33, keywords: ['3. lig', 'tff 3'], country: 'turkey' },
-  /* Süper Kupa */
-  { tier: 2, order: 99, keywords: ['süper kupa', 'super cup'] },
+  /* ─── TIER 2: 2. LİGLER VE ALT LİGLER (Priority 100 Serisi) ─── */
+  { tier: 2, order: 1,  keywords: ['1. lig', 'tff 1', 'türkiye 2.'], country: 'turkey' }, /* Priority 100 */
+  { tier: 2, order: 2,  keywords: ['championship', 'ingiltere 2.', 'efl championship'], country: 'england' }, /* Priority 101 */
+  { tier: 2, order: 3,  keywords: ['2. bundesliga', 'almanya 2.'], country: 'germany' }, /* Priority 102 */
+  { tier: 2, order: 4,  keywords: ['la liga 2', 'segunda', 'laliga2', 'ispanya 2.'], country: 'spain' }, /* Priority 103 */
+  { tier: 2, order: 5,  keywords: ['serie b', 'italya 2.'], country: 'italy' }, /* Priority 104 */
+  { tier: 2, order: 6,  keywords: ['ligue 2', 'fransa 2.'], country: 'france' }, /* Priority 105 */
+  { tier: 2, order: 7,  keywords: ['eerste divisie', 'hollanda 2.', 'keuken kampioen'], country: 'netherlands' }, /* Priority 106 */
+  { tier: 2, order: 8,  keywords: ['liga de honra', 'portekiz 2.', 'liga sabseg', 'segunda liga'], country: 'portugal' }, /* Priority 107 */
+  { tier: 2, order: 9,  keywords: ['challenge league', 'swiss challenge'], country: 'switzerland' }, /* Priority 108 */
+  { tier: 2, order: 10, keywords: ['1. division', 'danimarka 2.'], country: 'denmark' }, /* Priority 109 */
+  { tier: 2, order: 11, keywords: ['1.nl', 'hnl 2', 'hırvatistan 2.', 'prva nl'], country: 'croatia' }, /* Priority 110 */
+  { tier: 2, order: 12, keywords: ['scottish championship', 'championship scotland'], country: 'scotland' }, /* Priority 111 */
+  { tier: 2, order: 13, keywords: ['1b pro league', 'proximus league', 'first division b', 'belçika 2.', 'belgian 2.'], country: 'belgium' }, /* Priority 112 */
+  { tier: 2, order: 14, keywords: ['2. liga', 'austrian 2.', 'avusturya 2.'], country: 'austria' }, /* Priority 113 */
+  { tier: 2, order: 15, keywords: ['1.liga', 'i liga', 'polonya 2.', 'polish i liga'], country: 'poland' }, /* Priority 114 */
+  { tier: 2, order: 16, keywords: ['liga 2', 'prva liga srbije', 'sırbistan 2.'], country: 'serbia' }, /* Priority 115 */
+  { tier: 2, order: 17, keywords: ['superettan', 'isveç 2.', 'swedish superettan'], country: 'sweden' }, /* Priority 116 */
+
+  /* ─── TIER 3: DAHA ALT LİGLER VE KUPALAR (Priority 200, 300 Serisi) ─── */
+  { tier: 3, order: 1, keywords: ['2. lig', 'tff 2', 'türkiye 3. lig'], country: 'turkey' }, /* Priority 200 */
+  { tier: 3, order: 2, keywords: ['league two', 'efl league two'], country: 'england' }, /* Priority 202 */
+  
+  { tier: 4, order: 1, keywords: ['türkiye kupası', 'turkey cup'], country: 'turkey' }, /* Priority 300 */
+  { tier: 4, order: 2, keywords: ['league cup', 'efl cup', 'carabao cup'], country: 'england' }, /* Priority 302 */
+  { tier: 4, order: 3, keywords: ['community shield', 'fa cup'], country: 'england' }, /* Priority 303 */
+  { tier: 4, order: 99, keywords: ['süper kupa', 'super cup'] },
 ];
 
 /* Favori ligler — localStorage'dan oku/yaz */
