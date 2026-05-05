@@ -494,6 +494,22 @@ function todayTR() {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   ORAN ANALİZİ SAYFASI
+══════════════════════════════════════════════════════════════════ */
+
+const OA = {
+  date:    todayStr(),
+  loading: false,
+  matches: [],
+  oddsMap: {},
+};
+
+/* Türkiye saatine göre bugünün tarihini al */
+function todayTR() {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
+}
+
 async function loadOddsPage() {
   if (OA.loading) return;
   OA.loading = true;
@@ -537,7 +553,7 @@ async function loadOddsPage() {
         if (r.raw_data) try { n = normFix({...r,...JSON.parse(r.raw_data)}); } catch(e){}
         if (!n && r.data) {
           let d = r.data;
-          if (typeof d === 'string') try { d = JSON.parse(d); } catch(e) { d = null; }
+          if (typeof d === 'string') { try { d = JSON.parse(d); } catch(e) { d = null; } }
           if (d) { const list = Array.isArray(d)?d:[d]; n = normFix({...r,...list[0]}); }
         }
         if (!n) n = normFix(r);
@@ -572,14 +588,44 @@ async function loadOddsPage() {
       OA.loading = false; return;
     }
 
-    /* match_odds toplu çek */
+    /* match_odds ve match_info'yu toplu çek[cite: 1] */
     const ids = rows.map(m => m.fixture_id).filter(Boolean);
     OA.oddsMap = {};
     if (ids.length) {
-      const { data: oddsData } = await S.sb
-        .from('match_odds').select('fixture_id, odds_data, updated_at')
-        .in('fixture_id', ids);
-      (oddsData || []).forEach(o => { OA.oddsMap[String(o.fixture_id)] = o; });
+      /* match_odds ve match_info'dan bilyoner_id'yi getirecek şekilde join ekledik[cite: 1] */
+      const [ { data: oddsData }, { data: fmData } ] = await Promise.all([
+        S.sb.from('match_odds').select('fixture_id, odds_data, updated_at').in('fixture_id', ids),
+        S.sb.from('future_matches').select('fixture_id, bilyoner_id').in('fixture_id', ids)
+      ]);
+      
+      const bilyonerMap = {};
+      (fmData || []).forEach(f => {
+          if(f.bilyoner_id) bilyonerMap[f.fixture_id] = f.bilyoner_id;
+      });
+
+      /* match_info'yu bilyoner id lerine göre in ile getir[cite: 1] */
+      const bilyonerIds = Object.values(bilyonerMap).filter(Boolean);
+      let matchInfoData = [];
+      if(bilyonerIds.length > 0) {
+           const { data: infoData } = await S.sb.from('match_info').select('*').in('fixture_id', bilyonerIds);
+           matchInfoData = infoData || [];
+      }
+
+      /* OA.oddsMap içerisine hem odds hem de match_info datasını koyalım[cite: 1] */
+      (oddsData || []).forEach(o => {
+          OA.oddsMap[String(o.fixture_id)] = { odds_data: o.odds_data, updated_at: o.updated_at };
+      });
+
+      rows.forEach(r => {
+           const bid = bilyonerMap[r.fixture_id];
+           if(bid) {
+                const info = matchInfoData.find(i => String(i.fixture_id) === String(bid));
+                if(info) {
+                     if(!OA.oddsMap[String(r.fixture_id)]) OA.oddsMap[String(r.fixture_id)] = {};
+                     OA.oddsMap[String(r.fixture_id)].match_info = info;
+                }
+           }
+      });
     }
 
     _renderOddsPage(root, rows);
@@ -1381,6 +1427,7 @@ function applyFilter() {
 }
 
 /* ── DETAIL ──────────────────────────────────── */
+/* ── DETAIL ──────────────────────────────────── */
 async function loadDetail(id, isLive, oddsOnly = false) {
   setDetailHTML(`<div class="empty" style="min-height:160px"><div class="empty-i">⚽</div></div>`);
   try {
@@ -1396,7 +1443,7 @@ async function loadDetail(id, isLive, oddsOnly = false) {
       const h2h  = archiveAdaptH2H(cached.h2h);
       const matchDate = (m.kickoff_time || m.date || S.date || '').slice(0,10);
       const gzOdds = await fetchGzOdds(matchDate, m.home_team, m.away_team);
-      buildDetail(m, evs, stats, lus, h2h, null, gzOdds, oddsOnly);
+      buildDetail(m, evs, stats, lus, h2h, null, gzOdds, null, oddsOnly); // matchInfo null[cite: 1]
       return;
     }
 
@@ -1468,35 +1515,44 @@ async function loadDetail(id, isLive, oddsOnly = false) {
 
     console.log('[H2H] home_team_id:', m.home_team_id, 'away_team_id:', m.away_team_id);
 
-    const [
-  { data: evs  },
-  { data: stats },
-  { data: lus  },
-  { data: pred },
-  { data: dbOdds },  // ← EKLENMELİ 
-  { data: matchInfoData }, // YENİ: match_info verisi     
-] = await Promise.all([
-  sq(S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time')),
-  sq(S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle()),
-  sq(S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle()),
-  sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
-  sq(S.sb.from('match_odds').select('*').eq('fixture_id', id).maybeSingle()), // <-- EKSİK OLAN SORGUNU BURAYA EKLE
-  sq(S.sb.from('match_info').select('*').eq('fixture_id', id).maybeSingle()) // YENİ SORGUMUZ     
-]);
+    /* bilyoner_id'yi bulup match_info'yu ona göre çekeceğiz[cite: 1] */
+    const fmRes = await sq(S.sb.from('future_matches').select('bilyoner_id').eq('fixture_id', id).maybeSingle());
+    const bilyonerId = fmRes?.data?.bilyoner_id;
+    
+    let matchInfoQuery = Promise.resolve({ data: null });
+    if (bilyonerId) {
+         matchInfoQuery = sq(S.sb.from('match_info').select('*').eq('fixture_id', bilyonerId).maybeSingle());
+    }
 
-/* H2H ayrı — .then() zinciri sq() ile uyumsuz olduğu için */
-let h2h = null;
-if (m.home_team_id && m.away_team_id) {
-  const h2hRes = await sq(
-    S.sb.from('match_h2h').select('*')
-      .or(`h2h_key.eq.${m.home_team_id}-${m.away_team_id},h2h_key.eq.${m.away_team_id}-${m.home_team_id}`)
-      .limit(1)
-  );
-  h2h = h2hRes?.data?.[0] ?? null;
-}
+    const [
+      { data: evs  },
+      { data: stats },
+      { data: lus  },
+      { data: pred },
+      { data: dbOdds },
+      { data: matchInfoData }, // bilyonerId ile çekilen match_info[cite: 1]
+    ] = await Promise.all([
+      sq(S.sb.from('match_events').select('*').eq('fixture_id', id).order('elapsed_time')),
+      sq(S.sb.from('match_statistics').select('*').eq('fixture_id', id).maybeSingle()),
+      sq(S.sb.from('match_lineups').select('*').eq('fixture_id', id).maybeSingle()),
+      sq(S.sb.from('match_predictions').select('*').eq('fixture_id', id).maybeSingle()),
+      sq(S.sb.from('match_odds').select('*').eq('fixture_id', id).maybeSingle()),
+      matchInfoQuery // bilyonerId ile çekilen match_info[cite: 1]
+    ]);
+
+    /* H2H ayrı — .then() zinciri sq() ile uyumsuz olduğu için */
+    let h2h = null;
+    if (m.home_team_id && m.away_team_id) {
+      const h2hRes = await sq(
+        S.sb.from('match_h2h').select('*')
+          .or(`h2h_key.eq.${m.home_team_id}-${m.away_team_id},h2h_key.eq.${m.away_team_id}-${m.home_team_id}`)
+          .limit(1)
+      );
+      h2h = h2hRes?.data?.[0] ?? null;
+    }
 
     // ✅ oranlar direkt match_odds'tan gelir, gz sadece sim analizi için
-       buildDetail(m, evs||[], stats, lus, h2h, pred, dbOdds || null, matchInfoData || null, oddsOnly);
+    buildDetail(m, evs||[], stats, lus, h2h, pred, dbOdds || null, matchInfoData || null, oddsOnly);
   } catch (e) {
     console.error(e);
     setDetailHTML(`<div class="empty"><div class="empty-t">Hata: ${esc(e.message)}</div></div>`);
