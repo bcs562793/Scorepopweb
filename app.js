@@ -476,14 +476,15 @@ function _renderOddsPage(root, rows) {
   const groups = {};
   rows.forEach(m => {
     const k = `${_toLowerTr(m.league_country || '')}__${_toLowerTr(m.league_name || 'Diğer')}`;
-    if (!groups[k]) groups[k] = {
-      id: m.league_id,    /* <--- YENİ EKLENEN SATIR */
-      name:    m.league_name  || 'Diğer',
-      logo:    m.league_logo    || '',
-      country: m.league_country || '',
-      flag:    m.league_flag    || '',
-      matches: []
-    };
+    // DÜZELTME — id ekle
+if (!groups[k]) groups[k] = {
+  id:      m.league_id     || 0,  // ← bunu ekle
+  name:    m.league_name   || 'Diğer',
+  logo:    m.league_logo   || '',
+  country: m.league_country || '',
+  flag:    m.league_flag   || '',
+  matches: []
+};
     groups[k].matches.push(m);
   });
   const sorted = _sortLeagueGroups(Object.values(groups));
