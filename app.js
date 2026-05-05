@@ -478,21 +478,6 @@ function showView(v) {
   document.getElementById('col-hdr').style.display = v === 'matches' ? '' : 'none';
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   ORAN ANALİZİ SAYFASI
-══════════════════════════════════════════════════════════════════ */
-
-const OA = {
-  date:    todayStr(),
-  loading: false,
-  matches: [],
-  oddsMap: {},
-};
-
-/* Türkiye saatine göre bugünün tarihini al */
-function todayTR() {
-  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
-}
 
 /* ══════════════════════════════════════════════════════════════════
    ORAN ANALİZİ SAYFASI
