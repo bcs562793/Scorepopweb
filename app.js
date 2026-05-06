@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v10.0 — Arşiv Desteği)
+   SCOREPOP — app.js  (v11.0 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -3479,17 +3479,30 @@ function startRealtime() {
       const m = _parseRealtimeRow(payload.new);
 
       /* Detay paneli açıksa → skor + dakika güncelle */
-      if (S.detail && String(m.fixture_id) === String(S.detail)) {
-        const nums = document.querySelectorAll('.d-score-n');
-        if (nums[0]) { if (nums[0].textContent !== String(m.home_score ?? '-')) { nums[0].textContent = m.home_score ?? '-'; flashEl(nums[0]); } }
-        if (nums[1]) { if (nums[1].textContent !== String(m.away_score ?? '-')) { nums[1].textContent = m.away_score ?? '-'; flashEl(nums[1]); } }
-        const ste = document.querySelector('.d-status');
-        const st = statusInfo(m);
-        if (ste) ste.textContent = st.live ? `⚡ ${st.label}` : st.label;
-        /* Maç FT/AET/PEN'e geçtiyse arka planda listeyi de güncelle (90' takılmasını önler) */
-        if (!st.live) loadMatches(true);
-        return;
-      }
+      /* Detay paneli açıksa → skor + dakika güncelle */
+if (S.detail && String(m.fixture_id) === String(S.detail)) {
+  const nums = document.querySelectorAll('.d-score-n');
+  let scoreChanged = false;
+  if (nums[0] && nums[0].textContent !== String(m.home_score ?? '-')) { 
+    nums[0].textContent = m.home_score ?? '-'; 
+    flashEl(nums[0]); 
+    scoreChanged = true; 
+  }
+  if (nums[1] && nums[1].textContent !== String(m.away_score ?? '-')) { 
+    nums[1].textContent = m.away_score ?? '-'; 
+    flashEl(nums[1]); 
+    scoreChanged = true; 
+  }
+  const ste = document.querySelector('.d-status');
+  const st = statusInfo(m);
+  if (ste) ste.textContent = st.live ? `⚡ ${st.label}` : st.label;
+  /* EĞER SKOR DEĞİŞTİYSE: Olaylar tablosuna golün düşmesi için sayfayı arkadan yenile */
+  if (scoreChanged) {
+    loadDetail(S.detail, true);
+  }
+  if (!st.live) loadMatches(true);
+  /* return komutunu sildik, akış aşağıya (liste güncellemesine) devam edecek! */
+}
 
       /* Liste görünümü — sadece bu satırı güncelle, sayfayı yenileme */
       if (payload.eventType === 'INSERT') {
