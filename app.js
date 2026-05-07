@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v12.0 — Arşiv Desteği)
+   SCOREPOP — app.js  (v13.0 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -26,6 +26,9 @@ const S = {
   archiveCache: {},   /* fixture_id (string) → tam maç objesi (arşivden) */
   gzOddsCache: {},    /* YYYY-MM-DD → parsed gz array */
   tickTimer:   null,   // ✅ EKLE
+  detailKickoffAt:  null,   // ✅ YENİ
+  detailSecondHalfAt: null, // ✅ YENİ 
+  _detailStatus:      null,
 };
 
 /* ── LİG ÖNCELİK SİSTEMİ (JSON league_id tabanlı) ───────────────────── */
@@ -2559,8 +2562,12 @@ async function fetchGzOdds(date, homeTeam, awayTeam) {
 }
 
 function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = false) {
+  S.detailKickoffAt   = m.kickoff_at   || null;
+  S.detailSecondHalfAt = m.second_half_at || null;
+  S._detailStatus      = m.status_short    || null;
   const st = statusInfo(m);
   const hs = m.home_score ?? '-', as = m.away_score ?? '-';
+  
 
   try {
     if (typeof Router !== 'undefined') {
@@ -3487,6 +3494,9 @@ function startRealtime() {
       /* Detay paneli açıksa → skor + dakika güncelle */
       /* Detay paneli açıksa → skor + dakika güncelle */
 if (S.detail && String(m.fixture_id) === String(S.detail)) {
+  S._detailStatus      = m.status_short    || S._detailStatus;
+  S.detailKickoffAt    = m.kickoff_at      || S.detailKickoffAt;
+  S.detailSecondHalfAt = m.second_half_at  || S.detailSecondHalfAt;
   const nums = document.querySelectorAll('.d-score-n');
   let scoreChanged = false;
   if (nums[0] && nums[0].textContent !== String(m.home_score ?? '-')) { 
@@ -3587,6 +3597,8 @@ function startClock() {
 
 function _tickLiveMinutes() {
   const now = Date.now();
+
+  // 1. Liste satırları
   document.querySelectorAll('.mr.is-live[data-status]').forEach(row => {
     const s  = row.dataset.status;
     const ko = row.dataset.kickoffAt;
@@ -3609,12 +3621,22 @@ function _tickLiveMinutes() {
     if (tEl && tEl.textContent !== `${el}'`) tEl.textContent = `${el}'`;
   });
 
-  // Detay paneli açıksa oradaki dakikayı da güncelle
+  // 2. Detay paneli dakika tick'i
   if (S.detail) {
     const ste = document.querySelector('.d-status');
     if (ste && ste.classList.contains('live')) {
-      // Detay için de aynı mantık — matchStates'ten bak
-      // (realtime zaten skor güncelliyor, bu sadece dakika tick'i)
+      let el = null;
+      if (S._detailStatus === '1H' && S.detailKickoffAt) {
+        const m = Math.floor((now - new Date(S.detailKickoffAt).getTime()) / 60000);
+        el = Math.max(1, Math.min(52, m));
+      } else if (S._detailStatus === '2H' && S.detailSecondHalfAt) {
+        const m = Math.floor((now - new Date(S.detailSecondHalfAt).getTime()) / 60000);
+        el = Math.max(46, Math.min(97, 45 + m));
+      } else if (S._detailStatus === 'ET' && S.detailSecondHalfAt) {
+        const m = Math.floor((now - new Date(S.detailSecondHalfAt).getTime()) / 60000) - 45;
+        el = Math.max(91, Math.min(122, 90 + m));
+      }
+      if (el != null) ste.textContent = `⚡ ${el}'`;
     }
   }
 }
