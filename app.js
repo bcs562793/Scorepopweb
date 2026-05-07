@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v11.0 — Arşiv Desteği)
+   SCOREPOP — app.js  (v12.0 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -25,6 +25,7 @@ const S = {
   lastGoals:    {},   /* fixture_id (string) → { events: [...] } */
   archiveCache: {},   /* fixture_id (string) → tam maç objesi (arşivden) */
   gzOddsCache: {},    /* YYYY-MM-DD → parsed gz array */
+  tickTimer:   null,   // ✅ EKLE
 };
 
 /* ── LİG ÖNCELİK SİSTEMİ (JSON league_id tabanlı) ───────────────────── */
@@ -1029,6 +1030,8 @@ function normFix(m) {
     status_short: resolvedStatus,
     elapsed_time: m.elapsed_time ?? fx?.status?.elapsed ?? null,
     kickoff_time: kt,
+    kickoff_at:    m.kickoff_at    || null,
+    second_half_at: m.second_half_at || null, 
     visual_url:   m.visual_url || null,
     raw_data:     m.raw_data   || null,   /* venue + referee için buildDetail'e gerekli */
   };
@@ -1187,6 +1190,9 @@ function renderRow(m, isLive) {
 
   return `
     <div class="mr ${st.live ? 'is-live' : ''}" data-id="${m.fixture_id}"
+         data-status="${m.status_short || ''}"
+         data-kickoff-at="${m.kickoff_at || ''}"
+         data-second-half-at="${m.second_half_at || ''}"
          onclick="openDetail(${m.fixture_id},${st.live})">
       <div class="mr-time">
         <span class="mr-t1 ${st.cls}">${st.label}</span>
@@ -3363,7 +3369,7 @@ async function silentUpdateDetail() {
   if (!S.detail) return;
   const { data } = await S.sb
     .from('live_matches')
-    .select('home_score,away_score,elapsed_time,status_short,updated_at,fixture_id')
+    .select('home_score,away_score,elapsed_time,status_short,updated_at,fixture_id,kickoff_at,second_half_at')
     .eq('fixture_id', S.detail)
     .maybeSingle();
   if (!data) return;
@@ -3535,8 +3541,12 @@ if (S.detail && String(m.fixture_id) === String(S.detail)) {
         if (S.timer) { clearInterval(S.timer); S.timer = null; }
         if (el) el.closest('.sb-ring-wrap') && (el.closest('.sb-ring-wrap').style.display = 'none');
         console.log('[Realtime] bağlandı ✓');
+        if (!S.tickTimer) {
+            S.tickTimer = setInterval(_tickLiveMinutes, 1000);
+        }   
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         /* Bağlantı koptu — polling'e geri dön */
+        if (S.tickTimer) { clearInterval(S.tickTimer); S.tickTimer = null; }
         startClock();
         console.warn('[Realtime] koptu, polling başladı');
       }
@@ -3560,6 +3570,9 @@ function startClock() {
     S.cd--;
     updateRing(S.cd / S.cycle);
     document.getElementById('sb-cd').textContent = S.cd;
+
+     _tickLiveMinutes();
+     
     if (S.cd <= 0) {
       S.cd = S.cycle;
       /* Realtime bağlıysa polling gerekmez, sadece yedek */
@@ -3570,6 +3583,40 @@ function startClock() {
       }
     }
   }, 1000);
+}
+
+function _tickLiveMinutes() {
+  const now = Date.now();
+  document.querySelectorAll('.mr.is-live[data-status]').forEach(row => {
+    const s  = row.dataset.status;
+    const ko = row.dataset.kickoffAt;
+    const sh = row.dataset.secondHalfAt;
+
+    let el = null;
+    if (s === '1H' && ko) {
+      const m = Math.floor((now - new Date(ko).getTime()) / 60000);
+      el = Math.max(1, Math.min(52, m));
+    } else if (s === '2H' && sh) {
+      const m = Math.floor((now - new Date(sh).getTime()) / 60000);
+      el = Math.max(46, Math.min(97, 45 + m));
+    } else if (s === 'ET' && sh) {
+      const m = Math.floor((now - new Date(sh).getTime()) / 60000) - 45;
+      el = Math.max(91, Math.min(122, 90 + m));
+    }
+
+    if (el == null) return;
+    const tEl = row.querySelector('.mr-t1');
+    if (tEl && tEl.textContent !== `${el}'`) tEl.textContent = `${el}'`;
+  });
+
+  // Detay paneli açıksa oradaki dakikayı da güncelle
+  if (S.detail) {
+    const ste = document.querySelector('.d-status');
+    if (ste && ste.classList.contains('live')) {
+      // Detay için de aynı mantık — matchStates'ten bak
+      // (realtime zaten skor güncelliyor, bu sadece dakika tick'i)
+    }
+  }
 }
 
 function updateRing(frac) {
@@ -3596,13 +3643,45 @@ function updLiveCt(n) {
   document.getElementById('tb-live-n').textContent = n;
 }
 
+function calcElapsed(m) {
+  const now = Date.now();
+  const s   = m.status_short;
+
+  if (s === '1H' && m.kickoff_at) {
+    const mins = Math.floor((now - new Date(m.kickoff_at).getTime()) / 60000);
+    return Math.max(1, Math.min(52, mins));
+  }
+  if (s === '2H' && m.second_half_at) {
+    const mins = Math.floor((now - new Date(m.second_half_at).getTime()) / 60000);
+    return Math.max(46, Math.min(97, 45 + mins));
+  }
+  if (s === 'ET' && m.second_half_at) {
+    const mins = Math.floor((now - new Date(m.second_half_at).getTime()) / 60000) - 45;
+    return Math.max(91, Math.min(122, 90 + mins));
+  }
+  // Timestamp yoksa DB değerine düş
+  return m.elapsed_time ?? null;
+}
+
 /* ── STATUS ──────────────────────────────────── */
 function statusInfo(m) {
   const s = m.status_short;
   const liveSet = new Set(['1H','2H','HT','ET','BT','P','LIVE']);
   const doneSet = new Set(['FT','AET','PEN']);
+
   if (liveSet.has(s)) {
-    const label = s === 'HT' ? 'HT' : m.elapsed_time ? `${m.elapsed_time}'` : s;
+    let label;
+    if (s === 'HT') {
+      label = 'HT';
+    } else if (s === 'BT') {
+      label = 'BT';
+    } else if (s === 'P') {
+      label = 'P';
+    } else {
+      // ✅ DB elapsed_time yerine calcElapsed kullan
+      const el = calcElapsed(m);
+      label = el != null ? `${el}'` : s;
+    }
     return { live: true, label, cls: 'live' };
   }
   if (doneSet.has(s)) return { live: false, label: 'MS', cls: 'done' };
