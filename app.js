@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v14.3 — Arşiv Desteği)
+   SCOREPOP — app.js  (v14.4 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -1204,7 +1204,9 @@ function renderRow(m, isLive) {
          data-status="${m.status_short || ''}"
          data-kickoff-at="${m.kickoff_at || ''}"
          data-second-half-at="${m.second_half_at || ''}"
-         onclick="openDetail(${m.fixture_id},${st.live})">
+         data-elapsed="${m.elapsed_time ?? ''}"
+         data-updated-at="${m.updated_at || ''}"
+       onclick="openDetail(${m.fixture_id},${st.live})">
       <div class="mr-time">
         <span class="mr-t1 ${st.cls}">${st.label}</span>
         ${st.live ? `<span class="mr-t2"></span>` : ''}
@@ -3383,8 +3385,10 @@ function silentUpdate(rows) {
 
     // ✅ EKLE — DOM attribute'larını güncelle (timer için kritik)
     row.dataset.status = m.status_short || '';
-    if (m.kickoff_at)     row.dataset.kickoffAt     = m.kickoff_at;
-    if (m.second_half_at) row.dataset.secondHalfAt  = m.second_half_at;
+    if (m.kickoff_at)     row.dataset.kickoffAt    = m.kickoff_at;
+    if (m.secondHalfAt || m.second_half_at) row.dataset.secondHalfAt = m.second_half_at;
+    if (m.elapsed_time != null) row.dataset.elapsed   = m.elapsed_time;
+    if (m.updated_at)           row.dataset.updatedAt = m.updated_at;
 
     const st = statusInfo(m);
     const hs = m.home_score != null ? m.home_score : '-';
@@ -3623,44 +3627,61 @@ function startClock() {
 function _tickLiveMinutes() {
   const now = Date.now();
 
-  // 1. Liste satırları
-  document.querySelectorAll('.mr.is-live[data-status]').forEach(row => {
-    const s  = row.dataset.status;
-    const ko = row.dataset.kickoffAt;
-    const sh = row.dataset.secondHalfAt;
+  const computeEl = (s, ds) => {
+    if (s === 'HT' || s === 'BT' || s === 'P') return null;
 
-    let el = null;
-    if (s === '1H' && ko) {
-      const m = Math.floor((now - new Date(ko).getTime()) / 60000);
-      el = Math.max(1, Math.min(52, m));
-    } else if (s === '2H' && sh) {
-      const m = Math.floor((now - new Date(sh).getTime()) / 60000);
-      el = Math.max(46, Math.min(97, 45 + m));
-    } else if (s === 'ET' && sh) {
-      const m = Math.floor((now - new Date(sh).getTime()) / 60000) - 45;
-      el = Math.max(91, Math.min(122, 90 + m));
+    // Timestamp hesabı
+    let fromTs = null;
+    if (s === '1H' && ds.kickoffAt) {
+      const m = Math.floor((now - new Date(ds.kickoffAt).getTime()) / 60000);
+      fromTs = Math.max(1, Math.min(52, m));
+    } else if (s === '2H' && ds.secondHalfAt) {
+      const m = Math.floor((now - new Date(ds.secondHalfAt).getTime()) / 60000);
+      fromTs = Math.max(46, Math.min(97, 45 + m));
+    } else if (s === 'ET' && ds.secondHalfAt) {
+      const m = Math.floor((now - new Date(ds.secondHalfAt).getTime()) / 60000) - 45;
+      fromTs = Math.max(91, Math.min(122, 90 + m));
     }
 
+    // DB anchor hesabı
+    let fromDb = null;
+    if (ds.elapsed && ds.updatedAt) {
+      const base = parseInt(ds.elapsed, 10);
+      if (!isNaN(base)) {
+        const drift = (now - new Date(ds.updatedAt).getTime()) / 60000;
+        let v = Math.round(base + drift);
+        if (s === '1H')      v = Math.max(1,  Math.min(52,  v));
+        else if (s === '2H') v = Math.max(46, Math.min(97,  v));
+        else if (s === 'ET') v = Math.max(91, Math.min(122, v));
+        fromDb = v;
+      }
+    }
+
+    // Akıllı seçim
+    if (fromTs != null && fromDb != null) {
+      return Math.abs(fromTs - fromDb) >= 2 ? fromDb : fromTs;
+    }
+    return fromDb ?? fromTs;
+  };
+
+  // 1. Liste satırları
+  document.querySelectorAll('.mr.is-live[data-status]').forEach(row => {
+    const el = computeEl(row.dataset.status, row.dataset);
     if (el == null) return;
     const tEl = row.querySelector('.mr-t1');
     if (tEl && tEl.textContent !== `${el}'`) tEl.textContent = `${el}'`;
   });
 
-  // 2. Detay paneli dakika tick'i
+  // 2. Detay paneli
   if (S.detail) {
     const ste = document.querySelector('.d-status');
     if (ste && ste.classList.contains('live')) {
-      let el = null;
-      if (S._detailStatus === '1H' && S.detailKickoffAt) {
-        const m = Math.floor((now - new Date(S.detailKickoffAt).getTime()) / 60000);
-        el = Math.max(1, Math.min(52, m));
-      } else if (S._detailStatus === '2H' && S.detailSecondHalfAt) {
-        const m = Math.floor((now - new Date(S.detailSecondHalfAt).getTime()) / 60000);
-        el = Math.max(46, Math.min(97, 45 + m));
-      } else if (S._detailStatus === 'ET' && S.detailSecondHalfAt) {
-        const m = Math.floor((now - new Date(S.detailSecondHalfAt).getTime()) / 60000) - 45;
-        el = Math.max(91, Math.min(122, 90 + m));
-      }
+      const el = computeEl(S._detailStatus, {
+        elapsed:      S._detailElapsed,
+        updatedAt:    S._detailUpdatedAt,
+        kickoffAt:    S.detailKickoffAt,
+        secondHalfAt: S.detailSecondHalfAt,
+      });
       if (el != null) ste.textContent = `⚡ ${el}'`;
     }
   }
@@ -3694,20 +3715,49 @@ function calcElapsed(m) {
   const now = Date.now();
   const s   = m.status_short;
 
+  // HT/BT/P için elapsed yok
+  if (s === 'HT' || s === 'BT' || s === 'P') return null;
+
+  // ── A) Timestamp'ten hesapla ──
+  let fromTs = null;
   if (s === '1H' && m.kickoff_at) {
     const mins = Math.floor((now - new Date(m.kickoff_at).getTime()) / 60000);
-    return Math.max(1, Math.min(52, mins));
-  }
-  if (s === '2H' && m.second_half_at) {
+    fromTs = Math.max(1, Math.min(52, mins));
+  } else if (s === '2H' && m.second_half_at) {
     const mins = Math.floor((now - new Date(m.second_half_at).getTime()) / 60000);
-    return Math.max(46, Math.min(97, 45 + mins));
-  }
-  if (s === 'ET' && m.second_half_at) {
+    fromTs = Math.max(46, Math.min(97, 45 + mins));
+  } else if (s === 'ET' && m.second_half_at) {
     const mins = Math.floor((now - new Date(m.second_half_at).getTime()) / 60000) - 45;
-    return Math.max(91, Math.min(122, 90 + mins));
+    fromTs = Math.max(91, Math.min(122, 90 + mins));
   }
-  // Timestamp yoksa DB değerine düş
-  return m.elapsed_time ?? null;
+
+  // ── B) DB elapsed + updated_at'ten hesapla (drift düzeltmeli) ──
+  let fromDb = null;
+  if (m.elapsed_time != null && m.updated_at) {
+    const driftMin = (now - new Date(m.updated_at).getTime()) / 60000;
+    let v = Math.round(m.elapsed_time + driftMin);
+    if (s === '1H')      v = Math.max(1,  Math.min(52,  v));
+    else if (s === '2H') v = Math.max(46, Math.min(97,  v));
+    else if (s === 'ET') v = Math.max(91, Math.min(122, v));
+    fromDb = v;
+  }
+
+  // ── C) Akıllı karar ──
+  if (fromTs != null && fromDb != null) {
+    const diff = Math.abs(fromTs - fromDb);
+    // 2+ dk fark → worker timestamp'i geç yazmış → DB güvenilir
+    if (diff >= 2) {
+      // İlk tespit edildiğinde uyarı yaz (her tick'te değil)
+      if (!m._driftWarned) {
+        console.warn(`[calcElapsed] ${m.fixture_id}: ts=${fromTs}', db=${fromDb}' (fark ${diff}dk) → DB tercih edildi`);
+        m._driftWarned = true;
+      }
+      return fromDb;
+    }
+    return fromTs; // küçük fark, timestamp daha pürüzsüz
+  }
+
+  return fromDb ?? fromTs ?? (m.elapsed_time ?? null);
 }
 
 /* ── STATUS ──────────────────────────────────── */
