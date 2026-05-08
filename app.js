@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v14.0 — Arşiv Desteği)
+   SCOREPOP — app.js  (v14.1 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -989,10 +989,12 @@ async function loadUpcoming() {
 
 function normFix(m) {
   /* fixture hem doğrudan hem data içinden gelebilir */
-  const fx = (m.fixture && typeof m.fixture === 'object') ? m.fixture : null;
+  const rawDataFx = (m.raw_data && typeof m.raw_data === 'object') ? m.raw_data.fixture : null;
+  const fx = (m.fixture && typeof m.fixture === 'object') ? m.fixture : rawDataFx;
 
   /* Saat için: fixture.date en öncelikli, diğerleri yedek */
   const kt = fx?.date
+        || m.kickoff_time || m.kickoff_at
         || m.kickoff_time || m.fixture_date
         || m.match_time   || m.event_date   || m.date_time
         || m.start_time   || m.event_time   || m.scheduled_at
