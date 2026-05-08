@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v14.1 — Arşiv Desteği)
+   SCOREPOP — app.js  (v14.2 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -1314,6 +1314,20 @@ async function loadDetail(id, isLive, oddsOnly = false) {
       if (error) { console.warn('[Detail]', tbl, error.message); continue; }
       if (data)  { m = data; break; }
     }
+
+     if (m) {
+  const rd = m.raw_data;
+  if (rd && typeof rd === 'object' && rd.fixture?.date && !m.kickoff_time) {
+    m.kickoff_time = rd.fixture.date;
+  }
+  if (rd && typeof rd === 'string') {
+    try {
+      const p = JSON.parse(rd);
+      if (p.fixture?.date && !m.kickoff_time) m.kickoff_time = p.fixture.date;
+    } catch(e) {}
+  }
+}
+
 
     if (!m) {
       setDetailHTML('<div class="empty"><div class="empty-t">Maç bulunamadı</div></div>');
