@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v14.2 — Arşiv Desteği)
+   SCOREPOP — app.js  (v14.3 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -3374,14 +3374,17 @@ function silentUpdate(rows) {
     const row = document.querySelector(`.mr[data-id="${m.fixture_id}"]`);
     if (!row) return;
 
-    /* Maç bittiyse → satırı DOM'dan kaldır */
     if (DONE.has(m.status_short)) {
       const lgGrp = row.closest('.lg-grp');
       row.remove();
-      /* Lig grubunda başka maç kalmadıysa onu da kaldır */
       if (lgGrp && !lgGrp.querySelector('.mr')) lgGrp.remove();
       return;
     }
+
+    // ✅ EKLE — DOM attribute'larını güncelle (timer için kritik)
+    row.dataset.status = m.status_short || '';
+    if (m.kickoff_at)     row.dataset.kickoffAt     = m.kickoff_at;
+    if (m.second_half_at) row.dataset.secondHalfAt  = m.second_half_at;
 
     const st = statusInfo(m);
     const hs = m.home_score != null ? m.home_score : '-';
@@ -3482,12 +3485,12 @@ function flashEl(el) {
 S.realtimeChannel = null;
 
 function _parseRealtimeRow(row) {
-  /* Realtime payload.new — raw_data string ise parse et ve birleştir */
   if (row.raw_data) {
-    try {
-      const parsed = JSON.parse(row.raw_data);
-      return normFix({ ...row, ...parsed });
-    } catch(e) {}
+    // ✅ object mi string mi kontrol et
+    const parsed = typeof row.raw_data === 'object'
+      ? row.raw_data
+      : (() => { try { return JSON.parse(row.raw_data); } catch(e) { return null; } })();
+    if (parsed) return normFix({ ...row, ...parsed });
   }
   if (row.data && typeof row.data === 'object') {
     const d = Array.isArray(row.data) ? row.data[0] : row.data;
