@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v13.0 — Arşiv Desteği)
+   SCOREPOP — app.js  (v14.0 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -942,8 +942,14 @@ async function loadUpcoming() {
 
     /* 1. raw_data TEXT kolonu */
     if (r.raw_data) {
-      try { rows.push(normFix({...r, ...JSON.parse(r.raw_data)})); return; } catch(e) {}
-    }
+  const parsed = typeof r.raw_data === 'object'
+    ? r.raw_data
+    : (() => { try { return JSON.parse(r.raw_data); } catch(e) { return null; } })();
+  if (parsed) {
+    processNorm(normFix({ ...r, ...parsed }));
+    return;
+  }
+}
 
     /* 2. data kolonu (JSONB veya TEXT) — { fixture:{date,...}, teams:{...}, ... } */
     if (r.data) {
