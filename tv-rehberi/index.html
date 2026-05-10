@@ -597,13 +597,13 @@
 
       /* 2. future_matches: o fixture_id'ler için takım/tarih bilgisi */
       var fmRes = await sb.from('future_matches')
-        .select('fixture_id, data, date')
-        .in('fixture_id', fixtureIds);
+        .select('bilyoner_id, fixture_id, data, date')
+        .in('bilyoner_id', fixtureIds); 
 
       var fmMap = {};
       (fmRes.data || []).forEach(function(r) {
         var d = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
-        fmMap[r.fixture_id] = { raw: d, date: r.date };
+        fmMap[r.bilyoner_id] = { raw: d, date: r.date };
       });
 
       /* 3. Merge */
