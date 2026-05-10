@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v14.4 — Arşiv Desteği)
+   SCOREPOP — app.js  (v14.5 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -480,16 +480,17 @@ function _renderOddsPage(root, rows) {
   /* Ligleri sırala */
   const groups = {};
   rows.forEach(m => {
-    const k = `${_toLowerTr(m.league_country || '')}__${_toLowerTr(m.league_name || 'Diğer')}`;
-    // DÜZELTME — id ekle
-if (!groups[k]) groups[k] = {
-  id:      m.league_id    || null,  // ← ekle
-  name:    m.league_name  || 'Diğer',
-  logo:    m.league_logo  || '',
-  country: m.league_country || '',
-  flag:    m.league_flag  || '',
-  matches: []
-};
+    const k = (m.league_id && m.league_id !== 0)
+      ? String(m.league_id)
+      : `${_toLowerTr(m.league_country || '')}__${_toLowerTr(m.league_name || 'Diğer')}`;
+    if (!groups[k]) groups[k] = {
+      id:      m.league_id    || null,
+      name:    m.league_name  || 'Diğer',
+      logo:    m.league_logo  || '',
+      country: m.league_country || '',
+      flag:    m.league_flag  || '',
+      matches: []
+    };
     groups[k].matches.push(m);
   });
   const sorted = _sortLeagueGroups(Object.values(groups));
@@ -1050,16 +1051,10 @@ function normFix(m) {
 
 /* ── RENDER ──────────────────────────────────── */
 function _sortMatches(matches) {
-  const LIVE_SET = new Set(['1H','2H','HT','ET','BT','P','LIVE']);
-  const order = m => {
-    const s = m.status_short;
-    if (LIVE_SET.has(s)) return 0;
-    if (!s || s === 'NS' || s === 'TBD') return 1;
-    return 2;
-  };
-
+  /* Sadece başlangıç saatine göre sırala.
+     Canlı maçlar başladıkları saatte kalır, öne taşınmaz. */
   const getTime = m => {
-    const raw = m.kickoff_time || m.fixture_date || m.match_date || 
+    const raw = m.kickoff_time || m.fixture_date || m.match_date ||
                 m.event_date   || m.date_time    || m.match_time || m.time;
     if (!raw) return 0;
     const t = new Date(raw).getTime();
@@ -1067,13 +1062,9 @@ function _sortMatches(matches) {
   };
 
   return [...matches].sort((a, b) => {
-    const od = order(a) - order(b);
-    if (od !== 0) return od;
-
     const ta = getTime(a);
     const tb = getTime(b);
     if (ta !== tb) return ta - tb;
-
     /* Aynı saatli maçlar her zaman aynı sırada dursun */
     return String(a.fixture_id || '').localeCompare(String(b.fixture_id || ''));
   });
@@ -1087,8 +1078,11 @@ function render(rows, isLive) {
   }
   const groups = {};
   rows.forEach(m => {
-    /* league_id varsa en güvenli anahtar o, yoksa ülke+isim kombinasyonu */
-    const k = `${_toLowerTr(m.league_country || '')}__${_toLowerTr(m.league_name || 'Diğer')}`;
+    /* FIX: league_id varsa onu kullan — aynı lig live_matches ve future_matches'te
+       farklı isimle gelebilir (örn. "Serie A" vs "İtalya-Serie A"), id her zaman aynı */
+    const k = (m.league_id && m.league_id !== 0)
+      ? String(m.league_id)
+      : `${_toLowerTr(m.league_country || '')}__${_toLowerTr(m.league_name || 'Diğer')}`;
 
     if (!groups[k]) groups[k] = {
       name:    m.league_name  || 'Diğer',
