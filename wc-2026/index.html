@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Dünya Kupası — ScorePop | Gruplar, Eleme Maçları &amp; Puan Durumu</title>
+<meta name="description" content="FIFA Dünya Kupası grup puan durumları, eleme ağacı (Son 16, Çeyrek Final, Yarı Final, Final) ve maç sonuçları ScorePop'ta canlı."/>
+<meta name="robots" content="index,follow"/>
+<link rel="canonical" href="https://scorepop.com.tr/dunya-kupasi/"/>
+<meta property="og:title" content="Dünya Kupası — ScorePop"/>
+<meta property="og:description" content="Dünya Kupası grupları, elemeler ve canlı sonuçlar."/>
+<meta property="og:url" content="https://scorepop.com.tr/dunya-kupasi/"/>
+<meta property="og:type" content="website"/>
+
+<!-- Google Tag Manager -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JS4J2RCJJ9"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-JS4J2RCJJ9');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6664942674336301" crossorigin="anonymous"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+
+<!-- Ana site CSS (sidebar, topbar, global token'lar) -->
+<link rel="stylesheet" href="/style.css?v=5"/>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<script src="/config.js?v=0"></script>
+
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   DÜNYA KUPASI — Sayfa Özel Stilleri
+   Paleti: Gold (kazanan/tur atlayan), Orange (ana vurgu — style.css'ten miras)
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --gold:        #d4af37;
+  --gold-bright: #e9c766;
+  --gold-soft:   rgba(212,175,55,.16);
+  --gold-faint:  rgba(212,175,55,.07);
+  --gold-glow:   rgba(212,175,55,.38);
+}
+
+/* ─── Sayfa başlığı ───────────────────────────────────────────── */
+.wc-page-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--b1);
+  background: var(--bg2);
+}
+.wc-trophy {
+  width: 32px; height: 32px;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--gold) 0%, #a87820 100%);
+  box-shadow: 0 0 20px var(--gold-glow);
+  flex-shrink: 0;
+  font-size: 16px;
+  color: #1a1000;
+}
+.wc-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 17px; font-weight: 800;
+  letter-spacing: 2px; color: var(--tx1);
+  text-transform: uppercase;
+}
+.wc-badge {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px; font-weight: 800; letter-spacing: 1.6px;
+  color: var(--gold-bright);
+  background: var(--gold-soft);
+  border: 1px solid rgba(212,175,55,.35);
+  border-radius: 4px;
+  padding: 2px 6px;
+  text-transform: uppercase;
+}
+
+/* ─── Banner Carousel ─────────────────────────────────────────── */
+.wc-banner-wrap { padding: 14px 16px 8px; }
+.wc-banner-viewport {
+  position: relative; overflow: hidden;
+  border-radius: 12px;
+  background: var(--bg2);
+  border: 1px solid var(--b1);
+}
+.wc-banner-track {
+  display: flex;
+  transition: transform .42s cubic-bezier(.22,.61,.36,1);
+  will-change: transform;
+}
+.wc-banner-slide {
+  flex: 0 0 100%;
+  aspect-ratio: 1100 / 340;
+  background: var(--bg3);
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+}
+.wc-banner-slide img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+.wc-banner-slide.placeholder {
+  background: linear-gradient(90deg, var(--bg3) 30%, var(--bg4) 50%, var(--bg3) 70%);
+  background-size: 200% 100%;
+  animation: wc-shim 1.4s infinite;
+}
+@keyframes wc-shim { to { background-position: -200% 0; } }
+.wc-banner-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(0,0,0,.55); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--tx1); opacity: 0;
+  transition: opacity .2s, background .15s; z-index: 2;
+  border: none; cursor: pointer;
+}
+.wc-banner-viewport:hover .wc-banner-arrow { opacity: 1; }
+.wc-banner-arrow:hover { background: rgba(0,0,0,.82); }
+.wc-banner-arrow.prev { left: 10px; }
+.wc-banner-arrow.next { right: 10px; }
+.wc-banner-dots {
+  display: flex; gap: 5px;
+  justify-content: center;
+  padding: 10px 0 4px;
+}
+.wc-dot {
+  width: 6px; height: 6px; border-radius: 3px;
+  background: var(--b3);
+  transition: all .28s; cursor: pointer;
+}
+.wc-dot.active { width: 20px; background: var(--or); }
+
+/* ─── Ana sekme çubuğu (Gruplar / Elemeler) ──────────────────── */
+.wc-tabs {
+  display: flex;
+  padding: 0 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--b1);
+  position: sticky; top: 48px; z-index: 40;
+}
+.wc-tab {
+  padding: 14px 18px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 2px; color: var(--tx3);
+  text-transform: uppercase;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+  cursor: pointer;
+  background: none;
+  border-top: none; border-left: none; border-right: none;
+}
+.wc-tab:hover { color: var(--tx2); }
+.wc-tab.active { color: var(--or); border-bottom-color: var(--or); }
+
+/* ─── Sekme içerikleri ────────────────────────────────────────── */
+.wc-tab-pane { display: none; padding: 16px; }
+.wc-tab-pane.active { display: block; }
+
+/* ─── Grup harfi seçici ──────────────────────────────────────── */
+.wc-group-picker {
+  display: flex; gap: 6px;
+  overflow-x: auto; scrollbar-width: none;
+  padding-bottom: 4px; margin-bottom: 14px;
+}
+.wc-group-picker::-webkit-scrollbar { display: none; }
+.wc-group-pill {
+  flex-shrink: 0; min-width: 60px;
+  padding: 8px 14px;
+  background: var(--bg2);
+  border: 1px solid var(--b1);
+  border-radius: 8px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 1.5px; color: var(--tx2);
+  text-transform: uppercase; text-align: center;
+  cursor: pointer; transition: all .15s;
+}
+.wc-group-pill:hover:not(:disabled) { background: var(--bg3); color: var(--tx1); }
+.wc-group-pill.active {
+  background: var(--or3);
+  border-color: rgba(242,100,25,.4);
+  color: var(--or);
+}
+.wc-group-pill:disabled { opacity: .38; cursor: not-allowed; }
+
+/* ─── Standings kartı ────────────────────────────────────────── */
+.wc-standings-card {
+  background: var(--bg2);
+  border: 1px solid var(--b1);
+  border-radius: 12px; overflow: hidden;
+}
+.wc-card-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--b1);
+}
+.wc-card-letter {
+  width: 28px; height: 28px; border-radius: 6px;
+  background: linear-gradient(135deg, var(--gold) 0%, #a87820 100%);
+  box-shadow: 0 0 14px var(--gold-glow);
+  color: #1a1000;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+.wc-card-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 1.4px; color: var(--tx1);
+  text-transform: uppercase;
+}
+.wc-card-updated {
+  margin-left: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--tx3);
+}
+
+/* Puan durumu tablosu */
+.wc-st-table { width: 100%; border-collapse: collapse; }
+.wc-st-table thead th {
+  padding: 8px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px; font-weight: 700; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--tx3);
+  text-align: center;
+  border-bottom: 1px solid var(--b1); white-space: nowrap;
+}
+.wc-st-table thead th.team  { text-align: left; padding-left: 16px; width: 40%; }
+.wc-st-table thead th.rank-h { width: 36px; }
+
+.wc-st-table tbody tr {
+  border-bottom: 1px solid var(--b1);
+  transition: background .12s; position: relative;
+}
+.wc-st-table tbody tr:last-child { border-bottom: none; }
+.wc-st-table tbody tr:hover { background: var(--b1); }
+.wc-st-table tbody tr.qualified { background: var(--gold-faint); }
+.wc-st-table tbody tr.qualified:hover { background: var(--gold-soft); }
+
+.wc-st-table td {
+  padding: 10px 8px; text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; color: var(--tx2);
+}
+.wc-st-table td.pos {
+  padding-left: 16px; text-align: left;
+  font-size: 11px; width: 36px; position: relative;
+}
+/* Renkli sol kenar çizgisi */
+.wc-st-table td.pos::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 6px; bottom: 6px;
+  width: 3px; border-radius: 0 2px 2px 0;
+  background: transparent;
+}
+.wc-st-table tr.qualified  td.pos::before  { background: var(--gold); }
+.wc-st-table tr.playoff    td.pos::before  { background: var(--blue); }
+.wc-st-table tr.eliminated td.pos::before  { background: var(--live); }
+
+.wc-st-table td.team { text-align: left; padding-left: 4px; }
+.wc-st-team { display: flex; align-items: center; gap: 10px; }
+.wc-flag {
+  width: 22px; height: 16px; border-radius: 2px;
+  object-fit: cover; flex-shrink: 0;
+  background: var(--bg4);
+}
+.wc-flag-fallback {
+  width: 22px; height: 16px; border-radius: 2px;
+  background: var(--bg4); color: var(--tx2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.wc-team-name {
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px; font-weight: 500; color: var(--tx1);
+}
+tr.qualified .wc-team-name { color: var(--gold-bright); font-weight: 600; }
+.wc-st-table td.pts { color: var(--tx1); font-weight: 800; font-size: 13px; }
+tr.qualified td.pts { color: var(--gold-bright); }
+
+/* Açıklama (legend) */
+.wc-legend {
+  display: flex; flex-wrap: wrap; gap: 14px;
+  padding: 14px 4px 0;
+}
+.wc-legend-item {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px; font-weight: 600; letter-spacing: 1.2px;
+  color: var(--tx2); text-transform: uppercase;
+}
+.wc-legend-dot {
+  width: 3px; height: 14px; border-radius: 1px;
+}
+.wc-legend-dot.gold { background: var(--gold); }
+.wc-legend-dot.blue { background: var(--blue); }
+.wc-legend-dot.red  { background: var(--live); }
+
+/* Grup maçları listesi */
+.wc-group-matches-list {
+  margin-top: 14px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.wc-group-match-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg2);
+  border: 1px solid var(--b1); border-radius: 8px;
+  transition: border-color .14s;
+}
+.wc-group-match-row:hover { border-color: var(--b2); }
+.wc-group-match-row.live { border-color: rgba(244,63,94,.5); }
+.wc-gm-home { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.wc-gm-away { display: flex; align-items: center; gap: 8px; }
+.wc-gm-name {
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px; font-weight: 500; color: var(--tx1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 90px;
+}
+.wc-gm-score {
+  display: flex; align-items: center; gap: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px; font-weight: 700; color: var(--tx1);
+  min-width: 48px; justify-content: center;
+  background: var(--bg3); border-radius: 6px;
+  padding: 4px 8px;
+}
+.wc-gm-score.live { color: var(--live); }
+.wc-gm-score.pending { color: var(--tx3); font-size: 11px; }
+.wc-gm-matchday {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: var(--tx3);
+  text-align: center; padding-top: 3px;
+}
+
+/* ─── Eleme Ağacı (Bracket) ──────────────────────────────────── */
+.wc-bracket-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--b3) transparent;
+}
+.wc-bracket-wrap::-webkit-scrollbar { height: 4px; }
+.wc-bracket-wrap::-webkit-scrollbar-thumb { background: var(--b3); border-radius: 2px; }
+
+.wc-bracket {
+  display: flex; align-items: stretch; gap: 28px;
+  min-width: max-content; padding: 8px 4px;
+}
+.wc-bracket-col {
+  display: flex; flex-direction: column;
+  justify-content: space-around;
+  min-width: 188px; width: 188px; gap: 16px;
+}
+.wc-bracket-col.finals { justify-content: center; gap: 32px; }
+
+.wc-round-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px; font-weight: 800; letter-spacing: 1.8px;
+  color: var(--gold-bright);
+  text-transform: uppercase; text-align: center;
+  padding: 8px 0 6px;
+  border-bottom: 1px solid var(--b1);
+  background: var(--bg3);
+  border-radius: 6px 6px 0 0;
+}
+.wc-round-stage {
+  display: flex; flex-direction: column;
+  justify-content: space-around; flex: 1;
+  gap: 16px; padding-top: 12px;
+}
+
+/* Maç kutusu */
+.wc-match {
+  background: var(--bg2);
+  border: 1px solid var(--b2);
+  border-radius: 8px; overflow: hidden;
+  transition: border-color .15s, box-shadow .2s;
+}
+.wc-match:hover { border-color: var(--b3); }
+.wc-match.live { border-color: rgba(244,63,94,.55); }
+.wc-match.final-match {
+  border: 1.5px solid var(--gold);
+  box-shadow: 0 0 26px var(--gold-glow);
+}
+
+.wc-match-row {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center; gap: 8px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--b1);
+}
+.wc-match-row:last-child { border-bottom: none; }
+
+.wc-match-team {
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px; font-weight: 500; color: var(--tx1);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wc-match-row.winner .wc-match-team { color: var(--gold-bright); font-weight: 700; }
+.wc-match-row.loser  .wc-match-team { color: var(--tx3); }
+.wc-match-team.empty { color: var(--tx3); font-style: italic; }
+
+.wc-match-score {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px; font-weight: 700; color: var(--tx1);
+  min-width: 18px; text-align: right;
+}
+.wc-match-row.winner .wc-match-score { color: var(--gold-bright); }
+.wc-match-row.loser  .wc-match-score { color: var(--tx3); }
+.wc-match-pens {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--tx3); margin-left: 2px;
+}
+.wc-match-meta {
+  padding: 5px 12px;
+  background: var(--bg3);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--tx3);
+  text-align: center; border-top: 1px solid var(--b1);
+}
+.wc-match.live .wc-match-meta { color: var(--live); background: var(--live2); }
+
+.wc-third-place-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px; font-weight: 700; letter-spacing: 1.6px;
+  color: var(--tx3); text-transform: uppercase;
+  text-align: center; padding: 6px 0 4px;
+}
+
+/* ─── Durum kutuları (yükleniyor / hata / boş) ─────────────────── */
+.wc-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 60px 20px; gap: 14px; color: var(--tx3);
+}
+.wc-state .spinner {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 3px solid var(--b2); border-top-color: var(--or);
+  animation: wc-spin .7s linear infinite;
+}
+.wc-state .icon { font-size: 30px; opacity: .5; }
+.wc-state p { font-size: 13px; }
+@keyframes wc-spin { to { transform: rotate(360deg); } }
+
+/* ─── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .wc-banner-slide { aspect-ratio: 16 / 9; }
+  .wc-banner-arrow { display: none; }
+  .wc-st-table td.hide-sm,
+  .wc-st-table th.hide-sm { display: none; }
+  .wc-card-updated { display: none; }
+  .wc-gm-name { max-width: 70px; }
+}
+@media (max-width: 480px) {
+  .wc-page-head { padding: 12px; }
+  .wc-title { font-size: 15px; letter-spacing: 1.5px; }
+  .wc-tab { padding: 12px 14px; font-size: 12px; }
+  .wc-tab-pane { padding: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SIDEBAR — style.css mirasını kullanan sabit sidebar yapısı
+     "Dünya Kupası" bağlantısı aktif olarak işaretlenmiştir.
+     ═══════════════════════════════════════════════════════════ -->
+<aside id="sidebar">
+  <div class="sb-top">
+    <a class="sb-brand" href="/" style="text-decoration:none;cursor:pointer;">
+      <div class="sb-mark">
+        <img src="https://i.hizliresim.com/gbleupf.png" alt="ScorePop Logo">
+      </div>
+      <div class="sb-name">SCORE<em>POP</em></div>
+    </a>
+    <div class="sb-live-stat">
+      <span class="sb-live-dot"></span>
+      <span id="sb-live-n">—</span>
+      <span class="sb-live-lbl">maç canlı</span>
+    </div>
+  </div>
+
+  <nav class="sb-nav">
+    <a class="sb-btn" href="/" style="text-decoration:none;">
+      <span class="sb-btn-pip"></span>
+      <span>Canlı Maçlar</span>
+    </a>
+    <a class="sb-btn" href="/?p=/bugun" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+        <rect x=".75" y="1.75" width="11.5" height="10.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M.75 5h11.5" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M4 .5v2M9 .5v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span>Bugün</span>
+    </a>
+    <a class="sb-btn" href="/?p=/yaklasan" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+        <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M6.5 3.5v3l2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span>Yaklaşan</span>
+    </a>
+  </nav>
+
+  <div class="sb-sep"></div>
+
+  <nav class="sb-nav" style="padding-top:4px;padding-bottom:4px;">
+    <a class="sb-btn active" href="/dunya-kupasi/" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+        <path d="M3 1.5h7v3a3.5 3.5 0 0 1-7 0v-3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+        <path d="M3 3H1.5v1a1.5 1.5 0 0 0 1.5 1.5M10 3h1.5v1a1.5 1.5 0 0 1-1.5 1.5" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M5.5 8.5h2v2.5h-2zM4 11h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span>Dünya Kupası</span>
+    </a>
+    <a class="sb-btn" href="/haberler" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+        <rect x=".75" y=".75" width="11.5" height="11.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M3 4h7M3 6.5h7M3 9h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span>Haberler</span>
+    </a>
+    <a class="sb-btn" href="/tv-rehberi/" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+        <rect x=".75" y="1.75" width="11.5" height="8.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M4 10.25v1.5M9 10.25v1.5M2.5 11.75h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        <circle cx="6.5" cy="5.75" r="1.5" stroke="currentColor" stroke-width="1.1"/>
+      </svg>
+      <span>TV Rehberi</span>
+    </a>
+    <a class="sb-btn" href="/puan-durumu/" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+        <rect x=".75" y="3.75" width="2.5" height="8.5" rx="1" fill="currentColor" opacity=".7"/>
+        <rect x="5.25" y="1.75" width="2.5" height="10.5" rx="1" fill="currentColor"/>
+        <rect x="9.75" y="5.75" width="2.5" height="6.5" rx="1" fill="currentColor" opacity=".5"/>
+      </svg>
+      <span>Puan Durumu</span>
+    </a>
+    <a class="sb-btn" href="/hakkimizda" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+        <circle cx="6.5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M2 11c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span>Hakkımızda</span>
+    </a>
+    <a class="sb-btn" href="/iletisim" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+        <rect x=".75" y="2.75" width="11.5" height="7.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M1 3.5l5.5 4 5.5-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span>İletişim</span>
+    </a>
+  </nav>
+</aside>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ANA İÇERİK
+     ═══════════════════════════════════════════════════════════ -->
+<main id="main">
+
+  <!-- Topbar — puan-durumu sayfasıyla aynı minimal yapı -->
+  <header id="topbar" style="justify-content:flex-start; padding:0 16px;">
+    <div class="tb-left" style="display:flex;">
+      <button class="tb-menu" onclick="toggleSidebar()" aria-label="Menü">
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+          <path d="M0 1h16M0 6h16M0 11h16" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <div style="flex:1;"></div>
+  </header>
+
+  <!-- Sayfa başlığı -->
+  <div class="wc-page-head">
+    <div class="wc-trophy" aria-hidden="true">🏆</div>
+    <div class="wc-title">Dünya Kupası</div>
+    <div class="wc-badge">ÖZEL</div>
+  </div>
+
+  <!-- Banner carousel -->
+  <div class="wc-banner-wrap" id="bannerWrap">
+    <div class="wc-banner-viewport" id="bannerViewport">
+      <div class="wc-banner-track" id="bannerTrack">
+        <div class="wc-banner-slide placeholder" aria-hidden="true"></div>
+      </div>
+      <button class="wc-banner-arrow prev" id="bannerPrev" aria-label="Önceki banner">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="wc-banner-arrow next" id="bannerNext" aria-label="Sonraki banner">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M5 2l5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="wc-banner-dots" id="bannerDots" role="tablist" aria-label="Banner navigasyon"></div>
+  </div>
+
+  <!-- Ana sekme çubuğu -->
+  <div class="wc-tabs" role="tablist" aria-label="İçerik sekmeler">
+    <button class="wc-tab active" data-tab="groups" role="tab" aria-selected="true">Gruplar</button>
+    <button class="wc-tab" data-tab="knockouts" role="tab" aria-selected="false">Elemeler</button>
+  </div>
+
+  <!-- ── GRUPLAR BÖLÜMÜ ── -->
+  <section class="wc-tab-pane active" id="pane-groups" role="tabpanel" aria-labelledby="">
+    <!-- Grup seçici (A–H) -->
+    <div class="wc-group-picker" id="groupPicker" role="tablist" aria-label="Grup seçimi"></div>
+
+    <!-- Puan durumu tablosu -->
+    <div id="standingsRoot">
+      <div class="wc-state">
+        <div class="spinner" aria-label="Yükleniyor"></div>
+        <p>Puan durumları yükleniyor…</p>
+      </div>
+    </div>
+
+    <!-- Grup maçları -->
+    <div id="groupMatchesRoot"></div>
+
+    <!-- Açıklama -->
+    <div class="wc-legend" aria-label="Renk açıklamaları">
+      <div class="wc-legend-item">
+        <span class="wc-legend-dot gold"></span> Tur Atlayan
+      </div>
+      <div class="wc-legend-item">
+        <span class="wc-legend-dot blue"></span> Play-off
+      </div>
+      <div class="wc-legend-item">
+        <span class="wc-legend-dot red"></span> Elenen
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ELEMELER BÖLÜMÜ ── -->
+  <section class="wc-tab-pane" id="pane-knockouts" role="tabpanel">
+    <div id="bracketRoot">
+      <div class="wc-state">
+        <div class="spinner" aria-label="Yükleniyor"></div>
+        <p>Eleme ağacı yükleniyor…</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════
+     VERİ KATMANI
+     Mimari kural: Bu sayfa wc_* tablolarını izole olarak sorgular.
+     Ana app.js / arşiv mimarisine hiçbir bağımlılık yoktur.
+     ═══════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+'use strict';
+
+/* ── Supabase istemci başlat ────────────────────────────────── */
+let sb;
+try {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch (e) {
+  fatalError('Bağlantı kurulamadı — config.js eksik veya hatalı.');
+}
+
+function fatalError(msg) {
+  ['standingsRoot','bracketRoot','groupMatchesRoot'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = errHtml(msg);
+  });
+}
+function errHtml(msg) {
+  return `<div class="wc-state"><div class="icon">⚠️</div><p>${esc(msg)}</p></div>`;
+}
+
+/* ── Yardımcı fonksiyonlar ──────────────────────────────────── */
+function esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function fmtSigned(n) {
+  const v = n || 0;
+  return v > 0 ? `+${v}` : `${v}`;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth() + 1).padStart(2,'0');
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mi = String(d.getMinutes()).padStart(2,'0');
+  return `${dd}.${mm} ${hh}:${mi}`;
+}
+
+function flagHtml(url, code) {
+  const alt = esc(code || '?');
+  if (url) {
+    return `<img class="wc-flag" src="${esc(url)}" alt="${alt}" loading="lazy"
+              onerror="this.outerHTML='<div class=\\'wc-flag-fallback\\'>${alt}</div>'">`;
+  }
+  return `<div class="wc-flag-fallback">${alt}</div>`;
+}
+
+/* ════════════════════════════════════════════════════════════
+   1) BANNER CAROUSEL
+   Kaynak: app_banners (is_active = true, priority DESC)
+   ════════════════════════════════════════════════════════════ */
+const banner = {
+  list: [],
+  idx: 0,
+  timer: null,
+
+  async load() {
+    if (!sb) return;
+    try {
+      const { data, error } = await sb
+        .from('app_banners')
+        .select('id, image_url, tap_url, alt_text, priority')
+        .eq('is_active', true)
+        .order('priority', { ascending: false })
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      this.list = data || [];
+      this.render();
+    } catch (e) {
+      console.warn('[WC Banner] Yüklenemedi:', e.message);
+      document.getElementById('bannerWrap').style.display = 'none';
+    }
+  },
+
+  render() {
+    const track = document.getElementById('bannerTrack');
+    const dots  = document.getElementById('bannerDots');
+    const wrap  = document.getElementById('bannerWrap');
+
+    if (!this.list.length) { wrap.style.display = 'none'; return; }
+
+    track.innerHTML = this.list.map(b => `
+      <div class="wc-banner-slide" data-url="${esc(b.tap_url || '')}" role="img" aria-label="${esc(b.alt_text || 'Banner')}">
+        <img src="${esc(b.image_url)}" alt="${esc(b.alt_text || '')}" loading="lazy"
+             onerror="this.style.display='none'">
+      </div>
+    `).join('');
+
+    dots.innerHTML = this.list.map((_, i) =>
+      `<div class="wc-dot${i === 0 ? ' active' : ''}" data-idx="${i}"
+            role="tab" aria-label="Banner ${i+1}" tabindex="0"></div>`
+    ).join('');
+
+    // Tıklama → harici bağlantı
+    track.querySelectorAll('.wc-banner-slide').forEach(el => {
+      el.addEventListener('click', () => {
+        const u = el.dataset.url;
+        if (u) window.open(u, '_blank', 'noopener,noreferrer');
+      });
+    });
+
+    dots.querySelectorAll('.wc-dot').forEach(el => {
+      el.addEventListener('click', () => this.goTo(parseInt(el.dataset.idx, 10)));
+    });
+
+    document.getElementById('bannerPrev').addEventListener('click', () => this.goTo(this.idx - 1));
+    document.getElementById('bannerNext').addEventListener('click', () => this.goTo(this.idx + 1));
+
+    // Hover'da durdur
+    const vp = document.getElementById('bannerViewport');
+    vp.addEventListener('mouseenter', () => this.stop());
+    vp.addEventListener('mouseleave', () => this.start());
+
+    // Dokunmatik kaydırma (mobile)
+    this._attachSwipe(vp);
+
+    this.goTo(0);
+    if (this.list.length > 1) this.start();
+  },
+
+  goTo(i) {
+    if (!this.list.length) return;
+    this.idx = ((i % this.list.length) + this.list.length) % this.list.length;
+    document.getElementById('bannerTrack').style.transform = `translateX(-${this.idx * 100}%)`;
+    document.querySelectorAll('.wc-dot').forEach((d, di) =>
+      d.classList.toggle('active', di === this.idx)
+    );
+  },
+
+  start() {
+    this.stop();
+    if (this.list.length < 2) return;
+    this.timer = setInterval(() => this.goTo(this.idx + 1), 5000);
+  },
+  stop() { if (this.timer) { clearInterval(this.timer); this.timer = null; } },
+
+  _attachSwipe(el) {
+    let startX = 0, dx = 0, active = false;
+    el.addEventListener('touchstart', e => {
+      active = true; startX = e.touches[0].clientX; dx = 0; this.stop();
+    }, { passive: true });
+    el.addEventListener('touchmove', e => {
+      if (!active) return;
+      dx = e.touches[0].clientX - startX;
+    }, { passive: true });
+    el.addEventListener('touchend', () => {
+      if (!active) return;
+      if (Math.abs(dx) > 40) this.goTo(this.idx + (dx < 0 ? 1 : -1));
+      active = false; this.start();
+    });
+  }
+};
+
+/* ════════════════════════════════════════════════════════════
+   2) GRUPLAR — wc_group_standings_view + wc_group_matches
+   ════════════════════════════════════════════════════════════ */
+const groups = {
+  standings: {},    // letter → [rows]
+  matches:   {},    // letter → [matches]
+  teams:     {},    // id → team
+  active:    'A',
+
+  async load() {
+    if (!sb) return;
+    try {
+      const [stRes, mRes, tRes] = await Promise.all([
+        sb.from('wc_group_standings_view')
+          .select('group_letter,team_id,team_code,team_name,team_flag_url,played,won,drawn,lost,goals_for,goals_against,goal_difference,points,rank,qualified,updated_at')
+          .order('group_letter').order('rank', { ascending: true, nullsFirst: false }).order('points', { ascending: false }),
+        sb.from('wc_group_matches')
+          .select('id,group_letter,matchday,home_team_id,away_team_id,home_score,away_score,status,kickoff_at,venue')
+          .order('group_letter').order('matchday').order('kickoff_at'),
+        sb.from('wc_teams').select('id,code,name,flag_url,group_letter')
+      ]);
+      if (stRes.error)  throw stRes.error;
+      if (mRes.error)   throw mRes.error;
+      if (tRes.error)   throw tRes.error;
+
+      // Teams map
+      (tRes.data || []).forEach(t => { this.teams[t.id] = t; });
+
+      // Standings by group
+      this.standings = {};
+      (stRes.data || []).forEach(r => {
+        if (!this.standings[r.group_letter]) this.standings[r.group_letter] = [];
+        this.standings[r.group_letter].push(r);
+      });
+
+      // Matches by group
+      this.matches = {};
+      (mRes.data || []).forEach(m => {
+        if (!this.matches[m.group_letter]) this.matches[m.group_letter] = [];
+        this.matches[m.group_letter].push(m);
+      });
+
+      // İlk veri olan grubu aktif yap
+      const present = Object.keys(this.standings);
+      if (present.length && !present.includes(this.active)) this.active = present[0];
+
+      this.renderPicker();
+      this.renderActive();
+    } catch (e) {
+      document.getElementById('standingsRoot').innerHTML = errHtml('Grup verisi yüklenemedi: ' + e.message);
+    }
+  },
+
+  renderPicker() {
+    const letters = ['A','B','C','D','E','F','G','H'];
+    const html = letters.map(l => {
+      const has = (this.standings[l] || []).length > 0;
+      const cls = 'wc-group-pill' + (l === this.active ? ' active' : '');
+      return `<button class="${cls}" data-letter="${l}" ${has ? '' : 'disabled'}>GRUP ${l}</button>`;
+    }).join('');
+    const root = document.getElementById('groupPicker');
+    root.innerHTML = html;
+    root.querySelectorAll('.wc-group-pill:not([disabled])').forEach(el => {
+      el.addEventListener('click', () => {
+        this.active = el.dataset.letter;
+        this.renderPicker();
+        this.renderActive();
+      });
+    });
+  },
+
+  renderActive() {
+    const rows    = this.standings[this.active] || [];
+    const matches = this.matches[this.active]   || [];
+    const stRoot  = document.getElementById('standingsRoot');
+    const mRoot   = document.getElementById('groupMatchesRoot');
+
+    // ── Puan durumu ──
+    if (!rows.length) {
+      stRoot.innerHTML = `<div class="wc-state"><div class="icon">📭</div><p>Bu grup için veri henüz girilmemiş.</p></div>`;
+      mRoot.innerHTML = '';
+      return;
+    }
+
+    const lastUpdated = rows.reduce((acc, r) =>
+      r.updated_at && (!acc || r.updated_at > acc) ? r.updated_at : acc, null);
+
+    let tbody = '';
+    rows.forEach((r, i) => {
+      const pos = r.rank || (i + 1);
+      let rowCls = '';
+      if (r.qualified)    rowCls = 'qualified';
+      else if (pos === 3) rowCls = 'playoff';
+      else if (pos >= 4)  rowCls = 'eliminated';
+
+      tbody += `
+        <tr class="${rowCls}">
+          <td class="pos">${pos}</td>
+          <td class="team">
+            <div class="wc-st-team">
+              ${flagHtml(r.team_flag_url, r.team_code)}
+              <span class="wc-team-name">${esc(r.team_name)}</span>
+            </div>
+          </td>
+          <td>${r.played || 0}</td>
+          <td class="hide-sm">${r.won || 0}</td>
+          <td class="hide-sm">${r.drawn || 0}</td>
+          <td class="hide-sm">${r.lost || 0}</td>
+          <td>${fmtSigned(r.goal_difference)}</td>
+          <td class="pts">${r.points || 0}</td>
+        </tr>`;
+    });
+
+    stRoot.innerHTML = `
+      <div class="wc-standings-card">
+        <div class="wc-card-head">
+          <div class="wc-card-letter">${esc(this.active)}</div>
+          <div class="wc-card-title">Grup ${esc(this.active)}</div>
+          ${lastUpdated ? `<div class="wc-card-updated">Güncellendi: ${fmtDate(lastUpdated)}</div>` : ''}
+        </div>
+        <table class="wc-st-table" aria-label="Grup ${esc(this.active)} puan durumu">
+          <thead>
+            <tr>
+              <th class="rank-h" title="Sıralama">#</th>
+              <th class="team">Takım</th>
+              <th title="Oynanan Maç">OM</th>
+              <th class="hide-sm" title="Galibiyet">G</th>
+              <th class="hide-sm" title="Beraberlik">B</th>
+              <th class="hide-sm" title="Mağlubiyet">M</th>
+              <th title="Averaj">AV</th>
+              <th title="Puan">P</th>
+            </tr>
+          </thead>
+          <tbody>${tbody}</tbody>
+        </table>
+      </div>`;
+
+    // ── Grup maçları ──
+    if (!matches.length) { mRoot.innerHTML = ''; return; }
+
+    const mRows = matches.map(m => {
+      const home = this.teams[m.home_team_id];
+      const away = this.teams[m.away_team_id];
+      const isLive = m.status === 'live';
+      const isDone = m.status === 'finished';
+      const hasScore = m.home_score != null && m.away_score != null;
+
+      let scoreHtml;
+      if (isLive) {
+        scoreHtml = `<div class="wc-gm-score live">● ${hasScore ? m.home_score : ''} — ${hasScore ? m.away_score : ''}</div>`;
+      } else if (isDone && hasScore) {
+        scoreHtml = `<div class="wc-gm-score">${m.home_score} — ${m.away_score}</div>`;
+      } else {
+        scoreHtml = `<div class="wc-gm-score pending">${m.kickoff_at ? fmtDate(m.kickoff_at) : 'TBD'}</div>`;
+      }
+
+      return `
+        <div class="wc-group-match-row${isLive ? ' live' : ''}">
+          <div class="wc-gm-home">
+            <span class="wc-gm-name" style="text-align:right">${esc(home ? home.name : '?')}</span>
+            ${flagHtml(home ? home.flag_url : null, home ? home.code : '?')}
+          </div>
+          ${scoreHtml}
+          <div class="wc-gm-away">
+            ${flagHtml(away ? away.flag_url : null, away ? away.code : '?')}
+            <span class="wc-gm-name">${esc(away ? away.name : '?')}</span>
+          </div>
+        </div>`;
+    }).join('');
+
+    mRoot.innerHTML = `<div class="wc-group-matches-list">${mRows}</div>`;
+  }
+};
+
+/* ════════════════════════════════════════════════════════════
+   3) ELEME AĞACI — wc_knockout_matches + wc_teams
+   ════════════════════════════════════════════════════════════ */
+const bracket = {
+  teams:   {},
+  matches: { R16: [], QF: [], SF: [], F: [], T3: [] },
+
+  async load() {
+    if (!sb) return;
+    try {
+      const [tRes, mRes] = await Promise.all([
+        sb.from('wc_teams').select('id,code,name,flag_url,group_letter'),
+        sb.from('wc_knockout_matches')
+          .select('id,round,slot,home_team_id,away_team_id,home_score,away_score,home_pens,away_pens,status,kickoff_at,winner_team_id,venue')
+          .order('round').order('slot')
+      ]);
+      if (tRes.error) throw tRes.error;
+      if (mRes.error) throw mRes.error;
+
+      (tRes.data || []).forEach(t => { this.teams[t.id] = t; });
+
+      this.matches = { R16: [], QF: [], SF: [], F: [], T3: [] };
+      (mRes.data || []).forEach(m => {
+        if (this.matches[m.round]) this.matches[m.round].push(m);
+      });
+
+      this.render();
+    } catch (e) {
+      document.getElementById('bracketRoot').innerHTML =
+        errHtml('Eleme ağacı yüklenemedi: ' + e.message);
+    }
+  },
+
+  _matchHtml(m, opts) {
+    opts = opts || {};
+    const home    = m.home_team_id ? this.teams[m.home_team_id] : null;
+    const away    = m.away_team_id ? this.teams[m.away_team_id] : null;
+    const homeWin = m.winner_team_id && home && m.winner_team_id === home.id;
+    const awayWin = m.winner_team_id && away && m.winner_team_id === away.id;
+    const isLive  = m.status === 'live';
+    const isDone  = m.status === 'finished';
+    const hasScore = m.home_score != null && m.away_score != null;
+
+    const matchCls = ['wc-match', isLive ? 'live' : '', opts.isFinal ? 'final-match' : '']
+      .filter(Boolean).join(' ');
+
+    const teamRow = (team, score, pens, isWinner, isLoser) => {
+      const rowCls = isWinner ? 'winner' : (isLoser ? 'loser' : '');
+      const teamBlock = team
+        ? `<div style="display:flex;align-items:center;gap:7px;min-width:0;overflow:hidden;">
+             ${flagHtml(team.flag_url, team.code)}
+             <span class="wc-match-team">${esc(team.name)}</span>
+           </div>`
+        : `<div style="display:flex;align-items:center;gap:7px;">
+             <div class="wc-flag-fallback">?</div>
+             <span class="wc-match-team empty">—</span>
+           </div>`;
+      const scoreBlock = hasScore
+        ? `<span class="wc-match-score">${score}${pens != null
+             ? `<span class="wc-match-pens">(${pens})</span>` : ''}</span>`
+        : (isLive
+             ? `<span class="wc-match-score" style="color:var(--live)">●</span>`
+             : `<span></span>`);
+      return `<div class="wc-match-row ${rowCls}">
+                <div></div>${teamBlock}${scoreBlock}
+              </div>`;
+    };
+
+    let metaText = '';
+    if (isLive)                             metaText = 'CANLI';
+    else if (!isDone && m.kickoff_at)       metaText = fmtDate(m.kickoff_at);
+    else if (isDone && hasScore)            metaText = 'BİTTİ';
+    else if (!home && !away)                metaText = 'Bekleniyor';
+
+    return `
+      <div class="${matchCls}">
+        ${teamRow(home, m.home_score, m.home_pens, homeWin, awayWin && hasScore)}
+        ${teamRow(away, m.away_score, m.away_pens, awayWin, homeWin && hasScore)}
+        ${metaText ? `<div class="wc-match-meta">${esc(metaText)}</div>` : ''}
+      </div>`;
+  },
+
+  _colHtml(label, matchList, opts) {
+    opts = opts || {};
+    const body = matchList.length
+      ? matchList.map(m => this._matchHtml(m, opts)).join('')
+      : `<div class="wc-state" style="padding:24px 12px;">
+           <p style="font-size:11px;">Bekleniyor…</p>
+         </div>`;
+    return `
+      <div class="wc-bracket-col${opts.finals ? ' finals' : ''}">
+        <div class="wc-round-label">${esc(label)}</div>
+        <div class="wc-round-stage">${body}</div>
+      </div>`;
+  },
+
+  render() {
+    const finalsHtml = `
+      <div class="wc-bracket-col finals">
+        <div class="wc-round-label">Final</div>
+        <div class="wc-round-stage">
+          ${this.matches.F.length
+            ? this._matchHtml(this.matches.F[0], { isFinal: true })
+            : `<div class="wc-state" style="padding:24px 12px;">
+                 <p style="font-size:11px;">Bekleniyor…</p>
+               </div>`}
+          ${this.matches.T3.length
+            ? `<div>
+                 <div class="wc-third-place-label">3.lük Maçı</div>
+                 ${this._matchHtml(this.matches.T3[0])}
+               </div>`
+            : ''}
+        </div>
+      </div>`;
+
+    document.getElementById('bracketRoot').innerHTML = `
+      <div class="wc-bracket-wrap">
+        <div class="wc-bracket">
+          ${this._colHtml('Son 16',       this.matches.R16)}
+          ${this._colHtml('Çeyrek Final', this.matches.QF)}
+          ${this._colHtml('Yarı Final',   this.matches.SF)}
+          ${finalsHtml}
+        </div>
+      </div>`;
+  }
+};
+
+/* ════════════════════════════════════════════════════════════
+   4) TAB KONTROLÜ
+   ════════════════════════════════════════════════════════════ */
+document.querySelectorAll('.wc-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.wc-tab').forEach(t => {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+    });
+    document.querySelectorAll('.wc-tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+    const pane = document.getElementById('pane-' + btn.dataset.tab);
+    if (pane) pane.classList.add('active');
+  });
+});
+
+/* ════════════════════════════════════════════════════════════
+   5) SİDEBAR TOGGLE (style.css davranışıyla uyumlu)
+   ════════════════════════════════════════════════════════════ */
+window.toggleSidebar = function () {
+  document.getElementById('sidebar').classList.toggle('open');
+};
+
+/* ════════════════════════════════════════════════════════════
+   6) CANLI YENİLEME — Aktif maç varsa 60sn'de bir yenile
+   ════════════════════════════════════════════════════════════ */
+let refreshTimer = null;
+
+function checkLiveAndScheduleRefresh() {
+  // Eleme aşamasında canlı maç var mı?
+  const hasLive = Object.values(bracket.matches).flat()
+    .some(m => m.status === 'live');
+  // Grup aşamasında canlı maç var mı?
+  const hasGroupLive = Object.values(groups.matches).flat()
+    .some(m => m.status === 'live');
+
+  if (hasLive || hasGroupLive) {
+    if (!refreshTimer) {
+      refreshTimer = setInterval(() => {
+        groups.load();
+        bracket.load();
+      }, 60_000);
+    }
+  } else {
+    if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   7) AÇILIŞ — Paralel veri yükleme
+   ════════════════════════════════════════════════════════════ */
+Promise.all([
+  banner.load(),
+  groups.load(),
+  bracket.load()
+]).then(checkLiveAndScheduleRefresh);
+
+})();
+</script>
+
+</body>
+</html>
