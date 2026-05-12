@@ -879,7 +879,7 @@ const groups = {
   },
 
   renderPicker() {
-    const letters = ['A','B','C','D','E','F','G','H'];
+    const letters = ['A','B','C','D','E','F','G','H','I','J','K','L'];
     const html = letters.map(l => {
       const has = (this.standings[l] || []).length > 0;
       const cls = 'wc-group-pill' + (l === this.active ? ' active' : '');
@@ -1004,7 +1004,7 @@ const groups = {
    ════════════════════════════════════════════════════════════ */
 const bracket = {
   teams:   {},
-  matches: { R16: [], QF: [], SF: [], F: [], T3: [] },
+  matches: { R32: [], R16: [], QF: [], SF: [], F: [], T3: [] },
 
   async load() {
     if (!sb) return;
@@ -1020,7 +1020,7 @@ const bracket = {
 
       (tRes.data || []).forEach(t => { this.teams[t.id] = t; });
 
-      this.matches = { R16: [], QF: [], SF: [], F: [], T3: [] };
+      this.matches = { R32: [], R16: [], QF: [], SF: [], F: [], T3: [] };
       (mRes.data || []).forEach(m => {
         if (this.matches[m.round]) this.matches[m.round].push(m);
       });
@@ -1117,6 +1117,7 @@ const bracket = {
     document.getElementById('bracketRoot').innerHTML = `
       <div class="wc-bracket-wrap">
         <div class="wc-bracket">
+          ${this._colHtml('Son 32',       this.matches.R32)}
           ${this._colHtml('Son 16',       this.matches.R16)}
           ${this._colHtml('Çeyrek Final', this.matches.QF)}
           ${this._colHtml('Yarı Final',   this.matches.SF)}
