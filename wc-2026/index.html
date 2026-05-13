@@ -735,6 +735,7 @@ const banner = {
         .from('app_banners')
         .select('id, image_url, tap_url, alt_text, priority')
         .eq('is_active', true)
+        .eq('placement', 'world_cup')   // ← add this
         .order('priority', { ascending: false })
         .order('created_at', { ascending: false });
       if (error) throw error;
