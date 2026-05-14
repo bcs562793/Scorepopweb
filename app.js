@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v14.6 — Arşiv Desteği)
+   SCOREPOP — app.js  (v14.7 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -1085,6 +1085,7 @@ function render(rows, isLive) {
       : `${_toLowerTr(m.league_country || '')}__${_toLowerTr(m.league_name || 'Diğer')}`;
 
     if (!groups[k]) groups[k] = {
+      id:      m.league_id   || 0,   // ← EKLE 
       name:    m.league_name  || 'Diğer',
       logo:    m.league_logo    || '',
       country: m.league_country || '',
