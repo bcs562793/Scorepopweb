@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v14.9 — Arşiv Desteği)
+   SCOREPOP — app.js  (v14.6 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -747,20 +747,14 @@ async function loadToday(silent = false) {
 
   const isToday = S.date === todayStr();
 
-  /* live_matches: limit=2000 ile tüm maçları çek (toplam ~1047, güvenli taraf).
-     Orijinal limit=1000 bazı maçları kaçırıyordu (Karagümrük vb.).
-     future_matches: limit=500, date filtresi ile bugünkü planlanmış maçlar. */
-  const [liveRes, futureRes] = await Promise.all([
+  /* Tüm satırları sayfalı çek — Supabase varsayılan 1000 limitini aşmak için.
+     fetchAllRows() sayfa sayfa çekip birleştirir, hiçbir satır kaçmaz. */
+  const [liveAllData, futureAllData] = await Promise.all([
     isToday
-      ? S.sb.from('live_matches').select('*').order('league_name').limit(2000)
-      : Promise.resolve({ data: [], error: null }),
-    S.sb.from('future_matches').select('*').eq('date', S.date).limit(500),
+      ? fetchAllRows(S.sb.from('live_matches').select('*').order('league_name'))
+      : Promise.resolve([]),
+    fetchAllRows(S.sb.from('future_matches').select('*').eq('date', S.date)),
   ]);
-
-  if (liveRes.error)   console.error('live_matches hatası:', liveRes.error.message);
-  if (futureRes.error) console.error('future_matches hatası:', futureRes.error.message);
-
-  const liveAllData = liveRes.data || [];
 
   const matchesMap = new Map();
 
@@ -800,7 +794,7 @@ async function loadToday(silent = false) {
   }
 
   parseRows(liveAllData);
-  parseRows(futureRes.data);
+  parseRows(futureAllData);
 
   const rows = Array.from(matchesMap.values());
 
@@ -811,6 +805,26 @@ async function loadToday(silent = false) {
   });
   
   render(rows, false);
+}
+
+
+/* ── Supabase sayfalı çekme: tüm satırları limit olmadan getirir ──────
+   PostgREST varsayılan olarak max 1000 satır döndürür.
+   Bu fonksiyon sayfa sayfa çekip hepsini birleştirir.
+───────────────────────────────────────────────────────────────────── */
+async function fetchAllRows(query) {
+  const PAGE = 1000;
+  let from = 0;
+  let all  = [];
+  while (true) {
+    const { data, error } = await query.range(from, from + PAGE - 1);
+    if (error) { console.error('[fetchAllRows] hata:', error.message); break; }
+    if (!data || data.length === 0) break;
+    all = all.concat(data);
+    if (data.length < PAGE) break; /* son sayfa — bitti */
+    from += PAGE;
+  }
+  return all;
 }
 
 const ARCHIVE_BASE = 'https://raw.githubusercontent.com/bcs562793/scorepop-worker/main/data';
