@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v14.7 — Arşiv Desteği)
+   SCOREPOP — app.js  (v14.8 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -747,16 +747,38 @@ async function loadToday(silent = false) {
 
   const isToday = S.date === todayStr();
 
-  /* 🔧 ESKİ: .order('kickoff_time') vardı, kaldırıldı */
-  const [liveRes, futureRes] = await Promise.all([
+  /* live_matches: 1000 satır limiti aşmamak için sayfala.
+     Sorun: tablo 600+ FT maç içeriyor, limit=1000 ile bazı maçlar kaçıyor.
+     Çözüm: LIVE/1H/2H/HT/ET olanları + bugünkü FT olanları ayrı ayrı çek. */
+  const LIVE_STATUSES = ['1H','2H','HT','ET','BT','P','LIVE'];
+
+  const [liveActiveRes, liveFtRes, futureRes] = await Promise.all([
+    /* 1. Şu an oynanan maçlar */
     isToday
-      ? S.sb.from('live_matches').select('*').order('league_name')
+      ? S.sb.from('live_matches').select('*')
+          .in('status_short', LIVE_STATUSES)
+          .limit(500)
       : Promise.resolve({ data: [], error: null }),
+
+    /* 2. Bugün tamamlanan maçlar (FT/AET/PEN) — updated_at bugün olanlar */
+    isToday
+      ? S.sb.from('live_matches').select('*')
+          .in('status_short', ['FT','AET','PEN'])
+          .gte('updated_at', S.date + 'T00:00:00')
+          .lt('updated_at',  S.date + 'T23:59:59')
+          .limit(500)
+      : Promise.resolve({ data: [], error: null }),
+
+    /* 3. Gelecek maçlar (future_matches — date kolonu var, format: YYYY-MM-DD) */
     S.sb.from('future_matches').select('*').eq('date', S.date).limit(300),
   ]);
 
-  if (liveRes.error)  console.error("live_matches hatası:", liveRes.error.message);
-  if (futureRes.error) console.error("future_matches hatası:", futureRes.error.message);
+  if (liveActiveRes.error) console.error('live_matches (aktif) hatası:', liveActiveRes.error.message);
+  if (liveFtRes.error)     console.error('live_matches (FT) hatası:', liveFtRes.error.message);
+  if (futureRes.error)     console.error('future_matches hatası:', futureRes.error.message);
+
+  /* Birleştir */
+  const liveAllData = [...(liveActiveRes.data || []), ...(liveFtRes.data || [])];
 
   const matchesMap = new Map();
 
@@ -795,7 +817,7 @@ async function loadToday(silent = false) {
     });
   }
 
-  parseRows(liveRes.data);
+  parseRows(liveAllData);
   parseRows(futureRes.data);
 
   const rows = Array.from(matchesMap.values());
