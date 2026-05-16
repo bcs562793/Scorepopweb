@@ -225,7 +225,10 @@ const Router = (() => {
   const _LIVE_STATUS_CODES = new Set(['1H','2H','HT','ET','BT','P','LIVE']);
 
   function setMatchMeta(homeTeam, awayTeam, homeScore, awayScore, league, status, fixtureId, kickoffTime, homeLogo, awayLogo, venueInfo) {
-    const hasScore = homeScore != null && awayScore != null;
+    /* NS/TBD'de skor 0-0 olsa bile gösterme — maç başlamadı */
+    const NOSCORE_STATUSES = new Set(['NS','TBD','PST','CANC','ABD','AWD','WO','SUSP','INT']);
+    const hasScore = homeScore != null && awayScore != null
+      && !NOSCORE_STATUSES.has(status);
     const scoreStr = hasScore ? `${homeScore}-${awayScore}` : 'vs';
 
     const isLiveStatus = _LIVE_STATUS_CODES.has(status);
@@ -233,8 +236,32 @@ const Router = (() => {
     if (isLiveStatus && status !== 'HT') stLabel = '🔴 CANLI | ';
     else if (status === 'HT') stLabel = '⏸ Devre Arası | ';
 
-    const title = `${stLabel}${homeTeam} ${scoreStr} ${awayTeam}`;
-    const desc  = `${stLabel}${homeTeam} ${scoreStr} ${awayTeam} canlı skor, dakika dakika anlatım ve istatistikler.${league ? ' (' + league + ')' : ''}`;
+    /* Başlık ve açıklama: duruma göre Flashscore tarzı */
+    const DONE_ST = new Set(['FT','AET','PEN']);
+    let title, desc;
+
+    if (DONE_ST.has(status)) {
+      /* Biten maç */
+      const dateStr = kickoffTime
+        ? new Date(kickoffTime).toLocaleDateString('tr-TR', { day:'numeric', month:'long', year:'numeric', timeZone:'Europe/Istanbul' })
+        : '';
+      title = `${homeTeam} ${scoreStr} ${awayTeam} Maç Sonucu${league ? ' — ' + league : ''}${dateStr ? ', ' + dateStr : ''}`;
+      desc  = `${homeTeam} ${scoreStr} ${awayTeam}. Maç Sonu.${league ? ' ' + league + '.' : ''} Maç özeti, istatistikler ve kadro bilgileri ScorePop'ta.`;
+    } else if (isLiveStatus) {
+      /* Canlı maç */
+      title = `${stLabel}${homeTeam} ${scoreStr} ${awayTeam}`;
+      desc  = `${stLabel}${homeTeam} ${scoreStr} ${awayTeam} canlı skor, dakika dakika anlatım ve istatistikler.${league ? ' (' + league + ')' : ''}`;
+    } else {
+      /* Başlamadı (NS) */
+      const timeStr = kickoffTime
+        ? new Date(kickoffTime).toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit', timeZone:'Europe/Istanbul' })
+        : '';
+      const dateStr2 = kickoffTime
+        ? new Date(kickoffTime).toLocaleDateString('tr-TR', { day:'numeric', month:'long', year:'numeric', timeZone:'Europe/Istanbul' })
+        : '';
+      title = `${homeTeam} - ${awayTeam} maçı${league ? ', ' + league : ''}${dateStr2 ? ', ' + dateStr2 : ''}${timeStr ? ' ' + timeStr : ''}`;
+      desc  = `${homeTeam} - ${awayTeam} maçı${dateStr2 ? ' ' + dateStr2 : ''}${timeStr ? ' saat ' + timeStr : ''}.${league ? ' ' + league + '.' : ''} Canlı skor, oranlar ve istatistikler ScorePop'ta.`;
+    }
     setPageMeta(title, desc);
 
     const startDateObj = kickoffTime ? new Date(kickoffTime) : new Date();
