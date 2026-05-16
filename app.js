@@ -1302,8 +1302,8 @@ async function loadDetail(id, isLive, oddsOnly = false) {
     /* ── Normal akış: Supabase ────────────────────────────────────── */
     let m = null;
     const tables = isLive
-      ? ['live_matches','daily_matches','future_matches']
-      : ['daily_matches','live_matches','future_matches'];
+      ? ['live_matches','future_matches']
+      : ['live_matches','future_matches'];  /* daily_matches kullanımda değil */
 
     for (const tbl of tables) {
       const { data, error } = await S.sb
@@ -1326,7 +1326,21 @@ async function loadDetail(id, isLive, oddsOnly = false) {
 }
 
 
+    /* ── Supabase'de yoksa arşivden dene ────────────────────────────── */
     if (!m) {
+      const archiveResult = await _loadDetailFromArchive(id);
+      if (archiveResult) {
+        buildDetail(
+          archiveResult.m,
+          archiveResult.evs,
+          archiveResult.stats,
+          archiveResult.lus,
+          archiveResult.h2h,
+          null, null, null,
+          oddsOnly
+        );
+        return;
+      }
       setDetailHTML('<div class="empty"><div class="empty-t">Maç bulunamadı</div></div>');
       return;
     }
@@ -3848,4 +3862,80 @@ function esc(s) {
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
     .replace(/'/g,'&#39;');
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Arşiv fallback — loadDetail için
+   Supabase'de bulunamayan eski maçları GitHub arşivinden çeker.
+   Format: array of { fixture, league, teams, goals, score, events, stats, lineups, h2h }
+══════════════════════════════════════════════════════════════════ */
+async function _loadDetailFromArchive(fixtureId) {
+  const id    = String(fixtureId);
+  const today = new Date();
+
+  for (let i = 0; i < 90; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+
+    try {
+      let res  = await fetch(`${ARCHIVE_BASE}/${dateStr}.json.gz`);
+      let data;
+
+      if (res.ok) {
+        const ds   = new DecompressionStream('gzip');
+        const body = new Response(res.body.pipeThrough(ds));
+        data = await body.json();
+      } else {
+        res = await fetch(`${ARCHIVE_BASE}/${dateStr}.json`);
+        if (!res.ok) continue;
+        data = await res.json();
+      }
+
+      const list  = Array.isArray(data) ? data
+                  : Array.isArray(data?.response) ? data.response : [];
+      const found = list.find(m => String(m?.fixture?.id) === id);
+      if (!found) continue;
+
+      /* archiveAdapt fonksiyonlarını kullan (app.js'de zaten var) */
+      const m    = normFix({
+        fixture_id:   found.fixture?.id,
+        home_team:    found.teams?.home?.name   || '',
+        away_team:    found.teams?.away?.name   || '',
+        home_score:   found.goals?.home         ?? null,
+        away_score:   found.goals?.away         ?? null,
+        league_name:  found.league?.name        || '',
+        status_short: found.fixture?.status?.short || 'FT',
+        elapsed_time: found.fixture?.status?.elapsed ?? null,
+        kickoff_time: found.fixture?.date       || null,
+        home_logo:    found.teams?.home?.logo   || '',
+        away_logo:    found.teams?.away?.logo   || '',
+        raw_data:     null,
+      });
+
+      const evs   = archiveAdaptEvents(found.events  || []);
+      const stats = archiveAdaptStats(found.stats    || []);
+      const lus   = archiveAdaptLineups(found.lineups || {}, found);
+      const h2h   = archiveAdaptH2H(found.h2h        || []);
+
+      /* Router meta güncelle */
+      if (typeof Router !== 'undefined' && Router.setMatchMeta) {
+        Router.setMatchMeta(
+          m.home_team, m.away_team,
+          m.home_score, m.away_score,
+          m.league_name,
+          m.status_short || 'FT',
+          m.fixture_id,
+          m.kickoff_time,
+          m.home_logo, m.away_logo,
+          null
+        );
+      }
+
+      return { m, evs, stats, lus, h2h };
+
+    } catch { /* bu günü atla */ }
+  }
+
+  return null;
 }
