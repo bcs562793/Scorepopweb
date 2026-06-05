@@ -16,7 +16,16 @@ let D = { row: null, tab: 'oz', refreshTimer: null };
 /* ── HELPERS ─────────────────────────────────────────── */
 function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtTime(iso){ if(!iso)return '--:--'; try{const d=new Date(iso);return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}catch{return '--:--';} }
-function safeJSON(v,fb){ if(!v)return fb; if(typeof v==='object')return v; try{return JSON.parse(v);}catch{return fb;} }
+function safeJSON(v,fb){
+  if(!v)return fb;
+  if(typeof v==='object')return v;
+  try{
+    let p=JSON.parse(v);
+    /* Handle double-encoded: "\"[...]\"" → parse again */
+    if(typeof p==='string') p=JSON.parse(p);
+    return p;
+  }catch{return fb;}
+}
 function makeSlug(...p){ return p.filter(Boolean).join('-vs-').toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,80); }
 
 /* ── STATUS ─────────────────────────────────────────── */
@@ -341,17 +350,85 @@ function buildOzetTab(row,st,isNS){
   return html;
 }
 
-/* ── İSTATİSTİK TAB ────────────────────────────────── */
+/* ── İSTATİSTİK TAB ────────────────────────────────────────────
+   Gerçek live_stats formatı:
+   [{periodCode:"GENEL", statistics:[{statisticsCode:"_2_SAYI",
+     homeTeamValue:"53", awayTeamValue:"45", valueLabel:"2 Sayı"}]}]
+──────────────────────────────────────────────────────────── */
 function buildStatsTab(row){
-  let sd=null;
-  try{if(row.live_stats)sd=typeof row.live_stats==='string'?JSON.parse(row.live_stats):row.live_stats;}catch{}
-  if(!sd)return{hasContent:false,html:`<div class="bd-empty"><div class="bd-ei">📊</div><div>İstatistik verisi bu maç için mevcut değil</div></div>`};
-  const KEYS=[{key:'_2_sayi',label:'2 Sayı %'},{key:'_3_sayi',label:'3 Sayı %'},{key:'serbest_atis',label:'Serbest Atış %'},{key:'ribaund',label:'Ribaund'},{key:'asist',label:'Asist'},{key:'top_kapma',label:'Top Kapma'},{key:'blok',label:'Blok'},{key:'top_kaybi',label:'Top Kaybı'}];
-  const genel=sd.GENEL||sd;let rows='';
-  KEYS.forEach(({key,label})=>{const v=genel[key];if(!v)return;const hv=parseFloat(v.home)||0,av=parseFloat(v.away)||0,tot=hv+av,hp=tot>0?Math.round(hv/tot*100):50;rows+=`<div class="bd-stat-row"><span class="bd-sv home">${v.home}</span><div class="bd-sb-wrap"><div class="bd-sb"><div class="bd-sb-h" style="width:${hp}%"></div><div class="bd-sb-a" style="width:${100-hp}%"></div></div><div class="bd-sl">${label}</div></div><span class="bd-sv away">${v.away}</span></div>`;});
-  if(!rows)return{hasContent:false,html:`<div class="bd-empty"><div class="bd-ei">📊</div><div>İstatistik verisi mevcut değil</div></div>`};
-  return{hasContent:true,html:`<div class="bd-section"><div class="bd-stat-hdr"><span>${esc(row.home_team)}</span><span></span><span style="text-align:right">${esc(row.away_team)}</span></div>${rows}</div>`};
+  if(!row.live_stats) return{hasContent:false,html:_noStats()};
+
+  /* Parse — handle single or double encoding */
+  let parsed=null;
+  try{
+    parsed = typeof row.live_stats==='string' ? JSON.parse(row.live_stats) : row.live_stats;
+    if(typeof parsed==='string') parsed = JSON.parse(parsed);
+  }catch{ return{hasContent:false,html:_noStats()}; }
+
+  /* Build statsMap: CODE → {home, away, label} */
+  let statsMap = null;
+
+  if(Array.isArray(parsed)){
+    /* Current DB format: array of periods */
+    const genel = parsed.find(p=>p.periodCode==='GENEL') || parsed[0];
+    if(genel?.statistics?.length){
+      statsMap = {};
+      genel.statistics.forEach(s=>{
+        statsMap[s.statisticsCode] = {
+          home:  s.homeTeamValue,
+          away:  s.awayTeamValue,
+          label: s.valueLabel,
+        };
+      });
+    }
+  } else if(parsed && typeof parsed==='object'){
+    /* Legacy format fallback: {GENEL:{_2_sayi:{home,away}}} */
+    const genel = parsed.GENEL || parsed;
+    statsMap = {};
+    Object.entries(genel).forEach(([k,v])=>{
+      if(v && v.home!=null) statsMap[k.toUpperCase()] = {home:v.home, away:v.away, label:k};
+    });
+  }
+
+  if(!statsMap || !Object.keys(statsMap).length) return{hasContent:false,html:_noStats()};
+
+  /* Preferred display order */
+  const ORDER = ['_2_SAYI','_3_SAYI','SERBEST_ATIS','RIBAUND',
+                 'RIBAUND_SAVUNMA','RIBAUND_HUCUM','ASIST',
+                 'TOP_KAYBI','TOP_CALMA','BLOK','FAUL'];
+
+  /* Show ordered keys first, then any remaining */
+  const keys = [...ORDER, ...Object.keys(statsMap).filter(k=>!ORDER.includes(k))];
+
+  let rowsHtml='';
+  keys.forEach(code=>{
+    const v=statsMap[code]; if(!v) return;
+    const hv=parseFloat(v.home)||0, av=parseFloat(v.away)||0, tot=hv+av;
+    const hp = tot>0 ? Math.round(hv/tot*100) : 50;
+    rowsHtml+=`<div class="bd-stat-row">
+      <span class="bd-sv home">${esc(v.home)}</span>
+      <div class="bd-sb-wrap">
+        <div class="bd-sb">
+          <div class="bd-sb-h" style="width:${hp}%"></div>
+          <div class="bd-sb-a" style="width:${100-hp}%"></div>
+        </div>
+        <div class="bd-sl">${esc(v.label||code)}</div>
+      </div>
+      <span class="bd-sv away">${esc(v.away)}</span>
+    </div>`;
+  });
+
+  if(!rowsHtml) return{hasContent:false,html:_noStats()};
+  return{hasContent:true, html:`
+    <div class="bd-section">
+      <div class="bd-stat-hdr">
+        <span>${esc(row.home_team)}</span><span></span>
+        <span style="text-align:right">${esc(row.away_team)}</span>
+      </div>
+      ${rowsHtml}
+    </div>`};
 }
+function _noStats(){return`<div class="bd-empty"><div class="bd-ei">📊</div><div>İstatistik verisi bu maç için mevcut değil</div></div>`;}
 
 /* ── H2H TAB ────────────────────────────────────────── */
 function buildH2HTab(row){
