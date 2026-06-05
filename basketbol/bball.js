@@ -1,39 +1,38 @@
 /* ═══════════════════════════════════════════════════════
-   SCOREPOP — bball.js  (v1.0)
+   SCOREPOP — bball.js  (v2.0)
    Basketbol sayfası için data + render katmanı
 
-   Data kaynakları:
-     • Canlı / Bugün  → Supabase `live_bball`  (scheduled_at kolonu)
-     • Geçmiş arşiv   → GitHub blyarchieve/data/raw/{date}/events.json
-     • Yaklaşan       → Supabase `future_matches` (basketball league_id listesi)
+   v2.0 değişiklikleri:
+     • B.rowCache ile tüm satırlar kaydediliyor (canlı/arşiv fark yok)
+     • _findBballRow artık doğru çalışıyor
+     • Detay modalı: 4 sekme — Özet · İstatistik · H2H · Puan Durumu
+     • H2H: ev/deplasman formu + aralarındaki maçlar
+     • Puan Durumu: tam lig tablosu (poz, takım, O/G/M/pct/avg)
+     • İstatistik: live_stats çubuklukları + gelişmiş gösterim
 
-   Skor formatı:
-     Toplam + Periyot skorları (Ç1/Ç2/Ç3/Ç4/OT)
+   Data kaynakları:
+     • Canlı / Bugün  → Supabase `live_bball`
+     • Geçmiş arşiv   → GitHub blyarchieve/data/raw/{date}/events.json
+     • Yaklaşan       → Supabase `live_bball` (status_short=NS)
 ═══════════════════════════════════════════════════════ */
 'use strict';
 
 /* ── STATE ──────────────────────────────────────────── */
 const B = {
-  sb:       null,
-  page:     'today',   /* today | live | archive | upcoming */
-  date:     todayStr(),
-  timer:    null,
-  cd:       30,
-  tickTimer: null,
-  detail:   null,
+  sb:           null,
+  page:         'today',
+  date:         todayStr(),
+  timer:        null,
+  cd:           30,
+  tickTimer:    null,
+  detail:       null,
   archiveCache: {},
+  rowCache:     {},   /* ← YENİ: id → row (tüm kaynaklar) */
+  activeTab:    'oz', /* oz | st | h2 | pd */
 };
 
 /* ── ARCHIVE BASE ────────────────────────────────────── */
 const BBALL_ARCHIVE_BASE = 'https://raw.githubusercontent.com/bcs562793/blyarchieve/main/data/raw';
-
-/* ── KNOWN BASKETBALL LEAGUE IDs in future_matches ──────
-   live_bball table'dan çekilen league'lerin bilyoner/mackolik ID'leri.
-   Zamanla genişletilebilir. */
-const BBALL_LEAGUE_IDS = new Set([
-  138, 139, 140, 141, 142, 143, 144, 145,   /* NBA, EuroLeague vs. */
-  2525,                                        /* Big V Avustralya */
-]);
 
 /* ── HELPERS ─────────────────────────────────────────── */
 function todayStr() {
@@ -59,30 +58,29 @@ function dateLabel(str) {
   return m ? `${+d} ${months[+m-1]}` : str;
 }
 
+function safeParseJSON(val, fallback) {
+  if (!val) return fallback;
+  if (typeof val === 'object') return val;
+  try { return JSON.parse(val); } catch { return fallback; }
+}
+
 /* ── STATUS → DISPLAY ───────────────────────────────── */
 function bballStatus(m) {
-  /* status_short map for basketball */
   const LIVE_MAP = {
-    '1Q': 'Ç1', 'Q1': 'Ç1',
-    '2Q': 'Ç2', 'Q2': 'Ç2',
-    'HT': 'DEVRE', 'HALF': 'DEVRE',
-    '3Q': 'Ç3', 'Q3': 'Ç3',
-    '4Q': 'Ç4', 'Q4': 'Ç4',
-    'OT': 'UZT', 'OT1': 'UZT1', 'OT2': 'UZT2',
-    'LIVE': 'CANLI',
+    '1Q':'Ç1','Q1':'Ç1','2Q':'Ç2','Q2':'Ç2',
+    'HT':'DEVRE','HALF':'DEVRE',
+    '3Q':'Ç3','Q3':'Ç3','4Q':'Ç4','Q4':'Ç4',
+    'OT':'UZT','OT1':'UZT1','OT2':'UZT2','LIVE':'CANLI',
   };
   const DONE_SET = new Set(['FT','AOT','FINISHED','PLAYED','POST']);
   const s = (m.status_short || '').toUpperCase();
 
   if (DONE_SET.has(s)) return { live: false, done: true, label: 'MS', cls: 'done' };
-
   if (LIVE_MAP[s]) {
     let label = LIVE_MAP[s];
     if (m.match_clock) label += ` ${m.match_clock}`;
     return { live: true, done: false, label, cls: 'live' };
   }
-
-  /* NS / FIXTURE → show scheduled time */
   return { live: false, done: false, label: fmtTime(m.scheduled_at || m.matchDate), cls: 'sched' };
 }
 
@@ -90,25 +88,21 @@ function bballStatus(m) {
 function buildBballDateStrip() {
   const el = document.getElementById('bball-date-strip');
   if (!el) return;
-
   const today = todayStr();
-  const days  = [];
+  const days = [];
   for (let i = -6; i <= 6; i++) {
     const d = new Date();
     d.setDate(d.getDate() + i);
     const s = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     days.push(s);
   }
-
   el.innerHTML = days.map(s => {
     const isTod = s === today;
     const isAct = s === B.date;
-    return `<button class="bdp${isAct ? ' active' : ''}" data-date="${s}" onclick="pickBballDate('${s}')">
+    return `<button class="bdp${isAct?' active':''}" data-date="${s}" onclick="pickBballDate('${s}')">
       ${isTod ? 'Bugün' : dateLabel(s)}
     </button>`;
   }).join('');
-
-  /* scroll active into view */
   setTimeout(() => {
     const act = el.querySelector('.bdp.active');
     if (act) act.scrollIntoView({ inline: 'center', behavior: 'smooth' });
@@ -139,32 +133,17 @@ async function fetchAllBballRows(query) {
 /* ── MAIN LOAD ──────────────────────────────────────── */
 async function loadBball(silent = false) {
   if (!silent) showLoading();
-
   const today = todayStr();
-
-  /* Past date → GitHub archive */
-  if (B.date < today) {
-    await loadBballArchive(B.date);
-    return;
-  }
-
-  /* Future date → future_matches */
-  if (B.date > today) {
-    await loadBballFuture(B.date);
-    return;
-  }
-
-  /* Today → live_bball */
+  if (B.date < today) { await loadBballArchive(B.date); return; }
+  if (B.date > today) { await loadBballFuture(B.date); return; }
   await loadBballToday();
 }
 
 /* ── TODAY: live_bball ──────────────────────────────── */
 async function loadBballToday() {
   try {
-    /* scheduled_at kolonu UTC - bugünün maçlarını çek (geniş aralık) */
     const startUTC = `${B.date}T00:00:00+00:00`;
     const endUTC   = `${B.date}T23:59:59+00:00`;
-
     const rows = await fetchAllBballRows(
       B.sb.from('live_bball')
          .select('*')
@@ -172,7 +151,6 @@ async function loadBballToday() {
          .lte('scheduled_at', endUTC)
          .order('scheduled_at')
     );
-
     renderBball(rows, true);
   } catch(e) {
     console.error('[loadBballToday]', e);
@@ -186,21 +164,12 @@ async function loadBballArchive(date) {
   try {
     const url = `${BBALL_ARCHIVE_BASE}/${date}/events.json`;
     const res = await fetch(url);
-
-    if (!res.ok) {
-      showEmpty(`${date} tarihine ait basketbol arşivi bulunamadı.`);
-      return;
-    }
-
+    if (!res.ok) { showEmpty(`${date} tarihine ait basketbol arşivi bulunamadı.`); return; }
     const events = await res.json();
     const arr = Array.isArray(events) ? events : (events.events || events.data || []);
+    if (!arr.length) { showEmpty(`${date} için basketbol verisi yok.`); return; }
 
-    if (!arr.length) {
-      showEmpty(`${date} için basketbol verisi yok.`);
-      return;
-    }
-
-    /* Cache detail data */
+    /* Cache raw archive events by their ID */
     B.archiveCache = {};
     arr.forEach(e => {
       const id = e.sbsEventId || e.betRadarId;
@@ -209,14 +178,13 @@ async function loadBballArchive(date) {
 
     const rows = arr.map(e => archiveEventToRow(e));
     renderBball(rows, false);
-
   } catch(e) {
     console.error('[loadBballArchive]', e);
     showError('Arşiv yüklenirken hata oluştu.');
   }
 }
 
-/* ── UPCOMING: future_matches ───────────────────────── */
+/* ── UPCOMING: future dates ─────────────────────────── */
 async function loadBballFuture(date) {
   showLoading(`${date} fikstürü yükleniyor…`);
   try {
@@ -225,15 +193,9 @@ async function loadBballFuture(date) {
          .select('*')
          .gte('scheduled_at', `${date}T00:00:00+00:00`)
          .lte('scheduled_at', `${date}T23:59:59+00:00`)
-         .eq('status_short', 'NS')
          .order('scheduled_at')
     );
-
-    if (!rows.length) {
-      showEmpty(`${date} için yaklaşan basketbol maçı bulunamadı.`);
-      return;
-    }
-
+    if (!rows.length) { showEmpty(`${date} için yaklaşan maç bulunamadı.`); return; }
     renderBball(rows, false);
   } catch(e) {
     console.error('[loadBballFuture]', e);
@@ -244,8 +206,9 @@ async function loadBballFuture(date) {
 /* ── ARCHIVE EVENT → ROW ────────────────────────────── */
 function archiveEventToRow(e) {
   const toNum = v => (v != null && v !== '' ? +v : null);
+  const id = String(e.sbsEventId || e.betRadarId || `arc_${Math.random().toString(36).slice(2)}`);
   return {
-    id:           e.sbsEventId || e.betRadarId || Math.random(),
+    id,
     league_name:  e.competitionName || '',
     country:      '',
     home_team:    e.homeTeam || e.homeFormDetail?.title || '',
@@ -271,7 +234,8 @@ function archiveEventToRow(e) {
     home_recent_form: JSON.stringify(e.homeFormDetail?.recentForms || e.homeRecentForm || []),
     away_recent_form: JSON.stringify(e.awayFormDetail?.recentForms || e.awayRecentForm || []),
     standings:    JSON.stringify(e.standing || null),
-    h2h:          JSON.stringify(e.h2h || []),
+    h2h:          JSON.stringify(e.h2h || null),
+    live_stats:   null,
     _archive:     true,
     _rawEvent:    e,
   };
@@ -281,12 +245,12 @@ function archiveEventToRow(e) {
 function renderBball(rows, isLive) {
   updateLiveCount(rows);
 
-  if (!rows.length) {
-    showEmpty('Maç bulunamadı.');
-    return;
-  }
+  /* ── YENİ: rowCache'i doldur ── */
+  B.rowCache = {};
+  rows.forEach(r => { B.rowCache[String(r.id)] = r; });
 
-  /* Group by league */
+  if (!rows.length) { showEmpty('Maç bulunamadı.'); return; }
+
   const groups = {};
   rows.forEach(m => {
     const k = m.league_name || 'Diğer';
@@ -294,7 +258,6 @@ function renderBball(rows, isLive) {
     groups[k].matches.push(m);
   });
 
-  /* Sort: live leagues first, then alpha */
   const sorted = Object.values(groups).sort((a, b) => {
     const aLive = a.matches.some(m => bballStatus(m).live);
     const bLive = b.matches.some(m => bballStatus(m).live);
@@ -303,16 +266,12 @@ function renderBball(rows, isLive) {
     return a.name.localeCompare(b.name, 'tr');
   });
 
-  const html = sorted.map(g => renderBballGroup(g)).join('');
-  document.getElementById('bball-root').innerHTML = html;
+  document.getElementById('bball-root').innerHTML = sorted.map(g => renderBballGroup(g)).join('');
 }
 
 function renderBballGroup(g) {
   const liveCount = g.matches.filter(m => bballStatus(m).live).length;
-  const liveBadge = liveCount
-    ? `<span class="bball-live-badge">${liveCount} CANLI</span>`
-    : '';
-
+  const liveBadge = liveCount ? `<span class="bball-live-badge">${liveCount} CANLI</span>` : '';
   return `
     <div class="bball-grp">
       <div class="bball-hdr" onclick="this.closest('.bball-grp').classList.toggle('closed')">
@@ -328,7 +287,6 @@ function renderBballGroup(g) {
 function renderBballRow(m) {
   const st = bballStatus(m);
   const isNS = !st.live && !st.done;
-
   const hs = isNS ? '—' : (m.home_score != null ? m.home_score : '-');
   const as = isNS ? '—' : (m.away_score != null ? m.away_score : '-');
 
@@ -338,7 +296,6 @@ function renderBballRow(m) {
     else if (+as > +hs) { acls = 'bball-win'; hcls = 'bball-loss'; }
   }
 
-  /* Quarter scores (only when played/live) */
   let qtrsHtml = '';
   if (!isNS) {
     const quarters = [
@@ -347,10 +304,8 @@ function renderBballRow(m) {
       [m.home_q3, m.away_q3, 'Ç3'],
       [m.home_q4, m.away_q4, 'Ç4'],
     ];
-    const hasOT = m.home_ot != null || m.away_ot != null;
-    if (hasOT) quarters.push([m.home_ot, m.away_ot, 'UZT']);
+    if (m.home_ot != null || m.away_ot != null) quarters.push([m.home_ot, m.away_ot, 'UZT']);
 
-    const activePeriod = m.period;
     const qItems = quarters
       .filter(([h, a]) => h != null || a != null)
       .map(([h, a, lbl]) => {
@@ -369,9 +324,7 @@ function renderBballRow(m) {
         </span>`;
       });
 
-    if (qItems.length) {
-      qtrsHtml = `<div class="bball-qtrs">${qItems.join('')}</div>`;
-    }
+    if (qItems.length) qtrsHtml = `<div class="bball-qtrs">${qItems.join('')}</div>`;
   }
 
   const homeLogo = m.home_avatar
@@ -388,12 +341,10 @@ function renderBballRow(m) {
       <div class="${statusCls}">
         <span class="bball-st-label">${esc(st.label)}</span>
       </div>
-
       <div class="bball-team bball-home">
         <span class="bball-tname ${hcls}">${esc(m.home_team)}</span>
         <div class="bball-logo-wrap">${homeLogo}</div>
       </div>
-
       <div class="bball-scorebox">
         <div class="bball-total${isNS ? ' bball-vs' : ''}">
           ${isNS
@@ -403,99 +354,75 @@ function renderBballRow(m) {
         </div>
         ${qtrsHtml}
       </div>
-
       <div class="bball-team bball-away">
         <div class="bball-logo-wrap">${awayLogo}</div>
         <span class="bball-tname ${acls}">${esc(m.away_team)}</span>
       </div>
-
       <div class="bball-arr">›</div>
     </div>`;
 }
 
-/* ── DETAIL MODAL ───────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════
+   DETAIL MODAL — v2.0
+═══════════════════════════════════════════════════════ */
+
 function openBballDetail(id) {
   const row = _findBballRow(id);
-  if (!row) return;
+  if (!row) { console.warn('[bball] row not found:', id); return; }
 
+  B.detail = row;
+  B.activeTab = 'oz';
+
+  renderBballModal(row);
+  document.getElementById('bball-modal').classList.add('open');
+  document.body.classList.add('modal-open');
+}
+
+function closeBballModal() {
+  document.getElementById('bball-modal').classList.remove('open');
+  document.body.classList.remove('modal-open');
+}
+
+function switchBballTab(tab, el) {
+  B.activeTab = tab;
+  document.querySelectorAll('.bball-dtab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.bball-tpanel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById(`btp-${tab}`);
+  if (panel) panel.classList.add('active');
+}
+
+function renderBballModal(row) {
   const st = bballStatus(row);
   const isNS = !st.live && !st.done;
-
-  /* Quarter score table */
-  const quarters = [
-    { lbl: 'Ç1', h: row.home_q1, a: row.away_q1 },
-    { lbl: 'Ç2', h: row.home_q2, a: row.away_q2 },
-    { lbl: 'Devre', h: (row.home_q1 != null && row.home_q2 != null) ? +row.home_q1 + +row.home_q2 : null,
-                    a: (row.away_q1 != null && row.away_q2 != null) ? +row.away_q1 + +row.away_q2 : null, isSub: true },
-    { lbl: 'Ç3', h: row.home_q3, a: row.away_q3 },
-    { lbl: 'Ç4', h: row.home_q4, a: row.away_q4 },
-  ];
-  if (row.home_ot != null || row.away_ot != null) {
-    quarters.push({ lbl: 'Uzatma', h: row.home_ot, a: row.away_ot });
-  }
-  quarters.push({
-    lbl: 'Toplam', h: row.home_score, a: row.away_score, isTotal: true
-  });
-
-  const qRows = quarters
-    .filter(q => q.h != null || q.a != null)
-    .map(q => `
-      <tr class="${q.isTotal ? 'bball-dtl-total' : (q.isSub ? 'bball-dtl-sub' : '')}">
-        <td>${q.lbl}</td>
-        <td>${q.h ?? '-'}</td>
-        <td>${q.a ?? '-'}</td>
-      </tr>`).join('');
-
-  /* Recent form */
-  const homeForms = safeParseJSON(row.home_recent_form, []);
-  const awayForms = safeParseJSON(row.away_recent_form, []);
-
-  const formBadge = arr => (arr || []).map(r =>
-    `<span class="bball-form-badge ${r === 'WON' ? 'bball-form-w' : 'bball-form-l'}">${r === 'WON' ? 'G' : 'M'}</span>`
-  ).join('');
+  const body = document.getElementById('bball-modal-body');
 
   const homeLogo = row.home_avatar
     ? `<img src="${esc(row.home_avatar)}" onerror="this.style.display='none'" alt="" class="bball-dtl-logo">`
-    : '🏀';
+    : `<div class="bball-dtl-logo-ph">🏀</div>`;
   const awayLogo = row.away_avatar
     ? `<img src="${esc(row.away_avatar)}" onerror="this.style.display='none'" alt="" class="bball-dtl-logo">`
-    : '🏀';
+    : `<div class="bball-dtl-logo-ph">🏀</div>`;
 
-  /* Live stats (from live_bball liveStats or archive) */
-  let liveStatsHtml = '';
-  let statsData = null;
+  /* ── Periyot Skorları ── */
+  const ozHtml = buildBballOzetTab(row, st, isNS);
 
-  try {
-    if (row.live_stats) statsData = typeof row.live_stats === 'string' ? JSON.parse(row.live_stats) : row.live_stats;
-    if (!statsData && row._rawEvent?.liveStats) statsData = row._rawEvent.liveStats;
-  } catch(e) {}
+  /* ── İstatistik ── */
+  const stHtml = buildBballStatsTab(row);
 
-  if (statsData?.GENEL) {
-    const statKeys = { _2_sayi: '2 Sayı %', _3_sayi: '3 Sayı %', serbest_atis: 'Serbest Atış %' };
-    const rows2 = Object.entries(statKeys).map(([key, label]) => {
-      const v = statsData.GENEL[key];
-      if (!v) return '';
-      const hv = +v.home, av = +v.away, tot = hv + av;
-      const hpct = tot > 0 ? Math.round(hv / tot * 100) : 50;
-      const apct = 100 - hpct;
-      return `
-        <div class="bball-stat-row">
-          <span class="bball-stat-val">${v.home}%</span>
-          <div class="bball-stat-bar">
-            <div class="bball-stat-h" style="width:${hpct}%"></div>
-            <div class="bball-stat-a" style="width:${apct}%"></div>
-          </div>
-          <span class="bball-stat-lbl">${label}</span>
-          <span class="bball-stat-val">${v.away}%</span>
-        </div>`;
-    }).join('');
-    if (rows2.trim()) liveStatsHtml = `<div class="bball-dtl-section"><div class="bball-dtl-sh">İstatistikler</div>${rows2}</div>`;
-  }
+  /* ── H2H ── */
+  const h2Html = buildBballH2HTab(row);
 
-  const modal = document.getElementById('bball-modal');
-  const body = document.getElementById('bball-modal-body');
+  /* ── Puan Durumu ── */
+  const pdHtml = buildBballStandingsTab(row);
+
+  /* Hangi sekmeler dolu? */
+  const hasStats     = stHtml.hasContent;
+  const hasH2H       = h2Html.hasContent;
+  const hasStandings = pdHtml.hasContent;
 
   body.innerHTML = `
+    <!-- Hero -->
     <div class="bball-dtl-hero">
       <div class="bball-dtl-team">
         ${homeLogo}
@@ -504,7 +431,11 @@ function openBballDetail(id) {
       <div class="bball-dtl-center">
         ${isNS
           ? `<div class="bball-dtl-time">${esc(st.label)}</div>`
-          : `<div class="bball-dtl-score">${row.home_score ?? '-'} – ${row.away_score ?? '-'}</div>`
+          : `<div class="bball-dtl-score">
+               <span class="bball-dtl-sn">${row.home_score ?? '-'}</span>
+               <span class="bball-dtl-sep">–</span>
+               <span class="bball-dtl-sn">${row.away_score ?? '-'}</span>
+             </div>`
         }
         <div class="bball-dtl-status ${st.live ? 'live' : (st.done ? 'done' : 'sched')}">${esc(st.label)}</div>
         <div class="bball-dtl-league">${esc(row.league_name)}</div>
@@ -515,18 +446,74 @@ function openBballDetail(id) {
       </div>
     </div>
 
-    ${!isNS && qRows ? `
-      <div class="bball-dtl-section">
-        <div class="bball-dtl-sh">Periyot Skorları</div>
-        <table class="bball-qtr-table">
-          <thead><tr><th></th><th>${esc(row.home_team)}</th><th>${esc(row.away_team)}</th></tr></thead>
-          <tbody>${qRows}</tbody>
-        </table>
-      </div>` : ''}
+    <!-- Tabs -->
+    <div class="bball-dtabs">
+      <button class="bball-dtab active" onclick="switchBballTab('oz',this)">Özet</button>
+      <button class="bball-dtab${hasStats ? '' : ' bball-dtab-dim'}" onclick="switchBballTab('st',this)">İstatistik</button>
+      <button class="bball-dtab${hasH2H ? '' : ' bball-dtab-dim'}" onclick="switchBballTab('h2',this)">H2H</button>
+      <button class="bball-dtab${hasStandings ? '' : ' bball-dtab-dim'}" onclick="switchBballTab('pd',this)">Puan Durumu</button>
+    </div>
 
-    ${liveStatsHtml}
+    <!-- Panels -->
+    <div id="btp-oz" class="bball-tpanel active">${ozHtml}</div>
+    <div id="btp-st" class="bball-tpanel">${stHtml.html}</div>
+    <div id="btp-h2" class="bball-tpanel">${h2Html.html}</div>
+    <div id="btp-pd" class="bball-tpanel">${pdHtml.html}</div>
+  `;
+}
 
-    ${(homeForms.length || awayForms.length) ? `
+/* ── ÖZET TAB ─────────────────────────────────────────── */
+function buildBballOzetTab(row, st, isNS) {
+  let html = '';
+
+  /* Periyot skor tablosu */
+  if (!isNS) {
+    const quarters = [
+      { lbl: 'Ç1',    h: row.home_q1, a: row.away_q1 },
+      { lbl: 'Ç2',    h: row.home_q2, a: row.away_q2 },
+      { lbl: 'Devre (1.Y)', h: (row.home_q1 != null && row.home_q2 != null) ? +row.home_q1 + +row.home_q2 : null,
+                             a: (row.away_q1 != null && row.away_q2 != null) ? +row.away_q1 + +row.away_q2 : null, isSub: true },
+      { lbl: 'Ç3',    h: row.home_q3, a: row.away_q3 },
+      { lbl: 'Ç4',    h: row.home_q4, a: row.away_q4 },
+    ];
+    if (row.home_ot != null || row.away_ot != null)
+      quarters.push({ lbl: 'Uzatma', h: row.home_ot, a: row.away_ot });
+    quarters.push({ lbl: 'Toplam', h: row.home_score, a: row.away_score, isTotal: true });
+
+    const qRows = quarters
+      .filter(q => q.h != null || q.a != null)
+      .map(q => {
+        const cls = q.isTotal ? 'bball-dtl-total' : (q.isSub ? 'bball-dtl-sub' : '');
+        let hcls = '', acls = '';
+        if (!q.isSub && q.h != null && q.a != null) {
+          if (+q.h > +q.a)      { hcls = 'bball-cell-w'; acls = 'bball-cell-l'; }
+          else if (+q.a > +q.h) { acls = 'bball-cell-w'; hcls = 'bball-cell-l'; }
+        }
+        return `<tr class="${cls}"><td>${q.lbl}</td><td class="${hcls}">${q.h ?? '-'}</td><td class="${acls}">${q.a ?? '-'}</td></tr>`;
+      }).join('');
+
+    if (qRows) {
+      html += `
+        <div class="bball-dtl-section">
+          <div class="bball-dtl-sh">Periyot Skorları</div>
+          <table class="bball-qtr-table">
+            <thead><tr><th></th><th>${esc(row.home_team)}</th><th>${esc(row.away_team)}</th></tr></thead>
+            <tbody>${qRows}</tbody>
+          </table>
+        </div>`;
+    }
+  }
+
+  /* Son Form */
+  const homeForms = safeParseJSON(row.home_recent_form, []);
+  const awayForms = safeParseJSON(row.away_recent_form, []);
+
+  const formBadge = arr => (arr || []).slice(0, 5).map(r =>
+    `<span class="bball-form-badge ${r === 'WON' ? 'bball-form-w' : 'bball-form-l'}">${r === 'WON' ? 'G' : 'M'}</span>`
+  ).join('');
+
+  if (homeForms.length || awayForms.length) {
+    html += `
       <div class="bball-dtl-section">
         <div class="bball-dtl-sh">Son Form</div>
         <div class="bball-dtl-forms">
@@ -539,83 +526,325 @@ function openBballDetail(id) {
             <div class="bball-form-badges">${formBadge(awayForms)}</div>
           </div>
         </div>
-      </div>` : ''}
-  `;
+      </div>`;
+  }
 
-  modal.classList.add('open');
-  document.body.classList.add('modal-open');
+  if (!html) html = `<div class="bball-empty" style="padding:40px 20px;"><div class="bball-empty-icon">📭</div><div>Veri henüz mevcut değil</div></div>`;
+  return html;
 }
 
-function closeBballModal() {
-  document.getElementById('bball-modal').classList.remove('open');
-  document.body.classList.remove('modal-open');
+/* ── İSTATİSTİK TAB ──────────────────────────────────── */
+function buildBballStatsTab(row) {
+  let statsData = null;
+  try {
+    if (row.live_stats) statsData = typeof row.live_stats === 'string' ? JSON.parse(row.live_stats) : row.live_stats;
+    if (!statsData && row._rawEvent?.liveStats) statsData = row._rawEvent.liveStats;
+  } catch(e) {}
+
+  if (!statsData) {
+    return {
+      hasContent: false,
+      html: `<div class="bball-empty" style="padding:40px 20px;"><div class="bball-empty-icon">📊</div><div>İstatistik verisi mevcut değil</div></div>`
+    };
+  }
+
+  const ST_KEYS = [
+    { key: '_2_sayi',      label: '2 Sayı %',         icon: '🎯' },
+    { key: '_3_sayi',      label: '3 Sayı %',         icon: '🏹' },
+    { key: 'serbest_atis', label: 'Serbest Atış %',   icon: '⭕' },
+    { key: 'ribaund',      label: 'Ribaund',           icon: '💪' },
+    { key: 'asist',        label: 'Asist',             icon: '🤝' },
+    { key: 'top_kapma',    label: 'Top Kapma',         icon: '🖐' },
+    { key: 'blok',         label: 'Blok',              icon: '🛡️' },
+    { key: 'top_kaybi',    label: 'Top Kaybı',         icon: '❌' },
+  ];
+
+  let rowsHtml = '';
+  const genel = statsData.GENEL || statsData;
+
+  ST_KEYS.forEach(({ key, label, icon }) => {
+    const v = genel[key];
+    if (!v) return;
+    const hv = parseFloat(v.home) || 0;
+    const av = parseFloat(v.away) || 0;
+    const tot = hv + av;
+    const hpct = tot > 0 ? Math.round(hv / tot * 100) : 50;
+    const apct = 100 - hpct;
+    rowsHtml += `
+      <div class="bball-stat-row">
+        <span class="bball-stat-val">${v.home}</span>
+        <div class="bball-stat-bar-wrap">
+          <div class="bball-stat-bar">
+            <div class="bball-stat-h" style="width:${hpct}%"></div>
+            <div class="bball-stat-a" style="width:${apct}%"></div>
+          </div>
+          <span class="bball-stat-lbl">${icon} ${label}</span>
+        </div>
+        <span class="bball-stat-val bball-stat-r">${v.away}</span>
+      </div>`;
+  });
+
+  if (!rowsHtml) {
+    return {
+      hasContent: false,
+      html: `<div class="bball-empty" style="padding:40px 20px;"><div class="bball-empty-icon">📊</div><div>İstatistik verisi mevcut değil</div></div>`
+    };
+  }
+
+  const html = `
+    <div class="bball-dtl-section">
+      <div class="bball-stat-header">
+        <span class="bball-stat-team-lbl">${esc(row.home_team)}</span>
+        <span></span>
+        <span class="bball-stat-team-lbl r">${esc(row.away_team)}</span>
+      </div>
+      ${rowsHtml}
+    </div>`;
+
+  return { hasContent: true, html };
 }
 
+/* ── H2H TAB ─────────────────────────────────────────── */
+function buildBballH2HTab(row) {
+  const h2h = safeParseJSON(row.h2h, null);
+  if (!h2h) {
+    return {
+      hasContent: false,
+      html: `<div class="bball-empty" style="padding:40px 20px;"><div class="bball-empty-icon">🆚</div><div>H2H verisi mevcut değil</div></div>`
+    };
+  }
+
+  let html = '';
+  let hasContent = false;
+
+  /* ── Aralarındaki Maçlar ── */
+  const between = h2h.matchesBetween;
+  const betweenMatches = between?.matches || between?.teamForm || [];
+  if (between?.emptyMessage && !betweenMatches.length) {
+    html += `<div class="bball-dtl-section">
+      <div class="bball-dtl-sh">🆚 Aralarındaki Maçlar</div>
+      <div class="bball-h2h-empty">${esc(between.emptyMessage)}</div>
+    </div>`;
+  } else if (betweenMatches.length) {
+    hasContent = true;
+    html += `<div class="bball-dtl-section">
+      <div class="bball-dtl-sh">🆚 Aralarındaki Maçlar</div>
+      <div class="bball-h2h-list">${betweenMatches.map(m => renderH2HRow(m, row.home_team)).join('')}</div>
+    </div>`;
+  }
+
+  /* ── Ev Sahibi Son Maçlar ── */
+  const homeFormData = h2h.homeTeamForms;
+  if (homeFormData?.teamForm?.length) {
+    hasContent = true;
+    html += `<div class="bball-dtl-section">
+      <div class="bball-dtl-sh">🏠 ${esc(homeFormData.title || row.home_team)} — Son Maçlar</div>
+      <div class="bball-h2h-list">${homeFormData.teamForm.slice(0,7).map(m => renderH2HRow(m, homeFormData.title || row.home_team)).join('')}</div>
+    </div>`;
+  }
+
+  /* ── Deplasman Son Maçlar ── */
+  const awayFormData = h2h.awayTeamForms;
+  if (awayFormData?.teamForm?.length) {
+    hasContent = true;
+    html += `<div class="bball-dtl-section">
+      <div class="bball-dtl-sh">✈️ ${esc(awayFormData.title || row.away_team)} — Son Maçlar</div>
+      <div class="bball-h2h-list">${awayFormData.teamForm.slice(0,7).map(m => renderH2HRow(m, awayFormData.title || row.away_team)).join('')}</div>
+    </div>`;
+  }
+
+  if (!html) {
+    return {
+      hasContent: false,
+      html: `<div class="bball-empty" style="padding:40px 20px;"><div class="bball-empty-icon">🆚</div><div>H2H verisi mevcut değil</div></div>`
+    };
+  }
+
+  return { hasContent, html };
+}
+
+function renderH2HRow(m, markedTeam) {
+  /* Supports both matchesBetween format and teamForm format */
+  const date    = m.date || '';
+  const homeTm  = m.homeTeamName || m.home_team || '';
+  const awayTm  = m.awayTeamName || m.away_team || '';
+  const homeScr = m.homeTeamScore ?? m.homeTeamOtScore ?? m.home_score ?? '-';
+  const awayScr = m.awayTeamScore ?? m.awayTeamOtScore ?? m.away_score ?? '-';
+  const result  = m.markedTeamResult; /* WON / LOST / DRAW */
+  const resCls  = result === 'WON' ? 'bball-h2h-w' : (result === 'LOST' ? 'bball-h2h-l' : 'bball-h2h-d');
+  const resLbl  = result === 'WON' ? 'G' : (result === 'LOST' ? 'M' : 'B');
+
+  /* Check half-time score */
+  const htHomeScr = m.htHomeScore ?? null;
+  const htAwayScr = m.htAwayScore ?? null;
+  const htStr = (htHomeScr != null && htAwayScr != null) ? `<span class="bball-h2h-ht">(${htHomeScr}-${htAwayScr})</span>` : '';
+
+  return `
+    <div class="bball-h2h-row">
+      <span class="bball-h2h-date">${esc(date)}</span>
+      <span class="bball-h2h-team home">${esc(homeTm)}</span>
+      <span class="bball-h2h-score">${esc(String(homeScr))} – ${esc(String(awayScr))}${htStr}</span>
+      <span class="bball-h2h-team away">${esc(awayTm)}</span>
+      ${result ? `<span class="bball-h2h-res ${resCls}">${resLbl}</span>` : '<span></span>'}
+    </div>`;
+}
+
+/* ── PUAN DURUMU TAB ─────────────────────────────────── */
+function buildBballStandingsTab(row) {
+  const sdata = safeParseJSON(row.standings, null);
+  if (!sdata) {
+    return {
+      hasContent: false,
+      html: `<div class="bball-empty" style="padding:40px 20px;"><div class="bball-empty-icon">📋</div><div>Puan durumu verisi mevcut değil</div></div>`
+    };
+  }
+
+  /* Supports both direct standings object and nested season.tables */
+  let tables = [];
+  try {
+    if (sdata.season?.tables)       tables = sdata.season.tables;
+    else if (sdata.tables)          tables = sdata.tables;
+    else if (Array.isArray(sdata))  tables = sdata;
+    else if (sdata.tablerows)       tables = [sdata];
+  } catch(e) {}
+
+  if (!tables.length) {
+    return {
+      hasContent: false,
+      html: `<div class="bball-empty" style="padding:40px 20px;"><div class="bball-empty-icon">📋</div><div>Puan durumu verisi mevcut değil</div></div>`
+    };
+  }
+
+  let html = '';
+
+  tables.forEach(table => {
+    const rows = table.tablerows || [];
+    if (!rows.length) return;
+
+    const tname = table.name || table.abbr || '';
+    html += `<div class="bball-dtl-section">`;
+    if (tname) html += `<div class="bball-dtl-sh">${esc(tname)}</div>`;
+
+    html += `
+      <div class="bball-std-wrap">
+        <table class="bball-std-table">
+          <thead>
+            <tr>
+              <th class="bball-std-pos">#</th>
+              <th class="bball-std-team">Takım</th>
+              <th title="Oynanan">O</th>
+              <th title="Galibiyet">G</th>
+              <th title="Mağlubiyet">M</th>
+              <th title="Attığı Sayı">AS</th>
+              <th title="Yediği Sayı">YS</th>
+              <th title="Averaj">Avg</th>
+              <th title="Kazanma Yüzdesi">%</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+    rows.forEach(r => {
+      const isHome = (r.team?.name || '').toLowerCase() === row.home_team.toLowerCase();
+      const isAway = (r.team?.name || '').toLowerCase() === row.away_team.toLowerCase();
+      const highlight = isHome ? 'bball-std-home' : (isAway ? 'bball-std-away' : '');
+
+      /* Promotion badge */
+      const promo = r.promotion;
+      let promoCls = '';
+      if (promo?.cssclass?.includes('playoff'))       promoCls = 'bball-std-promo';
+      if (promo?.cssclass?.includes('promotionplay')) promoCls = 'bball-std-qual';
+
+      const pct = r.pctTotal != null ? (r.pctTotal * 100).toFixed(1) : '-';
+      const avg = r.goalDiffTotal != null
+        ? (r.goalDiffTotal > 0 ? '+' : '') + r.goalDiffTotal
+        : '-';
+      const avgCls = r.goalDiffTotal > 0 ? 'bball-std-pos' : (r.goalDiffTotal < 0 ? 'bball-std-neg' : '');
+
+      html += `
+        <tr class="${highlight}">
+          <td class="bball-std-pos-cell">
+            ${promoCls ? `<span class="bball-std-dot ${promoCls}"></span>` : ''}
+            ${r.pos ?? '-'}
+          </td>
+          <td class="bball-std-team-cell">
+            ${r.team?.haslogo ? `<img src="https://sportradar.com/img/team_logo/${r.team._id}.png" class="bball-std-logo" onerror="this.style.display='none'" alt="">` : ''}
+            <span class="bball-std-tname">${esc(r.team?.name || '-')}</span>
+          </td>
+          <td>${r.total ?? '-'}</td>
+          <td class="bball-std-g">${r.winTotal ?? '-'}</td>
+          <td class="bball-std-m">${r.lossTotal ?? '-'}</td>
+          <td>${r.goalsForTotal ?? '-'}</td>
+          <td>${r.goalsAgainstTotal ?? '-'}</td>
+          <td class="${avgCls}">${avg}</td>
+          <td class="bball-std-pct">${pct !== '-' ? pct + '%' : '-'}</td>
+        </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+
+    /* Legend */
+    html += `
+      <div class="bball-std-legend">
+        <span><span class="bball-std-dot bball-std-promo"></span> Playoff</span>
+        <span><span class="bball-std-dot bball-std-qual"></span> Eleme Playoff</span>
+      </div>`;
+
+    html += `</div>`;
+  });
+
+  if (!html) {
+    return {
+      hasContent: false,
+      html: `<div class="bball-empty" style="padding:40px 20px;"><div class="bball-empty-icon">📋</div><div>Puan durumu verisi mevcut değil</div></div>`
+    };
+  }
+
+  return { hasContent: true, html };
+}
+
+/* ── ROW LOOKUP ──────────────────────────────────────── */
 function _findBballRow(id) {
   const sid = String(id);
-  const root = document.getElementById('bball-root');
-  const rows = Array.from(root.querySelectorAll('.bball-mr')).map(el => el.dataset.id);
-  /* Try archive cache first */
+  /* 1) rowCache (canlı + arşiv satırları) */
+  if (B.rowCache[sid]) return B.rowCache[sid];
+  /* 2) Archive raw event cache → dönüştür */
   if (B.archiveCache[sid]) return archiveEventToRow(B.archiveCache[sid]);
   return null;
-}
-
-function safeParseJSON(val, fallback) {
-  if (!val) return fallback;
-  if (typeof val === 'object') return val;
-  try { return JSON.parse(val); } catch { return fallback; }
 }
 
 /* ── UI HELPERS ─────────────────────────────────────── */
 function showLoading(msg = 'Yükleniyor…') {
   document.getElementById('bball-root').innerHTML = `
     <div class="bball-empty">
-      <div class="bball-empty-icon">⏳</div>
-      <div>${msg}</div>
+      <div class="bball-empty-icon">⏳</div><div>${msg}</div>
     </div>`;
 }
-
 function showEmpty(msg) {
   document.getElementById('bball-root').innerHTML = `
     <div class="bball-empty">
-      <div class="bball-empty-icon">📭</div>
-      <div>${msg}</div>
+      <div class="bball-empty-icon">📭</div><div>${msg}</div>
     </div>`;
 }
-
 function showError(msg) {
   document.getElementById('bball-root').innerHTML = `
     <div class="bball-empty">
-      <div class="bball-empty-icon">⚠️</div>
-      <div>${msg}</div>
+      <div class="bball-empty-icon">⚠️</div><div>${msg}</div>
     </div>`;
 }
 
 function updateLiveCount(rows) {
   const n = rows.filter(m => bballStatus(m).live).length;
-  const el = document.getElementById('bball-live-n');
-  const sbEl = document.getElementById('sb-bball-live-n');
+  const el    = document.getElementById('bball-live-n');
+  const sbEl  = document.getElementById('sb-bball-live-n');
+  const badge = document.getElementById('bball-tb-live');
+  const badgeN = document.getElementById('bball-tb-live-n');
   if (el) el.textContent = n;
   if (sbEl) sbEl.textContent = n;
-  /* Topbar live badge */
-  const badge = document.getElementById('bball-tb-live');
   if (badge) badge.style.display = n > 0 ? 'flex' : 'none';
-  const badgeN = document.getElementById('bball-tb-live-n');
   if (badgeN) badgeN.textContent = n;
 }
 
-/* ── REALTIME TICKER (periyot saati) ────────────────── */
-function startBballTick() {
-  if (B.tickTimer) clearInterval(B.tickTimer);
-  B.tickTimer = setInterval(() => {
-    document.querySelectorAll('.bball-mr.is-live').forEach(el => {
-      const id = el.dataset.id;
-      /* Tick sadece görsel güncelleme; gerçek veri yenileme loadBball'dan gelir */
-    });
-  }, 1000);
-}
-
-/* ── COUNTDOWN RING ─────────────────────────────────── */
+/* ── COUNTDOWN ──────────────────────────────────────── */
 function startBballCountdown() {
   B.cd = B.cycle;
   updateBballRing();
@@ -626,6 +855,11 @@ function startBballCountdown() {
     if (B.cd <= 0) {
       B.cd = B.cycle;
       await loadBball(true);
+      /* Açık modal varsa güncelle */
+      if (B.detail && document.getElementById('bball-modal').classList.contains('open')) {
+        const fresh = B.rowCache[String(B.detail.id)];
+        if (fresh) { B.detail = fresh; renderBballModal(fresh); }
+      }
     }
   }, 1000);
 }
@@ -638,6 +872,13 @@ function updateBballRing() {
   const r = 8, C = 2 * Math.PI * r;
   ring.style.strokeDasharray = C;
   ring.style.strokeDashoffset = C * (1 - B.cd / B.cycle);
+}
+
+function startBballTick() {
+  if (B.tickTimer) clearInterval(B.tickTimer);
+  B.tickTimer = setInterval(() => {
+    /* Görsel tick için yer bırakıldı */
+  }, 1000);
 }
 
 /* ── INIT ────────────────────────────────────────────── */
@@ -653,12 +894,9 @@ async function initBball() {
   startBballCountdown();
   startBballTick();
 
-  /* Close modal on backdrop click */
   document.getElementById('bball-modal').addEventListener('click', e => {
     if (e.target.id === 'bball-modal') closeBballModal();
   });
-
-  /* Keyboard: Escape closes modal */
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeBballModal();
   });
