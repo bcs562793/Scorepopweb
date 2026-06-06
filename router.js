@@ -132,6 +132,10 @@ const Router = (() => {
       return;
     }
 
+    // Bilinen standalone HTML sayfaları — tam sayfa yükleme yap (router.js içermez)
+    if (/^\/privacy(\.html)?\/?$/i.test(path)) { window.location.replace('/privacy.html'); return; }
+    if (/^\/app\/?$/i.test(path))               { window.location.replace('/app/');         return; }
+
     if (typeof navigate === 'function') navigate('live');
   }
 
