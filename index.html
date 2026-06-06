@@ -35,7 +35,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
-<link rel="stylesheet" href="style.css?v=1780759551"/>
+<link rel="stylesheet" href="style.css?v=1780764142"/>
 <!-- 404.html redirect trick: ?p=/mac/123 → gerçek URL -->
 <script>
 (function() {
@@ -172,26 +172,25 @@
     </div>
   </header>
 
-  <!-- 🗑 SİL — İLK 1000 ÜYE KAMPANYASI BAŞLANGICI -->
+  <!-- ScorePop App Banner -->
   <div class="promo-banner" id="promo-banner">
     <div class="promo-glow"></div>
     <div class="promo-inner">
-      <div class="promo-badge">🎁 ÖZEL TEKLİF</div>
+      <div class="promo-badge">📱 MOBİL UYGULAMA</div>
       <div class="promo-text">
-        <span class="promo-title">İlk <strong>1.000</strong> üyeye <strong>1.000 Kredi</strong> hediye!</span>
-        <span class="promo-sub">Hemen üye ol, kredini kap. Kalan kontenjan dolmadan yerine al.</span>
+        <span class="promo-title"><strong>ScorePop</strong> uygulamasını indir, <strong>bildirimleri</strong> aç!</span>
+        <span class="promo-sub">Her golde anında bildirim al. Android için ücretsiz.</span>
       </div>
       <div class="promo-counter">
-        <span class="promo-counter-lbl">Kalan Kontenjan</span>
-        <span class="promo-counter-num" id="promo-slots">...</span>
+        <span class="promo-counter-lbl">Kullanıcı Puanı</span>
+        <span class="promo-counter-num">4.8★</span>
       </div>
-      <button class="promo-cta" onclick="Auth.showLoginModal('register')">
-        Üye Ol →
-      </button>
+      <a class="promo-cta" href="https://play.google.com/store/apps/details?id=com.scorepop.app" target="_blank" rel="noopener" style="text-decoration:none;">
+        Google Play →
+      </a>
     </div>
     <button class="promo-close" onclick="document.getElementById('promo-banner').style.display='none'" aria-label="Kapat">✕</button>
   </div>
-  <!-- 🗑 SİL — İLK 1000 ÜYE KAMPANYASI BİTİŞİ -->
 
   <!-- col headers -->
   <div class="col-hdr" id="col-hdr">
@@ -267,46 +266,15 @@ window._watchdog = setTimeout(function() {
   }
 }, 15000);
 </script>
-<script src="config.js?v=1780759551"></script>
-<script src="router.js?v=1780759551"></script>
-<script src="auth.js?v=1780759551"></script>
-<script src="forum.js?v=1780759551"></script>
-<script src="payment.js?v=1780759551"></script>
-<script src="indexing.js?v=1780759551"></script>
-<script src="app.js?v=1780759551"></script>
+<script src="config.js?v=1780764142"></script>
+<script src="router.js?v=1780764142"></script>
+<script src="auth.js?v=1780764142"></script>
+<script src="forum.js?v=1780764142"></script>
+<script src="payment.js?v=1780764142"></script>
+<script src="indexing.js?v=1780764142"></script>
+<script src="app.js?v=1780764142"></script>
 
-<!-- 🗑 SİL — İLK 1000 ÜYE KAMPANYASI SAYAÇ BAŞLANGICI -->
-<script>
-/* ── PROMO BANNER KONTENJAN SAYACI ── */
-(async function() {
-  const el = document.getElementById('promo-slots');
-  if (!el) return;
-  try {
-    // S.sb hazır olana kadar bekle (max 5sn)
-    const sb = await new Promise(r => {
-      const check = () => { if (window.S?.sb) return r(window.S.sb); setTimeout(check, 200); };
-      check();
-      setTimeout(() => r(null), 5000);
-    });
 
-    if (!sb) { el.textContent = '1.000'; return; }
-
-    const { count } = await sb
-      .from('profiles')
-      .select('id', { count: 'exact', head: true });
-
-    const kalan = Math.max(0, 823 - (count || 0));
-    el.textContent = kalan.toLocaleString('tr-TR');
-
-    if (kalan === 0) {
-      document.getElementById('promo-banner')?.remove();
-    }
-  } catch(e) {
-    el.textContent = '1.000';
-  }
-})();
-</script>
-<!-- 🗑 SİL — İLK 1000 ÜYE KAMPANYASI SAYAÇ BİTİŞİ -->
 <!-- HAKKIMIZDA / İLETİŞİM OVERLAY'LERİ -->
 <style>
 #page-hakkimizda{display:none;position:fixed;inset:0;z-index:9999;overflow-y:auto;background:#0b0d11}
