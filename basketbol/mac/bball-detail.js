@@ -461,11 +461,13 @@ function renderH2HMatch(m){
   const ht=(m.htHomeScore!=null&&m.htAwayScore!=null)?`<span class="bd-h2h-ht">(${m.htHomeScore}–${m.htAwayScore})</span>`:'';
   const lg=m.tournamentName||'';
   return `<div class="bd-h2h-row">
-    <div class="bd-h2h-meta"><span class="bd-h2h-date">${esc(m.date||'')}</span>${lg?`<span class="bd-h2h-league">${esc(lg)}</span>`:''}</div>
-    <div class="bd-h2h-match">
-      <span class="bd-h2h-t home">${esc(m.homeTeamName||'')}</span>
-      <span class="bd-h2h-sc">${esc(String(hScr))} – ${esc(String(aScr))}${ht}</span>
-      <span class="bd-h2h-t away">${esc(m.awayTeamName||'')}</span>
+    <div>
+      <div class="bd-h2h-meta"><span class="bd-h2h-date">${esc(m.date||'')}</span>${lg?`<span class="bd-h2h-league">${esc(lg)}</span>`:''}</div>
+      <div class="bd-h2h-match">
+        <span class="bd-h2h-t home">${esc(m.homeTeamName||'')}</span>
+        <span class="bd-h2h-sc">${esc(String(hScr))} – ${esc(String(aScr))}${ht}</span>
+        <span class="bd-h2h-t away">${esc(m.awayTeamName||'')}</span>
+      </div>
     </div>
     ${res?`<span class="bd-h2h-res ${rc}">${rl}</span>`:'<span></span>'}
   </div>`;
