@@ -140,7 +140,6 @@ function renderGroup(g){
       <span class="bb-hdr-flag">🏀</span>
       <div class="bb-hdr-info">
         <div class="bb-hdr-name">${esc(g.name)}</div>
-        ${g.country?`<div style="font-size:10.5px;color:var(--tx3);margin-top:1px">${esc(g.country)}</div>`:''}
       </div>
       ${livePill}
       <span class="bb-arrow">▾</span>
@@ -207,7 +206,7 @@ function renderRow(m){
     </div>
     <div class="bb-scores">
       ${scoreHtml}
-      ${qItems.length?`<div class="bb-qtrs">${qItems.join('')}</div>`:''}
+      ${(st.live&&qItems.length)?`<div class="bb-qtrs">${qItems.join('')}</div>`:''}
     </div>
     <div class="bb-team bb-away">
       <div class="bb-logo-wrap">${al}</div>
