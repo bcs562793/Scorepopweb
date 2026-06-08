@@ -69,7 +69,7 @@ function normalizeArchiveStanding(standing){
 }
 
 function normalizeArchiveH2H(e){
-  const split=s=>(s||'').split(' - ').map(x=>x.trim());
+  const split=s=>{const mat=String(s||'').trim().match(/^(\d+)\s*[-:]\s*(\d+)/);return mat?[mat[1],mat[2]]:[(s||'').trim(),undefined];};
   const cvt=(fd,name)=>{
     if(!fd||!fd.matches?.length)return null;
     return{
@@ -432,7 +432,11 @@ function _noStats(){return`<div class="bd-empty"><div class="bd-ei">📊</div><d
 
 /* ── H2H TAB ────────────────────────────────────────── */
 function buildH2HTab(row){
-  const h2h=safeJSON(row.h2h,null);
+  let h2h=safeJSON(row.h2h,null);
+  if(!h2h)return{hasContent:false,html:`<div class="bd-empty"><div class="bd-ei">🆚</div><div>H2H verisi mevcut değil</div></div>`};
+  if(h2h.homeFormDetail||h2h.awayFormDetail||Array.isArray(h2h.h2h)){
+    h2h=normalizeArchiveH2H(h2h);
+  }
   if(!h2h)return{hasContent:false,html:`<div class="bd-empty"><div class="bd-ei">🆚</div><div>H2H verisi mevcut değil</div></div>`};
   let html='',has=false;
   const between=h2h.matchesBetween;
