@@ -48,11 +48,13 @@ function futureRowToDisplay(r){
 function buildBballDateStrip(){
   const el=document.getElementById('bball-date-strip'); if(!el)return;
   const today=todayStr(), days=[];
-  for(let i=-6;i<=6;i++){const d=new Date();d.setDate(d.getDate()+i);const s=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;days.push(s);}
+  const base=new Date(B.date+'T12:00:00');
+  for(let i=-6;i<=6;i++){const d=new Date(base);d.setDate(d.getDate()+i);const s=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;days.push(s);}
   el.innerHTML=days.map(s=>`<button class="bdp${s===B.date?' active':''}" onclick="pickBballDate('${s}')">${s===today?'Bugün':dateLabel(s)}</button>`).join('');
   setTimeout(()=>el.querySelector('.bdp.active')?.scrollIntoView({inline:'center',behavior:'smooth'}),100);
 }
 function pickBballDate(d){B.date=d;buildBballDateStrip();loadBball(false);}
+function pickBballCalendar(d){if(!d)return;B.date=d;buildBballDateStrip();loadBball(false);}
 
 /* ── FETCH ── */
 async function fetchAllBball(query){
