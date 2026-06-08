@@ -448,9 +448,8 @@ function buildH2HTab(row){
 }
 
 function renderH2HMatch(m){
-  const ne=v=>(v!=null&&v!=='');
-  const hScr=ne(m.homeTeamScore)?m.homeTeamScore:ne(m.homeTeamOtScore)?m.homeTeamOtScore:'-';
-  const aScr=ne(m.awayTeamScore)?m.awayTeamScore:ne(m.awayTeamOtScore)?m.awayTeamOtScore:'-';
+  const hScr=m.homeTeamScore??m.homeTeamOtScore??'-';
+  const aScr=m.awayTeamScore??m.awayTeamOtScore??'-';
   const res=m.markedTeamResult;
   const rc=res==='WON'?'w':(res==='LOST'?'l':'d');
   const rl=res==='WON'?'G':(res==='LOST'?'M':'B');
