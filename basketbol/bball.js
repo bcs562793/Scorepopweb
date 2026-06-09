@@ -55,6 +55,11 @@ function buildBballDateStrip(){
 }
 function pickBballDate(d){B.date=d;buildBballDateStrip();loadBball(false);}
 function pickBballCalendar(d){if(!d)return;B.date=d;buildBballDateStrip();loadBball(false);}
+function bballOpenCalendar(){
+  const i=document.getElementById('bball-date-input'); if(!i)return;
+  i.value=B.date;
+  try{ i.showPicker(); }catch{ i.focus(); i.click(); }
+}
 
 /* ── FETCH ── */
 async function fetchAllBball(query){
@@ -74,14 +79,28 @@ async function loadBball(silent=false){
 
 async function loadToday(){
   try{
-    const rows=await fetchAllBball(
-      B.sb.from('live_bball')
-        .select('id,nesine_bid,home_team,away_team,league_name,country,status_short,home_score,away_score,home_q1,away_q1,home_q2,away_q2,home_q3,away_q3,home_q4,away_q4,home_ot,away_ot,period,match_clock,scheduled_at,home_avatar,away_avatar,home_recent_form,away_recent_form')
-        .gte('scheduled_at',`${B.date}T00:00:00+00:00`)
-        .lte('scheduled_at',`${B.date}T23:59:59+00:00`)
-        .order('scheduled_at')
-    );
-    renderBball(rows);
+    const dayStart=`${B.date}T00:00:00+03:00`, dayEnd=`${B.date}T23:59:59+03:00`;
+    const [liveRows,futureRows]=await Promise.all([
+      fetchAllBball(
+        B.sb.from('live_bball')
+          .select('id,nesine_bid,home_team,away_team,league_name,country,status_short,home_score,away_score,home_q1,away_q1,home_q2,away_q2,home_q3,away_q3,home_q4,away_q4,home_ot,away_ot,period,match_clock,scheduled_at,home_avatar,away_avatar,home_recent_form,away_recent_form')
+          .gte('scheduled_at',dayStart)
+          .lte('scheduled_at',dayEnd)
+          .order('scheduled_at')
+      ),
+      fetchAllBball(
+        B.sb.from('future_bball')
+          .select('id,nesine_bid,home_team,away_team,league_name,country,starts_at,has_broadcast')
+          .gte('starts_at',dayStart)
+          .lte('starts_at',dayEnd)
+          .order('starts_at')
+      ),
+    ]);
+    const seen=new Set(liveRows.map(r=>r.nesine_bid).filter(Boolean));
+    const merged=liveRows
+      .concat(futureRows.filter(r=>!(r.nesine_bid&&seen.has(r.nesine_bid))).map(futureRowToDisplay))
+      .sort((a,b)=>String(a.scheduled_at||'').localeCompare(String(b.scheduled_at||'')));
+    renderBball(merged);
   }catch(e){console.error(e);showError('Veriler yüklenemedi.');}
 }
 
@@ -105,8 +124,8 @@ async function loadFuture(date){
     const rows=await fetchAllBball(
       B.sb.from('future_bball')
         .select('id,nesine_bid,home_team,away_team,league_name,country,starts_at,has_broadcast')
-        .gte('starts_at',`${date}T00:00:00+00:00`)
-        .lte('starts_at',`${date}T23:59:59+00:00`)
+        .gte('starts_at',`${date}T00:00:00+03:00`)
+        .lte('starts_at',`${date}T23:59:59+03:00`)
         .order('starts_at')
     );
     if(!rows.length){
