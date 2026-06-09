@@ -56,20 +56,51 @@
 }
 .bdp:hover { color: var(--tx1); background: var(--b1); }
 .bdp.active { background: var(--or); color: #fff; box-shadow: 0 2px 10px rgba(242,100,25,.35); }
-.bb-cal-btn {
+.bb-cal-wrap {
+  position: relative;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 40px;
-  background: none;
-  border: none;
+  padding: 0 12px;
   border-left: 1px solid var(--b1);
-  color: var(--tx3);
-  cursor: pointer;
-  transition: color .15s, background .15s;
 }
-.bb-cal-btn:hover { color: var(--or); background: var(--b1); }
+.bb-cal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 13px;
+  border-radius: 18px;
+  background: var(--b1);
+  border: 1px solid var(--b2);
+  color: var(--tx2);
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .2px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s, box-shadow .15s;
+}
+.bb-cal-btn svg { flex-shrink: 0; }
+.bb-cal-btn:hover {
+  background: var(--or);
+  border-color: var(--or);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(242,100,25,.35);
+}
+.bb-cal-input {
+  position: absolute;
+  right: 12px;
+  bottom: 4px;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
 
 /* ── LEAGUE GROUP ── */
 .bb-grp { border-bottom: 1px solid var(--b1); }
@@ -183,6 +214,7 @@
 .bb-total {
   display: flex;
   align-items: center;
+  justify-content: center;
   background: var(--b1);
   border-radius: 7px;
   border: 1px solid var(--b2);
@@ -194,9 +226,9 @@
   font-size: 15px;
   font-weight: 700;
   color: var(--tx1);
-  width: 28px;
+  min-width: 28px;
   text-align: center;
-  padding: 5px 0;
+  padding: 5px 8px;
   line-height: 1;
 }
 .bb-sn.w { color: #fff; font-weight: 800; }
@@ -278,10 +310,11 @@
 /* ── RESPONSIVE ── */
 @media (max-width: 600px) {
   .bb-mr { grid-template-columns: 50px 1fr auto 1fr 14px; gap: 5px; padding: 0 12px; height: 50px; }
-  .bb-sn { font-size: 14px; width: 25px; }
+  .bb-sn { font-size: 14px; min-width: 22px; padding: 5px 6px; }
   .bb-tname { font-size: 12px; }
   .bb-qtrs { display: none; }
   .bb-total { min-width: 60px; }
+  .bb-cal-label { display: none; }
 }
 @media (max-width: 380px) {
   .bb-logo-wrap { display: none; }
@@ -383,10 +416,13 @@
 
   <div class="bb-date-wrap">
     <div id="bball-date-strip"></div>
-    <button class="bb-cal-btn" onclick="document.getElementById('bball-date-input').showPicker?.()||document.getElementById('bball-date-input').click()" title="Tarihe git">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x=".75" y="1.75" width="12.5" height="11.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 .75v2M10 .75v2M.75 5.25h12.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-    </button>
-    <input type="date" id="bball-date-input" style="position:absolute;opacity:0;pointer-events:none;width:0;height:0" onchange="pickBballCalendar(this.value)">
+    <div class="bb-cal-wrap">
+      <button class="bb-cal-btn" onclick="bballOpenCalendar()" title="Tarih seç" aria-label="Takvimden tarih seç">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x=".75" y="1.75" width="12.5" height="11.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 .75v2M10 .75v2M.75 5.25h12.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span class="bb-cal-label">Takvim</span>
+      </button>
+      <input type="date" id="bball-date-input" class="bb-cal-input" onchange="pickBballCalendar(this.value)">
+    </div>
   </div>
 
   <div id="bball-root">
