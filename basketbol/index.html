@@ -438,17 +438,16 @@
   </div>
 </main>
 
-<div id="overlay" onclick="toggleSidebar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;"></div>
+<div id="overlay" onclick="toggleSidebar()"></div>
 
 <script>
 function toggleSidebar(){
-  const sb=document.getElementById('sidebar');
-  const ov=document.getElementById('overlay');
-  ov.style.display=sb.classList.toggle('sb-open')?'block':'none';
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
 }
 </script>
 
 <script src="/config.js"></script>
-<script src="/basketbol/bball.js?v=1"></script>
+<script src="/basketbol/bball.js?v=2"></script>
 </body>
 </html>
