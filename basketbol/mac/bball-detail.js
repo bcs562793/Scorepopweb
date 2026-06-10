@@ -26,6 +26,16 @@ function safeJSON(v,fb){
     return p;
   }catch{return fb;}
 }
+/* Team monogram fallback — initials + name-derived hue */
+function teamMono(name,size){
+  const n=String(name||'').trim();
+  const parts=n.split(/\s+/).filter(Boolean);
+  const ini=(parts.length>1?parts[0][0]+parts[1][0]:n.slice(0,2)).toLocaleUpperCase('tr-TR');
+  let h=0;for(let i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i))>>>0;
+  const hue=h%360;
+  return `<div class="tm-mono" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.38)}px;background:hsl(${hue} 28% 16%);border-color:hsl(${hue} 30% 26%);color:hsl(${hue} 45% 72%)">${esc(ini)}</div>`;
+}
+
 function makeSlug(...p){ return p.filter(Boolean).join('-vs-').toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,80); }
 
 /* ── STATUS ─────────────────────────────────────────── */
@@ -238,7 +248,6 @@ function setSEO(row,st){
   const startISO=row.scheduled_at?new Date(row.scheduled_at).toISOString():new Date().toISOString();
   const endISO=new Date(new Date(startISO).getTime()+2.5*60*60*1000).toISOString();
   const schema={'@context':'https://schema.org','@type':'SportsEvent',name:`${row.home_team} - ${row.away_team}`,sport:'Basketball',description:desc,url:window.location.href,startDate:startISO,endDate:endISO,eventStatus:st.live?'https://schema.org/EventLive':(st.done?'https://schema.org/EventCompleted':'https://schema.org/EventScheduled'),image:row.home_avatar||row.away_avatar||'https://scorepop.com.tr/logo.png',organizer:{'@type':'SportsOrganization',name:row.league_name||'Basketbol',url:'https://scorepop.com.tr'},performer:[{'@type':'SportsTeam',name:row.home_team},{'@type':'SportsTeam',name:row.away_team}],offers:{'@type':'Offer',url:window.location.origin+window.location.pathname,price:'0',priceCurrency:'TRY',availability:'https://schema.org/OnlineOnly'},location:{'@type':'Place',name:row.league_name||'Basketbol',address:{'@type':'PostalAddress',addressCountry:row.country||'TR'}},homeTeam:{'@type':'SportsTeam',name:row.home_team},awayTeam:{'@type':'SportsTeam',name:row.away_team},...(hasScore?{homeScore:{'@type':'Integer',value:hs},awayScore:{'@type':'Integer',value:as}}:{})};  
-  offers:{'@type':'Offer',url:window.location.origin+window.location.pathname,price:'0',priceCurrency:'TRY',availability:'https://schema.org/OnlineOnly',validFrom:startISO}
   let jl=document.getElementById('bd-jsonld');if(!jl){jl=document.createElement('script');jl.id='bd-jsonld';jl.type='application/ld+json';document.head.appendChild(jl);}jl.textContent=JSON.stringify(schema);
   const bc={'@context':'https://schema.org','@type':'BreadcrumbList',itemListElement:[{'@type':'ListItem',position:1,name:'Ana Sayfa',item:'https://scorepop.com.tr/'},{'@type':'ListItem',position:2,name:'Basketbol',item:'https://scorepop.com.tr/basketbol/'},{'@type':'ListItem',position:3,name:`${row.home_team} - ${row.away_team}`,item:window.location.href}]};
   let bcl=document.getElementById('bd-breadcrumb');if(!bcl){bcl=document.createElement('script');bcl.id='bd-breadcrumb';bcl.type='application/ld+json';document.head.appendChild(bcl);}bcl.textContent=JSON.stringify(bc);
@@ -253,8 +262,8 @@ function renderDetail(row){
   const isNS=!st.live&&!st.done;
   setSEO(row,st);
 
-  const hl=row.home_avatar?`<img src="${esc(row.home_avatar)}" onerror="this.style.display='none'" alt="${esc(row.home_team)}" class="bd-logo">`:`<div class="bd-logo-ph">🏀</div>`;
-  const al=row.away_avatar?`<img src="${esc(row.away_avatar)}" onerror="this.style.display='none'" alt="${esc(row.away_team)}" class="bd-logo">`:`<div class="bd-logo-ph">🏀</div>`;
+  const hl=row.home_avatar?`<img src="${esc(row.home_avatar)}" onerror="this.style.display='none'" alt="${esc(row.home_team)}" class="bd-logo">`:teamMono(row.home_team,64);
+  const al=row.away_avatar?`<img src="${esc(row.away_avatar)}" onerror="this.style.display='none'" alt="${esc(row.away_team)}" class="bd-logo">`:teamMono(row.away_team,64);
 
   let scoreHtml;
   if(isNS){scoreHtml=`<div class="bd-score-time">${esc(st.label)}</div>`;}
@@ -348,7 +357,7 @@ function buildOzetTab(row,st,isNS){
     }).join('');
     if(trs)html+=`<div class="bd-section"><div class="bd-sh">Periyot Skorları</div><table class="bd-qtr-table"><thead><tr><th></th><th>${esc(row.home_team)}</th><th>${esc(row.away_team)}</th></tr></thead><tbody>${trs}</tbody></table></div>`;
   }
-  if(!html)html=`<div class="bd-empty"><div class="bd-ei">📭</div><div>${isNS?'Maç henüz başlamadı':'Veri mevcut değil'}</div></div>`;
+  if(!html)html=`<div class="bd-empty"><div class="empty-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M6 9h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div>${isNS?'Maç henüz başlamadı':'Veri mevcut değil'}</div></div>`;
   return html;
 }
 
@@ -430,26 +439,26 @@ function buildStatsTab(row){
       ${rowsHtml}
     </div>`};
 }
-function _noStats(){return`<div class="bd-empty"><div class="bd-ei">📊</div><div>İstatistik verisi bu maç için mevcut değil</div></div>`;}
+function _noStats(){return`<div class="bd-empty"><div class="empty-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M6 9h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div>İstatistik verisi bu maç için mevcut değil</div></div>`;}
 
 /* ── H2H TAB ────────────────────────────────────────── */
 function buildH2HTab(row){
   let h2h=safeJSON(row.h2h,null);
-  if(!h2h)return{hasContent:false,html:`<div class="bd-empty"><div class="bd-ei">🆚</div><div>H2H verisi mevcut değil</div></div>`};
+  if(!h2h)return{hasContent:false,html:`<div class="bd-empty"><div class="empty-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M6 9h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div>H2H verisi mevcut değil</div></div>`};
   if(h2h.homeFormDetail||h2h.awayFormDetail||Array.isArray(h2h.h2h)){
     h2h=normalizeArchiveH2H(h2h);
   }
-  if(!h2h)return{hasContent:false,html:`<div class="bd-empty"><div class="bd-ei">🆚</div><div>H2H verisi mevcut değil</div></div>`};
+  if(!h2h)return{hasContent:false,html:`<div class="bd-empty"><div class="empty-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M6 9h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div>H2H verisi mevcut değil</div></div>`};
   let html='',has=false;
   const between=h2h.matchesBetween;
   const bm=between?.matches||between?.teamForm||[];
-  if(between?.emptyMessage&&!bm.length){html+=`<div class="bd-section"><div class="bd-sh">🆚 Aralarındaki Maçlar</div><div class="bd-h2h-empty">${esc(between.emptyMessage)}</div></div>`;has=true;}
-  else if(bm.length){has=true;html+=`<div class="bd-section"><div class="bd-sh">🆚 Aralarındaki Maçlar</div><div class="bd-h2h-list">${bm.map(m=>renderH2HMatch(m)).join('')}</div></div>`;}
+  if(between?.emptyMessage&&!bm.length){html+=`<div class="bd-section"><div class="bd-sh">Aralarındaki Maçlar</div><div class="bd-h2h-empty">${esc(between.emptyMessage)}</div></div>`;has=true;}
+  else if(bm.length){has=true;html+=`<div class="bd-section"><div class="bd-sh">Aralarındaki Maçlar</div><div class="bd-h2h-list">${bm.map(m=>renderH2HMatch(m)).join('')}</div></div>`;}
   const hf=h2h.homeTeamForms;
-  if(hf?.teamForm?.length){has=true;html+=`<div class="bd-section"><div class="bd-sh">🏠 ${esc(hf.title||row.home_team)} Son Maçlar</div><div class="bd-h2h-list">${hf.teamForm.slice(0,7).map(m=>renderH2HMatch(m)).join('')}</div></div>`;}
+  if(hf?.teamForm?.length){has=true;html+=`<div class="bd-section"><div class="bd-sh">${esc(hf.title||row.home_team)} — Son Maçlar</div><div class="bd-h2h-list">${hf.teamForm.slice(0,7).map(m=>renderH2HMatch(m)).join('')}</div></div>`;}
   const af=h2h.awayTeamForms;
-  if(af?.teamForm?.length){has=true;html+=`<div class="bd-section"><div class="bd-sh">✈️ ${esc(af.title||row.away_team)} Son Maçlar</div><div class="bd-h2h-list">${af.teamForm.slice(0,7).map(m=>renderH2HMatch(m)).join('')}</div></div>`;}
-  if(!html)return{hasContent:false,html:`<div class="bd-empty"><div class="bd-ei">🆚</div><div>H2H verisi mevcut değil</div></div>`};
+  if(af?.teamForm?.length){has=true;html+=`<div class="bd-section"><div class="bd-sh">${esc(af.title||row.away_team)} — Son Maçlar</div><div class="bd-h2h-list">${af.teamForm.slice(0,7).map(m=>renderH2HMatch(m)).join('')}</div></div>`;}
+  if(!html)return{hasContent:false,html:`<div class="bd-empty"><div class="empty-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M6 9h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div>H2H verisi mevcut değil</div></div>`};
   return{hasContent:has,html};
 }
 
@@ -478,7 +487,7 @@ function renderH2HMatch(m){
 /* ── PUAN DURUMU TAB ─────────────────────────────────── */
 function buildStandingsTab(row){
   const sdata=safeJSON(row.standings,null);
-  if(!sdata)return{hasContent:false,html:`<div class="bd-empty"><div class="bd-ei">📋</div><div>Puan durumu verisi mevcut değil</div></div>`};
+  if(!sdata)return{hasContent:false,html:`<div class="bd-empty"><div class="empty-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M6 9h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div>Puan durumu verisi mevcut değil</div></div>`};
 
   /* Handle both live_bball format (season.tables) and archive format (general) */
   let tables=[];
@@ -490,7 +499,7 @@ function buildStandingsTab(row){
     /* Archive format already normalized by normalizeArchiveStanding so will match season.tables */
   }catch{}
 
-  if(!tables.length)return{hasContent:false,html:`<div class="bd-empty"><div class="bd-ei">📋</div><div>Puan durumu verisi mevcut değil</div></div>`};
+  if(!tables.length)return{hasContent:false,html:`<div class="bd-empty"><div class="empty-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M6 9h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div>Puan durumu verisi mevcut değil</div></div>`};
 
   let html='';
   tables.forEach(table=>{
@@ -521,7 +530,7 @@ function buildStandingsTab(row){
     });
     html+=`</tbody></table></div><div class="bd-legend"><span><span class="td-dot dot-playoff"></span> Playoff</span><span><span class="td-dot dot-qual"></span> Eleme</span></div></div>`;
   });
-  if(!html)return{hasContent:false,html:`<div class="bd-empty"><div class="bd-ei">📋</div><div>Puan durumu verisi mevcut değil</div></div>`};
+  if(!html)return{hasContent:false,html:`<div class="bd-empty"><div class="empty-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M6 9h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div>Puan durumu verisi mevcut değil</div></div>`};
   return{hasContent:true,html};
 }
 
@@ -547,6 +556,6 @@ async function initDetail(){
 }
 
 function showDetailLoading(){document.getElementById('bd-root').innerHTML=`<div class="bd-init-loading"><div class="bd-spin"></div><div>Maç verisi yükleniyor…</div></div>`;}
-function showDetailError(msg){document.getElementById('bd-root').innerHTML=`<div class="bd-init-error"><div class="bd-ei" style="font-size:32px">⚠️</div><div>${esc(msg)}</div><a class="bd-back-btn" href="/basketbol/">← Basketbol Sayfasına Dön</a></div>`;}
+function showDetailError(msg){document.getElementById('bd-root').innerHTML=`<div class="bd-init-error"><div class="empty-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2 16.5 15h-15L9 2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M9 7v3.5M9 12.6v.1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div>${esc(msg)}</div><a class="bd-back-btn" href="/basketbol/">← Basketbol Sayfasına Dön</a></div>`;}
 
 document.addEventListener('DOMContentLoaded',initDetail);
