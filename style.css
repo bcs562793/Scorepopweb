@@ -37,6 +37,43 @@
   --blue:     #3b82f6;
 }
 
+/* ── SHARED UI PRIMITIVES (v2.1) ─────────────── */
+.sb-sport-ic { flex-shrink: 0; opacity: .8; }
+.sb-btn.active .sb-sport-ic { opacity: 1; }
+.sb-sport-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  background: var(--or2);
+  color: var(--or);
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+/* Team monogram — fallback when no logo available */
+.tm-mono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg4);
+  border: 1px solid var(--b2);
+  border-radius: 10px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  color: var(--tx2);
+  letter-spacing: .5px;
+  user-select: none;
+}
+/* Neutral empty-state mark replacing emoji */
+.empty-mark {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: var(--bg3);
+  border: 1px solid var(--b2);
+  color: var(--tx3);
+}
+
 /* ── BASE ────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
