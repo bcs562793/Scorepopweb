@@ -6,6 +6,15 @@ const B = {
 };
 const BBALL_ARCHIVE = 'https://raw.githubusercontent.com/bcs562793/blyarchieve/main/data/raw';
 
+function bbMono(name){
+  const n=String(name||'').trim();
+  const parts=n.split(/\s+/).filter(Boolean);
+  const ini=(parts.length>1?parts[0][0]+parts[1][0]:n.slice(0,2)).toLocaleUpperCase('tr-TR');
+  let h=0;for(let i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i))>>>0;
+  const hue=h%360;
+  return `<span class="tm-mono" style="width:20px;height:20px;font-size:8px;border-radius:5px;background:hsl(${hue} 28% 16%);border-color:hsl(${hue} 30% 26%);color:hsl(${hue} 45% 72%)">${esc(ini)}</span>`;
+}
+
 function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtTime(iso){ if(!iso)return '--:--'; try{const d=new Date(iso);return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}catch{return '--:--';} }
@@ -158,7 +167,7 @@ function renderGroup(g){
   const livePill=lc?`<span class="bb-live-pill"><span class="bb-live-dot"></span>${lc}</span>`:'';
   return `<div class="bb-grp">
     <div class="bb-hdr" onclick="this.closest('.bb-grp').classList.toggle('closed')">
-      <span class="bb-hdr-flag">🏀</span>
+      
       <div class="bb-hdr-info">
         <div class="bb-hdr-name">${esc(g.name)}</div>
       </div>
@@ -181,8 +190,8 @@ function renderRow(m){
   if(st.done&&hasScore){if(+hs>+as_){hcls='w';acls='l';}else if(+as_>+hs){acls='w';hcls='l';}}
 
   /* Logos */
-  const hl=m.home_avatar?`<img class="bb-logo" src="${esc(m.home_avatar)}" onerror="this.style.display='none'" alt="">`:`<span class="bb-logo-ph">🏀</span>`;
-  const al=m.away_avatar?`<img class="bb-logo" src="${esc(m.away_avatar)}" onerror="this.style.display='none'" alt="">`:`<span class="bb-logo-ph">🏀</span>`;
+  const hl=m.home_avatar?`<img class="bb-logo" src="${esc(m.home_avatar)}" onerror="this.style.display='none'" alt="">`:bbMono(m.home_team);
+  const al=m.away_avatar?`<img class="bb-logo" src="${esc(m.away_avatar)}" onerror="this.style.display='none'" alt="">`:bbMono(m.away_team);
 
   /* Score box */
   let scoreHtml;
@@ -240,8 +249,8 @@ function renderRow(m){
 /* ── UI ── */
 function showSkel(){document.getElementById('bball-root').innerHTML=`<div class="bb-skel"><div class="bb-skel-h"></div><div class="bb-skel-r"></div><div class="bb-skel-r"></div><div class="bb-skel-r"></div><div class="bb-skel-h"></div><div class="bb-skel-r"></div><div class="bb-skel-r"></div></div>`;}
 function showLoading(msg){document.getElementById('bball-root').innerHTML=`<div class="bb-empty"><div class="bb-empty-icon">⏳</div><div class="bb-empty-msg">${msg}</div></div>`;}
-function showEmpty(msg){document.getElementById('bball-root').innerHTML=`<div class="bb-empty"><div class="bb-empty-icon">📭</div><div class="bb-empty-msg">${msg}</div></div>`;}
-function showError(msg){document.getElementById('bball-root').innerHTML=`<div class="bb-empty"><div class="bb-empty-icon">⚠️</div><div class="bb-empty-msg">${msg}</div></div>`;}
+function showEmpty(msg){document.getElementById('bball-root').innerHTML=`<div class="bb-empty"><div class="empty-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M6 9h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="bb-empty-msg">${msg}</div></div>`;}
+function showError(msg){document.getElementById('bball-root').innerHTML=`<div class="bb-empty"><div class="empty-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2 16.5 15h-15L9 2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M9 7v3.5M9 12.6v.1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="bb-empty-msg">${msg}</div></div>`;}
 
 function updateLiveCount(rows){
   const n=rows.filter(m=>bballStatus(m).live).length;

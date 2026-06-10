@@ -708,11 +708,18 @@ async function loadMatches(silent = false) {
 }
 
 async function loadLive(silent = false) {
-  const { data, error } = await S.sb
-    .from('live_matches').select('*')
-    .in('status_short',['1H','2H','HT','ET','BT','P','LIVE'])
-    .limit(120);
+  const BB_LIVE = ['1Q','Q1','2Q','Q2','HT','HALF','3Q','Q3','4Q','Q4','OT','OT1','OT2','LIVE'];
+  const [{ data, error }, bbRes] = await Promise.all([
+    S.sb.from('live_matches').select('*')
+      .in('status_short',['1H','2H','HT','ET','BT','P','LIVE'])
+      .limit(120),
+    S.sb.from('live_bball')
+      .select('id,home_team,away_team,home_score,away_score,status_short,match_clock,league_name,country,scheduled_at,home_avatar,away_avatar')
+      .in('status_short', BB_LIVE)
+      .limit(60),
+  ]);
   if (error) throw error;
+  const bbRows = bbRes?.data || [];
 
   /* normFix üzerinden geçir — stale dedektörü otomatik FT'ye çeker */
   const rows = (data || []).map(r => normFix(r)).filter(m => {
@@ -731,9 +738,74 @@ async function loadLive(silent = false) {
       }
     });
     silentUpdate(rows);
+    _renderBballLive(bbRows, true);
   } else {
     render(rows, true);
+    _renderBballLive(bbRows, false);
   }
+}
+
+/* ── CANLI BASKETBOL — Canlı sekmesi alt bölümü ─────────────
+   Futbol gruplarının altında ayrı .lg-grp blokları olarak render
+   edilir. Satırlar futbol detayına değil /basketbol/mac/ sayfasına
+   gider. data-id KULLANILMAZ — silent temizlik (.mr[data-id])
+   futbol id'lerine bakar, bball satırlarını silmesin diye. */
+function _bbSlug(s){return String(s||'').toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,50);}
+function _bbStatusLbl(m){
+  const LM={'1Q':'Ç1','Q1':'Ç1','2Q':'Ç2','Q2':'Ç2','HT':'DV','HALF':'DV','3Q':'Ç3','Q3':'Ç3','4Q':'Ç4','Q4':'Ç4','OT':'UZT','OT1':'UZT','OT2':'UZT','LIVE':'CANLI'};
+  const s=(m.status_short||'').toUpperCase();
+  let l=LM[s]||s;
+  if(m.match_clock)l+=` ${m.match_clock}`;
+  return l;
+}
+function _renderBballLive(bbRows, silent){
+  const root=document.getElementById('matches-root');
+  if(!root)return;
+  let sec=document.getElementById('bb-live-sec');
+  if(!bbRows.length){ if(sec)sec.remove(); return; }
+
+  /* Futbol boşsa "Maç bulunamadı" bloğunu kaldır — bball listesi var */
+  if(!silent){
+    const emptyEl=root.querySelector(':scope > .empty');
+    if(emptyEl && !root.querySelector('.mr[data-id]')) emptyEl.remove();
+  }
+
+  const groups={};
+  bbRows.forEach(m=>{
+    const k=m.league_name||'Basketbol';
+    (groups[k]=groups[k]||[]).push(m);
+  });
+
+  const rowHtml=m=>{
+    const href=`/basketbol/mac/${m.id}-${_bbSlug(m.home_team)}-vs-${_bbSlug(m.away_team)}`;
+    return `
+    <div class="mr is-live" data-bbid="${m.id}" onclick="window.location.href='${href}'">
+      <div class="mr-time"><span class="mr-t1 live">${esc(_bbStatusLbl(m))}</span></div>
+      <div class="mr-home"><span class="mr-name">${esc(m.home_team||'')}</span><div class="mr-logo-wrap">${m.home_avatar?`<img class="mr-logo" src="${esc(m.home_avatar)}" onerror="this.style.display='none'" alt="">`:'<div class="mr-logo-ph"></div>'}</div></div>
+      <div class="mr-score"><div class="mr-sb live"><span class="mr-n">${m.home_score??'-'}</span><div class="mr-sep"></div><span class="mr-n">${m.away_score??'-'}</span></div></div>
+      <div class="mr-away"><div class="mr-logo-wrap">${m.away_avatar?`<img class="mr-logo" src="${esc(m.away_avatar)}" onerror="this.style.display='none'" alt="">`:'<div class="mr-logo-ph"></div>'}</div><span class="mr-name">${esc(m.away_team||'')}</span></div>
+      <div class="mr-x"><span class="mr-arr">›</span></div>
+    </div>`;
+  };
+
+  const html=Object.entries(groups).map(([name,ms])=>`
+    <div class="lg-grp">
+      <div class="lg-hdr" onclick="this.closest('.lg-grp').classList.toggle('closed')">
+        <div style="display:flex;align-items:center;gap:6px;flex:1;flex-wrap:nowrap">
+          <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 1v12M1 7h12M2.8 2.8c2 1.6 2 6.8 0 8.4M11.2 2.8c-2 1.6-2 6.8 0 8.4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+          <span class="lg-hdr-name" style="white-space:nowrap;font-size:13px;font-weight:500">Basketbol — ${esc(name)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0"><span class="lg-arrow">▾</span></div>
+      </div>
+      <div class="lg-body">${ms.map(rowHtml).join('')}</div>
+    </div>`).join('');
+
+  if(!sec){
+    sec=document.createElement('div');
+    sec.id='bb-live-sec';
+    root.appendChild(sec);
+  }
+  sec.innerHTML=html;
 }
 
 async function loadToday(silent = false) {

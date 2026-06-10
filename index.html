@@ -35,7 +35,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
-<link rel="stylesheet" href="style.css?v=1781083175"/>
+<link rel="stylesheet" href="style.css?v=1781084938"/>
 <!-- 404.html redirect trick: ?p=/mac/123 → gerçek URL -->
 <script>
 (function() {
@@ -59,7 +59,7 @@
 <aside id="sidebar">
   <div class="sb-top">
     <a class="sb-brand" href="/" style="text-decoration:none;cursor:pointer;">
-      <div class="sb-mark"><img src="https://i.hizliresim.com/gbleupf.png" alt="ScorePop Logo"></div>
+      <div class="sb-mark"><img src="/logo.png" alt="ScorePop Logo"></div>
       <div class="sb-name">SCORE<em>POP</em></div>
     </a>
     <div class="sb-live-stat">
@@ -92,13 +92,13 @@
   <div class="sb-lbl">SPORLAR</div>
   <nav class="sb-nav" style="padding-top:2px;padding-bottom:4px;">
     <button class="sb-btn active" style="pointer-events:none">
-      <span style="font-size:14px;flex-shrink:0">⚽</span>
+      <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 4.2 9.4 6l-.9 2.8H5.5L4.6 6 7 4.2z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M7 1.2v3M12.7 5.6 9.4 6M11 11.5 8.5 8.8M3 11.5l2.5-2.7M1.3 5.6 4.6 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
       <span>Futbol</span>
     </button>
     <a class="sb-btn" href="/basketbol/" style="text-decoration:none;">
-      <span style="font-size:14px;flex-shrink:0">🏀</span>
+      <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 1v12M1 7h12M2.8 2.8c2 1.6 2 6.8 0 8.4M11.2 2.8c-2 1.6-2 6.8 0 8.4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
       <span>Basketbol</span>
-      <span style="font-size:9.5px;font-weight:700;background:rgba(242,100,25,.15);color:var(--or);padding:1px 5px;border-radius:4px;margin-left:auto;flex-shrink:0;">YENİ</span>
+      <span class="sb-sport-badge">YENİ</span>
     </a>
   </nav>
   <div class="sb-sep"></div>
@@ -220,7 +220,7 @@
   <div id="view-odds" class="hidden">
     <div class="oa-page">
       <div class="oa-header">
-        <div class="oa-header-title">📊 Oran Analizi</div>
+        <div class="oa-header-title">Oran Analizi</div>
         <div class="oa-header-sub">Maça tıkla → Oranlar sekmesinde detaylı analiz</div>
       </div>
       <!-- Tarih strip — odds sayfasına özel -->
@@ -266,13 +266,13 @@ window._watchdog = setTimeout(function() {
   }
 }, 15000);
 </script>
-<script src="config.js?v=1781083175"></script>
-<script src="router.js?v=1781083175"></script>
-<script src="auth.js?v=1781083175"></script>
-<script src="forum.js?v=1781083175"></script>
-<script src="payment.js?v=1781083175"></script>
-<script src="indexing.js?v=1781083175"></script>
-<script src="app.js?v=1781083175"></script>
+<script src="config.js?v=1781084938"></script>
+<script src="router.js?v=1781084938"></script>
+<script src="auth.js?v=1781084938"></script>
+<script src="forum.js?v=1781084938"></script>
+<script src="payment.js?v=1781084938"></script>
+<script src="indexing.js?v=1781084938"></script>
+<script src="app.js?v=1781084938"></script>
 
 
 <!-- HAKKIMIZDA / İLETİŞİM OVERLAY'LERİ -->
@@ -497,6 +497,8 @@ window._watchdog = setTimeout(function() {
       background: var(--or2);
       border-radius: 9px;
       display: flex; align-items: center; justify-content: center;
+      color: var(--or);
+      flex-shrink: 0;
       font-size: 18px;
       flex-shrink: 0;
     }
@@ -894,7 +896,7 @@ window._watchdog = setTimeout(function() {
   <nav class="topbar">
     <a class="topbar-brand" href="/">
       <div class="topbar-mark">
-        <img src="https://i.hizliresim.com/gbleupf.png" alt="ScorePop Logo"/>
+        <img src="/logo.png" alt="ScorePop Logo"/>
       </div>
       <span class="topbar-name">SCORE<em>POP</em></span>
     </a>
@@ -909,7 +911,7 @@ window._watchdog = setTimeout(function() {
 
   <!-- HERO -->
   <section class="hero">
-    <div class="hero-badge">⚽ Hakkımızda</div>
+    <div class="hero-badge">Hakkımızda</div>
     <h1>Futbolu <span>Canlı</span> Takip Et</h1>
     <p>ScorePop, tüm dünyadan canlı maç sonuçları, anlık istatistikler ve derinlemesine analizler sunar.</p>
   </section>
@@ -955,42 +957,42 @@ window._watchdog = setTimeout(function() {
       </div>
       <div class="feature-grid">
         <div class="feature-card">
-          <div class="feature-icon">🔴</div>
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.25"/><circle cx="10" cy="10" r="2.5" fill="currentColor" stroke="none"/></svg></div>
           <div class="feature-body">
             <h3>Canlı Skorlar</h3>
             <p>Maçlar dakika dakika, 30 saniyede bir otomatik güncelleme ile takibinizde.</p>
           </div>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">📊</div>
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 16.5v-6M10 16.5V3.5M16.5 16.5v-9"/></svg></div>
           <div class="feature-body">
             <h3>Detaylı İstatistikler</h3>
             <p>Top kontrolü, şut sayısı, korner ve daha fazlası her maç için anlık.</p>
           </div>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">🌍</div>
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.25"/><path d="M2.75 10h14.5M10 2.75c-2 2-3 4.3-3 7.25s1 5.25 3 7.25M10 2.75c2 2 3 4.3 3 7.25s-1 5.25-3 7.25"/></svg></div>
           <div class="feature-body">
             <h3>100+ Lig</h3>
             <p>Premier Lig'den Süper Lig'e, Şampiyonlar Ligi'nden küçük liglere kadar.</p>
           </div>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">⚡</div>
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2.5 4.5 11h4l-1 6.5L14.5 9h-4l.5-6.5z"/></svg></div>
           <div class="feature-body">
             <h3>Hızlı & Hafif</h3>
             <p>Optimize edilmiş arayüz sayesinde yavaş bağlantılarda bile sorunsuz.</p>
           </div>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">💬</div>
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5h14v9H8l-4 3v-3H3v-9z"/></svg></div>
           <div class="feature-body">
             <h3>Maç Yorumları</h3>
             <p>Maç sayfasında diğer taraftarlarla anlık yorum ve tartışma imkânı.</p>
           </div>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">📱</div>
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="8" height="15" rx="2"/><path d="M9 15.5h2"/></svg></div>
           <div class="feature-body">
             <h3>Mobil Uyumlu</h3>
             <p>Her cihazda mükemmel görüntü; telefon, tablet veya bilgisayar.</p>
@@ -1026,7 +1028,7 @@ window._watchdog = setTimeout(function() {
   <nav class="topbar">
     <a class="topbar-brand" href="/">
       <div class="topbar-mark">
-        <img src="https://i.hizliresim.com/gbleupf.png" alt="ScorePop Logo"/>
+        <img src="/logo.png" alt="ScorePop Logo"/>
       </div>
       <span class="topbar-name">SCORE<em>POP</em></span>
     </a>
