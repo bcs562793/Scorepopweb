@@ -33,7 +33,20 @@ const S = {
 
 /* ── LİG ÖNCELİK SİSTEMİ (JSON league_id tabanlı) ───────────────────── */
 const LEAGUE_CONF = [
+   
   { id: 14363, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
+  { id: 14364, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
+  { id: 14365, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
+  { id: 14366, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
+  { id: 14367, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
+  { id: 14368, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
+  { id: 14369, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
+  { id: 14370, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
+  { id: 14371, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
+  { id: 14372, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
+  { id: 14373, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
+  { id: 14374, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
+  { id: 14375, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
   { id: 1, source: "mackolik", priority: -1, name: "Türkiye Süper Lig" },
   { id: 584, source: "bilyoner", priority: -1, name: "Türkiye Süper Lig" },
   { id: 43, source: "mackolik", priority: -4, name: "Şampiyonlar Ligi" },
