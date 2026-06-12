@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<base href="/">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ScorePop — Voleybol Canlı Skorlar</title>
+<meta name="description" content="Canlı voleybol skorları — Milletler Ligi, CEV, Avrupa ligleri ve daha fazlası, anlık set sonuçları."/>
+<meta name="robots" content="index,follow"/>
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JS4J2RCJJ9"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-JS4J2RCJJ9');</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<link rel="stylesheet" href="/style.css?v=6"/>
+
+<style>
+/* ══════════════════════════════════════
+   BASKETBOL — Modern Redesign
+   Flashscore/Sofascore kalitesinde
+══════════════════════════════════════ */
+
+/* ── DATE STRIP ── */
+.bb-date-wrap {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--b1);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: stretch;
+}
+#vball-date-strip {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  padding: 8px 14px;
+  scrollbar-width: none;
+}
+#vball-date-strip::-webkit-scrollbar { display: none; }
+.bdp {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tx3);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: all .15s;
+  font-family: 'Barlow', sans-serif;
+  letter-spacing: .2px;
+}
+.bdp:hover { color: var(--tx1); background: var(--b1); }
+.bdp.active { background: var(--or); color: #fff; box-shadow: 0 2px 10px rgba(242,100,25,.35); }
+.bb-cal-wrap {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border-left: 1px solid var(--b1);
+}
+.bb-cal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 13px;
+  border-radius: 18px;
+  background: var(--b1);
+  border: 1px solid var(--b2);
+  color: var(--tx2);
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .2px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s, box-shadow .15s;
+}
+.bb-cal-btn svg { flex-shrink: 0; }
+.bb-cal-btn:hover {
+  background: var(--or);
+  border-color: var(--or);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(242,100,25,.35);
+}
+.bb-cal-input {
+  position: absolute;
+  right: 12px;
+  bottom: 4px;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── LEAGUE GROUP ── */
+.bb-grp { border-bottom: 1px solid var(--b1); }
+.bb-grp.closed .bb-body { display: none; }
+.bb-grp.closed .bb-arrow { transform: rotate(-90deg); }
+
+.bb-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  background: var(--bg2);
+  cursor: pointer;
+  user-select: none;
+  transition: background .12s;
+}
+.bb-hdr:hover { background: var(--bg3); }
+.bb-hdr-flag { font-size: 15px; flex-shrink: 0; line-height: 1; }
+.bb-hdr-info { flex: 1; min-width: 0; }
+.bb-hdr-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--tx1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bb-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  background: rgba(244,63,94,.1);
+  border: 1px solid rgba(244,63,94,.2);
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--live);
+  letter-spacing: .4px;
+  flex-shrink: 0;
+}
+.bb-live-dot { width: 5px; height: 5px; background: var(--live); border-radius: 50%; animation: bb-blink 1.2s infinite; }
+@keyframes bb-blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+.bb-arrow { color: var(--tx3); font-size: 11px; flex-shrink: 0; transition: transform .2s; }
+
+/* ── MATCH ROW ── */
+.bb-mr {
+  display: grid;
+  grid-template-columns: 75px 1fr auto 1fr 16px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  height: 54px;
+  border-top: 1px solid var(--b1);
+  text-decoration: none;
+  position: relative;
+  transition: background .1s;
+}
+.bb-mr::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0; width: 3px;
+  border-radius: 0 2px 2px 0;
+  opacity: 0;
+  transition: opacity .15s;
+}
+.bb-mr:hover { background: var(--bg3); }
+.bb-mr.live { background: rgba(244,63,94,.03); }
+.bb-mr.live::before { background: var(--live); opacity: 1; box-shadow: 1px 0 8px rgba(244,63,94,.4); }
+.bb-mr.done::before { background: var(--b3); opacity: 1; }
+
+/* Status */
+.bb-st { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 2px; }
+.bb-st-lbl {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+.bb-mr.live  .bb-st-lbl { color: var(--live); }
+.bb-mr.done  .bb-st-lbl { color: var(--tx3); font-weight: 600; font-size: 12px; }
+.bb-mr.sched .bb-st-lbl { color: var(--tx2); }
+.bb-st-clk { font-size: 10px; color: var(--live); font-family: 'JetBrains Mono', monospace; opacity: .8; }
+
+/* Teams */
+.bb-team { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.bb-home { justify-content: flex-end; }
+.bb-away { justify-content: flex-start; }
+.bb-home .bb-logo-wrap { order: 2; }
+
+.bb-logo-wrap { width: 22px; height: 22px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.bb-logo { width: 22px; height: 22px; object-fit: contain; border-radius: 3px; }
+.bb-logo-ph { font-size: 14px; line-height: 1; }
+
+.bb-tname {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tx1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+}
+.bb-home .bb-tname { text-align: right; }
+.bb-tname.w { font-weight: 700; color: #fff; }
+.bb-tname.l { color: var(--tx3); font-weight: 400; }
+
+/* Score */
+.bb-scores { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bb-total {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--b1);
+  border-radius: 7px;
+  border: 1px solid var(--b2);
+  overflow: hidden;
+  min-width: 70px;
+}
+.bb-sn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--tx1);
+  min-width: 28px;
+  text-align: center;
+  padding: 5px 8px;
+  line-height: 1;
+}
+.bb-sn.w { color: #fff; font-weight: 800; }
+.bb-sn.l { color: var(--tx3); }
+.bb-sdiv { width: 1px; height: 16px; background: var(--b2); flex-shrink: 0; }
+.bb-vs { font-size: 11px; color: var(--tx3); padding: 5px 14px; font-family: 'Barlow', sans-serif; letter-spacing: .5px; font-weight: 600; }
+.bb-mr.live .bb-total { border-color: rgba(244,63,94,.25); background: rgba(244,63,94,.04); }
+.bb-mr.live .bb-sn { color: var(--live); }
+
+/* Quarters */
+.bb-qtrs { display: flex; gap: 4px; }
+.bb-qchip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 20px;
+  padding: 1px 2px;
+  border-radius: 3px;
+}
+.bb-ql { font-size: 8px; font-weight: 700; color: var(--tx3); font-family: 'Barlow Condensed', sans-serif; line-height: 1; letter-spacing: .2px; }
+.bb-qs { font-size: 9.5px; color: var(--tx3); font-family: 'JetBrains Mono', monospace; line-height: 1; }
+.bb-qchip.act { background: rgba(244,63,94,.08); }
+.bb-qchip.act .bb-ql, .bb-qchip.act .bb-qs { color: var(--live); }
+
+.bb-arr { color: var(--b3); font-size: 13px; text-align: center; transition: color .1s, transform .1s; }
+.bb-mr:hover .bb-arr { color: var(--tx3); transform: translateX(2px); }
+
+/* ── STATES ── */
+.bb-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 64px 20px; color: var(--tx3); font-size: 14px; text-align: center;
+}
+.bb-empty-icon { font-size: 38px; opacity: .45; }
+
+.bb-skel { padding: 8px 0; }
+.bb-skel-h {
+  height: 36px; margin: 10px 16px 2px;
+  background: linear-gradient(90deg, var(--b1) 25%, var(--b2) 50%, var(--b1) 75%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+  animation: bb-shim 1.4s infinite;
+}
+.bb-skel-r {
+  height: 54px; margin: 0 0 1px;
+  background: linear-gradient(90deg, var(--b1) 25%, var(--b2) 50%, var(--b1) 75%);
+  background-size: 200% 100%;
+  border-top: 1px solid var(--b1);
+  animation: bb-shim 1.4s infinite;
+}
+.bb-skel-r:nth-child(2){animation-delay:.08s}
+.bb-skel-r:nth-child(3){animation-delay:.16s}
+.bb-skel-r:nth-child(4){animation-delay:.24s}
+.bb-skel-r:nth-child(6){animation-delay:.12s}
+.bb-skel-r:nth-child(7){animation-delay:.2s}
+@keyframes bb-shim { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* ── TOPBAR ── */
+#vball-tb-live {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(244,63,94,.1);
+  border: 1px solid rgba(244,63,94,.2);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--live);
+  letter-spacing: .3px;
+}
+.bb-tb-dot { width: 5px; height: 5px; background: var(--live); border-radius: 50%; animation: bb-blink 1.2s infinite; }
+
+.sb-sport-badge {
+  font-size: 9px; font-weight: 800; background: var(--or);
+  color: #fff; padding: 2px 5px; border-radius: 4px; margin-left: auto; letter-spacing: .4px;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  .bb-mr { grid-template-columns: 70px 1fr auto 1fr 14px; gap: 5px; padding: 0 12px; height: 50px; }
+  .bb-sn { font-size: 14px; min-width: 22px; padding: 5px 6px; }
+  .bb-tname { font-size: 12px; }
+  .bb-qtrs { display: none; }
+  .bb-total { min-width: 60px; }
+  .bb-cal-label { display: none; }
+}
+@media (max-width: 380px) {
+  .bb-logo-wrap { display: none; }
+}
+</style>
+</head>
+
+<body>
+
+<aside id="sidebar">
+  <div class="sb-top">
+    <a class="sb-brand" href="/" style="text-decoration:none;cursor:pointer;">
+      <div class="sb-mark"><img src="/logo.png" alt="ScorePop Logo"></div>
+      <div class="sb-name">SCORE<em>POP</em></div>
+    </a>
+    <div class="sb-live-stat">
+      <span class="sb-live-dot"></span>
+      <span id="sb-vball-live-n">0</span>
+      <span class="sb-live-lbl">maç canlı</span>
+    </div>
+  </div>
+
+  <nav class="sb-nav">
+    <a class="sb-btn" href="/" style="text-decoration:none;">
+      <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 4.2 9.4 6l-.9 2.8H5.5L4.6 6 7 4.2z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M7 1.2v3M12.7 5.6 9.4 6M11 11.5 8.5 8.8M3 11.5l2.5-2.7M1.3 5.6 4.6 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg><span>Futbol</span>
+    </a>
+    <a class="sb-btn" href="/basketbol/" style="text-decoration:none;">
+      <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 1v12M1 7h12M2.8 2.8c2 1.6 2 6.8 0 8.4M11.2 2.8c-2 1.6-2 6.8 0 8.4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg><span>Basketbol</span>
+    </a>
+    <button class="sb-btn active" style="pointer-events:none">
+      <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 1c2.8 2 3.9 5.4 2.9 8.8M7 1C4.6 3.2 2.1 4 1.2 7.6M12.8 7.8c-3.2 1.6-7.6 1-9.9-1.6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg><span>Voleybol</span>
+      <span class="sb-sport-badge">YENİ</span>
+    </button>
+  </nav>
+
+  <div class="sb-sep"></div>
+
+  <nav class="sb-nav" style="padding-top:4px;padding-bottom:4px;">
+    <a class="sb-btn" href="/haberler" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y=".75" width="11.5" height="11.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3 4h7M3 6.5h7M3 9h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>Haberler</span>
+    </a>
+    <a class="sb-btn" href="/tv-rehberi/" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y="1.75" width="11.5" height="8.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 10.25v1.5M9 10.25v1.5M2.5 11.75h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="6.5" cy="5.75" r="1.5" stroke="currentColor" stroke-width="1.1"/></svg>
+      <span>TV Rehberi</span>
+    </a>
+    <a class="sb-btn" href="/hakkimizda" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.2"/><path d="M2 11c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>Hakkımızda</span>
+    </a>
+    <a class="sb-btn" href="/iletisim" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y="2.75" width="11.5" height="7.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 3.5l5.5 4 5.5-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>İletişim</span>
+    </a>
+  </nav>
+
+  <div class="sb-sep"></div>
+  <div class="sb-lbl">LİGLER</div>
+  <div id="sb-vball-league-list" style="padding:6px 8px;font-size:12px;color:var(--tx3);">Milletler Ligi · CEV · Avrupa Ligleri</div>
+
+  <div class="sb-bottom">
+    <div class="sb-refresh-wrap">
+      <svg viewBox="0 0 20 20" class="sb-ring-svg">
+        <circle cx="10" cy="10" r="8" class="sb-rt"/>
+        <circle cx="10" cy="10" r="8" class="sb-rf" id="vball-ring"/>
+      </svg>
+      <span class="sb-cd" id="vball-cd">30</span>
+    </div>
+  </div>
+</aside>
+
+<main id="main">
+  <header id="topbar">
+    <div class="tb-left">
+      <button class="tb-menu" onclick="toggleSidebar()">
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+          <path d="M0 1h16M0 6h16M0 11h16" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <span class="tb-mob-brand" style="display:flex;align-items:center;gap:6px;">
+        <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 1v12M1 7h12M2.8 2.8c2 1.6 2 6.8 0 8.4M11.2 2.8c-2 1.6-2 6.8 0 8.4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+        <span style="font-size:13px;font-weight:700;color:var(--tx1)">Basketbol</span>
+      </span>
+    </div>
+    <div style="flex:1"></div>
+    <div class="tb-right">
+      <div id="vball-tb-live">
+        <span class="bb-tb-dot"></span>
+        <b id="vball-tb-live-n">0</b>
+        <span>CANLI</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="bb-date-wrap">
+    <div id="vball-date-strip"></div>
+    <div class="bb-cal-wrap">
+      <button class="bb-cal-btn" onclick="vballOpenCalendar()" title="Tarih seç" aria-label="Takvimden tarih seç">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x=".75" y="1.75" width="12.5" height="11.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 .75v2M10 .75v2M.75 5.25h12.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span class="bb-cal-label">Takvim</span>
+      </button>
+      <input type="date" id="vball-date-input" class="bb-cal-input" onchange="pickVballCalendar(this.value)">
+    </div>
+  </div>
+
+  <div id="vball-root">
+    <div class="bb-skel">
+      <div class="bb-skel-h"></div>
+      <div class="bb-skel-r"></div>
+      <div class="bb-skel-r"></div>
+      <div class="bb-skel-r"></div>
+      <div class="bb-skel-h"></div>
+      <div class="bb-skel-r"></div>
+      <div class="bb-skel-r"></div>
+    </div>
+  </div>
+</main>
+
+<div id="overlay" onclick="toggleSidebar()"></div>
+
+<script>
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+</script>
+
+<script src="/config.js"></script>
+<script src="/voleybol/vball.js?v=1"></script>
+</body>
+</html>
