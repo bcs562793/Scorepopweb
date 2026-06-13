@@ -35,7 +35,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
-<link rel="stylesheet" href="style.css?v=7"/>
+<link rel="stylesheet" href="style.css?v=8"/>
 <!-- 404.html redirect trick: ?p=/mac/123 → gerçek URL -->
 <script>
 (function() {
@@ -1055,11 +1055,11 @@ window._watchdog = setTimeout(function() {
       <!-- Contact Info -->
       <div class="contact-list">
 
-        <a class="contact-card" href="mailto:scorepopapp@gmail.com">
+        <a class="contact-card" href="mailto:info@scorepop.com.tr">
           <div class="contact-card-icon">📧</div>
           <div class="contact-card-body">
             <div class="contact-card-lbl">E-Posta</div>
-            <div class="contact-card-val">scorepopapp@gmail.com</div>
+            <div class="contact-card-val">info@scorepop.com.tr</div>
           </div>
           <svg class="contact-card-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1212,7 +1212,7 @@ function handleSubmit(){
   if(!name||!email||!subject||!message){alert("Lutfen tum alanlari doldurun.");return;}
   var ms=encodeURIComponent("[ScorePop] "+subject);
   var mb=encodeURIComponent("Ad: "+name+"\n\n"+message);
-  window.location.href="mailto:scorepopapp@gmail.com?subject="+ms+"&body="+mb;
+  window.location.href="mailto:info@scorepop.com.tr?subject="+ms+"&body="+mb;
   var ok=document.getElementById("form-success");
   if(ok) ok.classList.add("show");
 }
