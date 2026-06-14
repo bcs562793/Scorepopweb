@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v14.6 — Arşiv Desteği)
+   SCOREPOP — app.js  (v14.7 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -266,7 +266,7 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 
 /* ── EVENTS ─────────────────────────────────── */
 function bindEvents() {
-  document.querySelectorAll('.sb-btn').forEach(b =>
+  document.querySelectorAll('.sb-btn[data-page]').forEach(b =>
     b.addEventListener('click', () => navigate(b.dataset.page)));
   document.getElementById('back-btn').addEventListener('click', closeDetail);
 }
@@ -283,7 +283,7 @@ function navigate(page) {
   S.league = 'all';
   closeDetail(false);
 
-  document.querySelectorAll('.sb-btn').forEach(b =>
+  document.querySelectorAll('.sb-btn[data-page]').forEach(b =>
     b.classList.toggle('active', b.dataset.page === page));
 
   /* Oran Analizi sayfası — ayrı view */
@@ -670,7 +670,7 @@ function buildDateStrip() {
     btn.addEventListener('click', () => {
       S.date = s;
       S.page = 'today';
-      document.querySelectorAll('.sb-btn').forEach(b =>
+      document.querySelectorAll('.sb-btn[data-page]').forEach(b =>
         b.classList.toggle('active', b.dataset.page === 'today'));
       try { if (typeof Router !== 'undefined') Router.goToday(s); } catch(e) {}
       _activateDateBtn(btn);
@@ -693,7 +693,7 @@ function buildDateStrip() {
       if (!picked) return;
       S.date = picked;
       S.page = 'today';
-      document.querySelectorAll('.sb-btn').forEach(b =>
+      document.querySelectorAll('.sb-btn[data-page]').forEach(b =>
         b.classList.toggle('active', b.dataset.page === 'today'));
       try { if (typeof Router !== 'undefined') Router.goToday(picked); } catch(e) {}
       _activateDateBtn(null);
