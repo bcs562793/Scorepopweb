@@ -2786,10 +2786,11 @@ function _pitchPlayers(team, side, maps) {
   let html = '';
   lines.forEach((line, li) => {
     const n = line.length;
-    const xBase = numLines > 1 ? (li / (numLines - 1)) * 42 : 0;
-    const x = side === 'home' ? (4 + xBase) : (96 - xBase);
+    /* Dikey saha: ev sahibi üstte, deplasman altta */
+    const yBase = numLines > 1 ? (li / (numLines - 1)) * 42 : 0;
+    const y = side === 'home' ? (4 + yBase) : (96 - yBase);
     line.forEach((p, pi) => {
-      const y = ((pi + 1) / (n + 1)) * 100;
+      const x = ((pi + 1) / (n + 1)) * 100;
       const nameKey = (p.name || '').toLowerCase().trim();
       const ic = maps.icons[nameKey] || '';
       const subMin = maps.subs[nameKey];
