@@ -128,83 +128,53 @@ function renderVball(rows){
 
 function renderGroup(g){
   const lc=g.matches.filter(m=>vballStatus(m).live).length;
-  const livePill=lc?`<span class="bb-live-pill"><span class="bb-live-dot"></span>${lc}</span>`:'';
-  return `<div class="bb-grp">
-    <div class="bb-hdr" onclick="this.closest('.bb-grp').classList.toggle('closed')">
-      <div class="bb-hdr-info">
-        <div class="bb-hdr-name">${esc(g.name)}</div>
+  const livePill=lc?`<span class="lg-live-ct">${lc} CANLI</span>`:'';
+  return `<div class="lg-grp">
+    <div class="lg-hdr" onclick="this.closest('.lg-grp').classList.toggle('closed')">
+      <div style="display:flex;align-items:center;gap:6px;flex:1;flex-wrap:nowrap">
+        <span class="lg-hdr-name" style="white-space:nowrap;font-size:13px;font-weight:500">${esc(g.name)}</span>
+        ${livePill}
       </div>
-      ${livePill}
-      <span class="bb-arrow">▾</span>
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+        <span class="lg-arrow">▾</span>
+      </div>
     </div>
-    <div class="bb-body">${g.matches.map(renderRow).join('')}</div>
+    <div class="lg-body">${g.matches.map(renderRow).join('')}</div>
   </div>`;
 }
 
 function renderRow(m){
   const st=vballStatus(m);
   const isNS=!st.live&&!st.done;
-  const hs=isNS?null:(m.home_sets??null);
-  const as_=isNS?null:(m.away_sets??null);
-  const hasScore=hs!=null&&as_!=null;
+  const stCls=st.live?'live':(st.done?'done':'sched');
+  const hs=isNS?'v':(m.home_sets??'-');
+  const as_=isNS?'':(m.away_sets??'-');
 
   let hcls='',acls='';
-  if(st.done&&hasScore){if(+hs>+as_){hcls='w';acls='l';}else if(+as_>+hs){acls='w';hcls='l';}}
+  if(st.done&&hs!=='v'&&as_!==''){if(+hs>+as_){hcls='bold';acls='dim';}else if(+as_>+hs){acls='bold';hcls='dim';}}
 
   const hl=vbMono(m.home_team);
   const al=vbMono(m.away_team);
+  const sbCls = st.live ? 'mr-sb live' : (isNS ? 'mr-sb ns' : 'mr-sb');
 
-  /* Skor kutusu: setler (canlıda yanına oynanan setin sayısı) */
-  let scoreHtml;
-  if(isNS){
-    scoreHtml=`<div class="bb-total"><span class="bb-vs">vs</span></div>`;
-  }else{
-    scoreHtml=`<div class="bb-total">
-      <span class="bb-sn ${hcls}">${hs??'-'}</span>
-      <span class="bb-sdiv"></span>
-      <span class="bb-sn ${acls}">${as_??'-'}</span>
-    </div>`;
-  }
-
-  /* Set chip'leri — aktif set status_short (S1..S5) veya current_set'ten */
-  const activeSet = (()=>{ const s=(m.status_short||'').toUpperCase();
-    if(/^S[1-5]$/.test(s)) return +s[1];
-    return m.current_set!=null ? +m.current_set : null; })();
-  const ss=[[m.home_s1,m.away_s1,1],[m.home_s2,m.away_s2,2],[m.home_s3,m.away_s3,3],[m.home_s4,m.away_s4,4],[m.home_s5,m.away_s5,5]];
-  const sItems=ss.filter(([h,a])=>h!=null||a!=null).map(([h,a,num])=>{
-    const isAct=st.live&&activeSet===num;
-    return `<div class="bb-qchip${isAct?' act':''}"><span class="bb-ql">S${num}</span><span class="bb-qs">${h??'-'}–${a??'-'}</span></div>`;
-  });
-
-  /* Durum etiketi: canlıda set adı + altında o setin anlık sayısı */
-  let stHtml;
-  if(st.live){
-    const pts=(m.home_set_points!=null&&m.away_set_points!=null)
-      ?`<div class="bb-st-clk">${m.home_set_points}–${m.away_set_points}</div>`:'';
-    stHtml=`<div class="bb-st-lbl">${esc(st.label)}</div>${pts}`;
-  }else if(st.done){
-    stHtml=`<div class="bb-st-lbl">${esc(st.label)}</div>`;
-  }else{
-    stHtml=`<div class="bb-st-lbl">${esc(st.label)}</div>`;
-  }
-
-  /* Voleybol detay sayfası henüz yok → satır link değil div.
-     Detay sayfası eklenince <a href="/voleybol/mac/..."> yapılır. */
-  return `<div class="bb-mr ${st.cls}" data-id="${m.nesine_bid}">
-    <div class="bb-st">${stHtml}</div>
-    <div class="bb-team bb-home">
-      <span class="bb-tname ${hcls}">${esc(m.home_team)}</span>
-      <div class="bb-logo-wrap">${hl}</div>
+  return `<div class="mr${st.live?' is-live':''}" data-id="${m.nesine_bid}">
+    <div class="mr-time"><span class="mr-t1 ${stCls}">${esc(st.label)}</span></div>
+    <div class="mr-home">
+      <span class="mr-name ${hcls}">${esc(m.home_team)}</span>
+      <div class="mr-logo-wrap">${hl}</div>
     </div>
-    <div class="bb-scores">
-      ${scoreHtml}
-      ${sItems.length?`<div class="bb-qtrs">${sItems.join('')}</div>`:''}
+    <div class="mr-score">
+      <div class="${sbCls}">
+        <span class="mr-n">${hs}</span>
+        ${isNS?'':'<div class="mr-sep"></div>'}
+        ${isNS?'':`<span class="mr-n">${as_}</span>`}
+      </div>
     </div>
-    <div class="bb-team bb-away">
-      <div class="bb-logo-wrap">${al}</div>
-      <span class="bb-tname ${acls}">${esc(m.away_team)}</span>
+    <div class="mr-away">
+      <div class="mr-logo-wrap">${al}</div>
+      <span class="mr-name ${acls}">${esc(m.away_team)}</span>
     </div>
-    <span class="bb-arr"></span>
+    <div class="mr-x"><span class="mr-arr">›</span></div>
   </div>`;
 }
 
