@@ -422,7 +422,8 @@
 /* ── STANDINGS ── */
 .bd-std-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 4px; }
 .bd-std-table {
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   border-collapse: collapse;
   font-size: 12px;
   min-width: 360px;
@@ -451,23 +452,22 @@
   font-weight: 700;
   font-size: 13px;
   color: var(--tx3);
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
   border-bottom: 1px solid var(--b1);
   padding: 8px 5px;
 }
+.bd-std-table td.pos-cell .td-dot { vertical-align: middle; margin-right: 4px; }
 .bd-std-table td.team-cell {
   text-align: left;
   font-family: 'Barlow', sans-serif;
   color: var(--tx1);
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  white-space: nowrap;
   border-bottom: 1px solid var(--b1);
-  padding: 8px 5px;
+  padding: 8px 8px 8px 4px;
 }
+.bd-std-table td.team-cell .td-logo { display: inline-block; vertical-align: middle; margin-right: 6px; }
+.bd-std-table td.team-cell .td-tname { display: inline-block; vertical-align: middle; }
 .td-tname { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
 .td-logo { width: 18px; height: 18px; object-fit: contain; border-radius: 2px; flex-shrink: 0; }
 .td-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
@@ -577,8 +577,12 @@
     <a class="sb-btn" href="/" style="text-decoration:none;">
       <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 4.2 9.4 6l-.9 2.8H5.5L4.6 6 7 4.2z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M7 1.2v3M12.7 5.6 9.4 6M11 11.5 8.5 8.8M3 11.5l2.5-2.7M1.3 5.6 4.6 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg><span>Futbol</span>
     </a>
-    <a class="sb-btn active" href="/basketbol/" style="text-decoration:none;">
+    <a class="sb-btn" href="/basketbol/" style="text-decoration:none;">
       <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 1v12M1 7h12M2.8 2.8c2 1.6 2 6.8 0 8.4M11.2 2.8c-2 1.6-2 6.8 0 8.4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg><span>Basketbol</span>
+      <span class="sb-sport-badge">YENİ</span>
+    </a>
+    <a class="sb-btn" href="/voleybol/" style="text-decoration:none;">
+      <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 1c2.8 2 3.9 5.4 2.9 8.8M7 1C4.6 3.2 2.1 4 1.2 7.6M12.8 7.8c-3.2 1.6-7.6 1-9.9-1.6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg><span>Voleybol</span>
       <span class="sb-sport-badge">YENİ</span>
     </a>
   </nav>
