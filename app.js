@@ -3105,18 +3105,17 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = 
       const ic = evIcon(e.event_type, e.event_detail);
       const icCls = evCls(e.event_type, e.event_detail);
       const t = e.elapsed_time ? `${e.elapsed_time}${e.extra_time?'+'+e.extra_time:''}'` : '';
-      html += `
-        <div class="ev-row">
-          <div class="ev-t">${t}</div>
-          <div class="ev-body ${home?'':'rev'}">
-            <div class="ev-ico ${icCls}">${ic}</div>
-            <div>
+      const info = `<div class="ev-info">
               <div class="ev-pl">${esc(e.player_name||'')}</div>
               ${e.assist_name ? `<div class="ev-dt">⤷ ${esc(e.assist_name)}</div>` : ''}
               ${e.event_detail ? `<div class="ev-dt">${esc(e.event_detail)}</div>` : ''}
-            </div>
-          </div>
-          <div class="ev-team ${home?'home':''}">${esc(e.team_name||'')}</div>
+            </div>`;
+      const ico = `<div class="ev-ico ${icCls}">${ic}</div>`;
+      html += `
+        <div class="ev-row ${home?'ev-h':'ev-a'}">
+          <div class="ev-side ev-left">${home ? info + ico : ''}</div>
+          <div class="ev-min">${t}</div>
+          <div class="ev-side ev-right">${home ? '' : ico + info}</div>
         </div>`;
     });
     html += `</div>`;
