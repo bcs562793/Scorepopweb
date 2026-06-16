@@ -2697,6 +2697,180 @@ async function fetchGzOdds(date, homeTeam, awayTeam) {
   };
 }
 
+/* ════════════════════════════════════════════════════════════════
+   KADRO — GÖRSEL SAHA DİZİLİMİ
+════════════════════════════════════════════════════════════════ */
+
+/* İsmi kısalt — sahada sadece soyad göster */
+function _shortName(full) {
+  const parts = String(full || '').trim().split(/\s+/);
+  if (parts.length <= 1) return parts[0] || '';
+  return parts[parts.length - 1];
+}
+
+/* startXI'yi hatlara böl.
+   ÖNCELİK: grid > formation > sıralı varsayılan diziliş
+   Nesine/API-Football grid dolu gelince 1. yola düşer (gerçek konum). */
+function _lineupLines(team) {
+  const xi = (team.startXI || []).map(p => p.player).filter(Boolean);
+  if (!xi.length) return [];
+
+  /* 1) grid varsa — en doğru konum (Nesine + API-Football) */
+  const hasGrid = xi.length > 1 && xi.every(p => p.grid && /^\d+:\d+$/.test(p.grid));
+  if (hasGrid) {
+    const byRow = {};
+    xi.forEach(p => {
+      const [row, col] = p.grid.split(':').map(Number);
+      (byRow[row] = byRow[row] || []).push({ ...p, _col: col });
+    });
+    return Object.keys(byRow).map(Number).sort((a, b) => a - b)
+      .map(r => byRow[r].sort((a, b) => a._col - b._col));
+  }
+
+  /* 2) formation string'i: "4-2-3-1" */
+  const fmt = (team.formation || '').split('-').map(n => parseInt(n, 10)).filter(n => n > 0);
+
+  /* 3) formation yoksa oyuncu sayısına göre varsayılan diziliş seç */
+  let counts;
+  if (fmt.length && fmt.reduce((a, b) => a + b, 0) === xi.length - 1) {
+    counts = fmt;
+  } else {
+    const outfield = xi.length - 1;
+    const DEFAULTS = {
+      10: [4, 4, 2], 9: [4, 3, 2], 8: [3, 3, 2],
+      7:  [3, 2, 2], 6: [2, 2, 2], 5: [2, 2, 1],
+    };
+    counts = DEFAULTS[outfield] || [4, 4, 2];
+  }
+
+  const lines = [[xi[0]]];
+  let idx = 1;
+  counts.forEach(c => {
+    const line = [];
+    for (let i = 0; i < c && idx < xi.length; i++) line.push(xi[idx++]);
+    if (line.length) lines.push(line);
+  });
+  while (idx < xi.length) lines[lines.length - 1].push(xi[idx++]);
+
+  return lines;
+}
+
+/* Olaylardan oyuncu→ikon haritası (gol/kart) + değişim dakikaları */
+function _lineupEventMaps(evs) {
+  const icons = {};
+  const subs  = {};
+  (evs || []).forEach(e => {
+    const t = (e.event_type || '').toLowerCase();
+    const d = (e.event_detail || '').toLowerCase();
+    const min = e.elapsed_time ? `${e.elapsed_time}${e.extra_time ? '+' + e.extra_time : ''}'` : '';
+    const add = (nm, ic) => {
+      const k = (nm || '').toLowerCase().trim();
+      if (k) icons[k] = (icons[k] || '') + ic;
+    };
+    if (t === 'goal') add(e.player_name, '⚽');
+    else if (t === 'card') add(e.player_name, d.includes('red') || d.includes('kırmızı') ? '🟥' : '🟨');
+    else if (t === 'subst') {
+      [e.player_name, e.assist_name].forEach(nm => {
+        const k = (nm || '').toLowerCase().trim();
+        if (k && !subs[k]) subs[k] = min;
+      });
+    }
+  });
+  return { icons, subs };
+}
+
+/* Bir takımın 11'ini sahaya yerleştir */
+function _pitchPlayers(team, side, maps) {
+  const lines = _lineupLines(team);
+  const numLines = lines.length;
+  let html = '';
+  lines.forEach((line, li) => {
+    const n = line.length;
+    const xBase = numLines > 1 ? (li / (numLines - 1)) * 42 : 0;
+    const x = side === 'home' ? (4 + xBase) : (96 - xBase);
+    line.forEach((p, pi) => {
+      const y = ((pi + 1) / (n + 1)) * 100;
+      const nameKey = (p.name || '').toLowerCase().trim();
+      const ic = maps.icons[nameKey] || '';
+      const subMin = maps.subs[nameKey];
+      const subArr = subMin ? `<span class="pp-sub down">▼${subMin}</span>` : '';
+      html += `
+        <div class="pp ${side}" style="left:${x}%;top:${y}%">
+          <div class="pp-shirt">
+            <span class="pp-num">${p.number ?? ''}</span>
+            ${ic ? `<span class="pp-ev">${ic}</span>` : ''}
+          </div>
+          <div class="pp-name">${esc(_shortName(p.name || ''))}</div>
+          ${subArr}
+        </div>`;
+    });
+  });
+  return html;
+}
+
+/* Yedekler kolonu */
+function _subsColumn(team, side, maps) {
+  const subs = team.substitutes || [];
+  if (!subs.length) return '';
+  const rows = subs.map(p => {
+    const pl = p.player || {};
+    const k = (pl.name || '').toLowerCase().trim();
+    const ic = maps.icons[k] || '';
+    const inMin = maps.subs[k] ? `<span class="lu-sub-in">▲${maps.subs[k]}</span>` : '';
+    return `<div class="lu-sub-row">
+      <span class="lu-sub-num">${pl.number ?? ''}</span>
+      <span class="lu-sub-name">${esc(pl.name || '')}</span>
+      ${ic ? `<span class="lu-sub-ev">${ic}</span>` : ''}${inMin}
+    </div>`;
+  }).join('');
+  return `<div class="lu-subs-col ${side}">
+    <div class="lu-subs-hdr">${esc(team.team?.name || '')} — Yedekler</div>
+    ${rows}
+  </div>`;
+}
+
+/* Ana kadro HTML — d-lu paneline basılır */
+function buildLineupHTML(ld, m, evs) {
+  /* data TEXT olarak gelirse parse et */
+  if (typeof ld === 'string') {
+    try { ld = JSON.parse(ld); } catch(e) { ld = null; }
+  }
+  if (!ld || !Array.isArray(ld) || ld.length < 2) {
+    return `<div class="empty"><div class="empty-i">👥</div><div class="empty-t">Kadro bilgisi mevcut değil</div></div>`;
+  }
+  const home = ld[0], away = ld[1];
+  const maps = _lineupEventMaps(evs);
+
+  const hdr = (team) => `
+    <div class="lu-team-hdr">
+      ${team.team?.logo && team.team.logo.trim() ? `<img src="${esc(team.team.logo)}" onerror="this.style.display='none'" alt="">` : ''}
+      <span class="lu-team-n">${esc(team.team?.name || '')}</span>
+      ${team.formation ? `<span class="lu-fmt">${esc(team.formation)}</span>` : ''}
+    </div>`;
+
+  return `
+    <div class="lu2-wrap">
+      <div class="lu2-headers">
+        ${hdr(home)}
+        ${hdr(away)}
+      </div>
+      <div class="lu-pitch">
+        <div class="lp-line lp-mid"></div>
+        <div class="lp-circle"></div>
+        <div class="lp-box lp-box-l"></div>
+        <div class="lp-box lp-box-r"></div>
+        <div class="lp-goal lp-goal-l"></div>
+        <div class="lp-goal lp-goal-r"></div>
+        ${_pitchPlayers(home, 'home', maps)}
+        ${_pitchPlayers(away, 'away', maps)}
+      </div>
+      <div class="lu-subs-grid">
+        ${_subsColumn(home, 'home', maps)}
+        ${_subsColumn(away, 'away', maps)}
+      </div>
+    </div>`;
+}
+
 function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = false) {
   S.detailKickoffAt   = m.kickoff_at   || null;
   S.detailSecondHalfAt = m.second_half_at || null;
@@ -3319,35 +3493,7 @@ if (od && od.markets) {
 }
 html += `</div>`; /* d-or panel */
 
-  html += `<div class="d-panel" id="d-lu">`;
-  const ld = lus?.data;
-  if (ld && Array.isArray(ld) && ld.length >= 2) {
-    html += `<div class="lu-grid">`;
-    ld.slice(0,2).forEach(team => {
-      html += `
-        <div class="lu-card">
-          <div class="lu-hdr">
-            ${team.team?.logo ? `<img src="${esc(team.team.logo)}" onerror="this.style.display='none'" alt="">` : ''}
-            ${esc(team.team?.name||'')}
-          </div>`;
-      (team.startXI||[]).forEach(p => {
-        const pl = p.player;
-        html += `<div class="lu-pl"><span class="lu-num">${pl?.number||''}</span><span class="lu-n">${esc(pl?.name||'')}</span><span class="lu-pos">${pl?.pos||''}</span></div>`;
-      });
-      if ((team.substitutes||[]).length) {
-        html += `<div class="lu-sub-lbl">Yedekler</div>`;
-        team.substitutes.forEach(p => {
-          const pl = p.player;
-          html += `<div class="lu-pl" style="opacity:.55"><span class="lu-num">${pl?.number||''}</span><span class="lu-n">${esc(pl?.name||'')}</span><span class="lu-pos">${pl?.pos||''}</span></div>`;
-        });
-      }
-      html += `</div>`;
-    });
-    html += `</div>`;
-  } else {
-    html += `<div class="empty"><div class="empty-t">Kadro bilgisi mevcut değil</div></div>`;
-  }
-  html += `</div>`;
+  html += `<div class="d-panel" id="d-lu">${buildLineupHTML(lus?.data, m, evs)}</div>`;
 
   html += `<div class="d-panel" id="d-h2">`;
   const raw = h2h?.data;
