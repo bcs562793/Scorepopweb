@@ -2979,6 +2979,8 @@ img { display: block; }
 .lu-pitch {
   position: relative;
   width: 100%;
+  max-width: 500px; /* Sahayı maksimum 700px genişlikle sınırlar */
+  margin: 0 auto;   /* Sahayı bulunduğu alanın tam ortasına hizalar */
   aspect-ratio: 3 / 2;
   border-radius: 10px;
   overflow: hidden;
