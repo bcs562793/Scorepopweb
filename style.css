@@ -718,23 +718,32 @@ img { display: block; }
 }
 .ev-row {
   display: grid;
-  grid-template-columns: 44px 1fr 48px;
-  align-items: center; gap: 8px;
-  padding: 8px 12px;
+  grid-template-columns: 1fr 44px 1fr;
+  align-items: center; gap: 6px;
+  padding: 7px 10px;
   border-bottom: 1px solid var(--b1);
   transition: background .1s;
 }
 .ev-row:last-child { border-bottom: none; }
 .ev-row:hover { background: var(--bg4); }
-.ev-t {
+
+/* dakika — ortada */
+.ev-min {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px; font-weight: 600;
+  font-size: 11px; font-weight: 700;
   color: var(--or); text-align: center;
 }
-.ev-body { display: flex; align-items: center; gap: 7px; }
-.ev-body.rev { flex-direction: row-reverse; }
+
+/* ev sahibi solda (merkeze hizalı), deplasman sağda (merkeze hizalı) */
+.ev-side { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.ev-left  { justify-content: flex-end; }
+.ev-right { justify-content: flex-start; }
+.ev-left  .ev-info { text-align: right; }
+.ev-right .ev-info { text-align: left; }
+.ev-info { min-width: 0; }
+
 .ev-ico {
-  width: 24px; height: 24px; border-radius: 5px;
+  width: 22px; height: 22px; border-radius: 5px;
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; flex-shrink: 0;
 }
@@ -743,10 +752,8 @@ img { display: block; }
 .ev-ico.r  { background: rgba(244,63,94,.15); border:1px solid rgba(244,63,94,.3); }
 .ev-ico.s  { background: rgba(59,130,246,.15); border:1px solid rgba(59,130,246,.3); }
 .ev-ico.v  { background: rgba(168,85,247,.15); border:1px solid rgba(168,85,247,.3); }
-.ev-pl { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; }
-.ev-dt { font-size: 10px; color: var(--tx3); margin-top: 1px; }
-.ev-team { font-size: 10px; color: var(--tx3); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ev-team.home { text-align: left; }
+.ev-pl { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev-dt { font-size: 10px; color: var(--tx3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ev-none { padding: 28px; text-align: center; color: var(--tx3); font-size: 12px; }
 
 /* ── STATS ───────────────────────────────────── */
@@ -2979,8 +2986,6 @@ img { display: block; }
 .lu-pitch {
   position: relative;
   width: 100%;
-  max-width: 500px; /* Sahayı maksimum 700px genişlikle sınırlar */
-  margin: 0 auto;   /* Sahayı bulunduğu alanın tam ortasına hizalar */
   aspect-ratio: 3 / 2;
   border-radius: 10px;
   overflow: hidden;
