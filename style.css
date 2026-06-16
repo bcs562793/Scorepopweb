@@ -2986,25 +2986,30 @@ img { display: block; }
 .lu-pitch {
   position: relative;
   width: 100%;
-  aspect-ratio: 3 / 2;
+  max-width: 380px;            /* dikey saha — daha dar */
+  margin: 0 auto;
+  aspect-ratio: 2 / 3;         /* portre (dikey) saha */
   border-radius: 10px;
   overflow: hidden;
-  background: repeating-linear-gradient(90deg, #15803d 0 10%, #166534 10% 20%);
+  background: repeating-linear-gradient(0deg, #15803d 0 10%, #166534 10% 20%);
   border: 2px solid rgba(0,0,0,.18);
 }
 .lp-line { position: absolute; background: rgba(255,255,255,.45); }
-.lp-mid { left: 50%; top: 0; width: 2px; height: 100%; transform: translateX(-50%); }
+/* orta çizgi — yatay */
+.lp-mid { left: 0; top: 50%; width: 100%; height: 2px; transform: translateY(-50%); }
 .lp-circle {
-  position: absolute; left: 50%; top: 50%; width: 18%; aspect-ratio: 1;
+  position: absolute; left: 50%; top: 50%; width: 28%; aspect-ratio: 1;
   border: 2px solid rgba(255,255,255,.45); border-radius: 50%;
   transform: translate(-50%, -50%);
 }
-.lp-box { position: absolute; top: 50%; width: 13%; height: 50%; border: 2px solid rgba(255,255,255,.4); transform: translateY(-50%); }
-.lp-box-l { left: -2px; border-left: none; }
-.lp-box-r { right: -2px; border-right: none; }
-.lp-goal { position: absolute; top: 50%; width: 5%; height: 24%; border: 2px solid rgba(255,255,255,.4); transform: translateY(-50%); }
-.lp-goal-l { left: -2px; border-left: none; }
-.lp-goal-r { right: -2px; border-right: none; }
+/* ceza sahaları — üst / alt */
+.lp-box { position: absolute; left: 50%; width: 54%; height: 13%; border: 2px solid rgba(255,255,255,.4); transform: translateX(-50%); }
+.lp-box-l { top: -2px; border-top: none; }
+.lp-box-r { bottom: -2px; border-bottom: none; }
+/* kaleler — üst / alt */
+.lp-goal { position: absolute; left: 50%; width: 24%; height: 5%; border: 2px solid rgba(255,255,255,.4); transform: translateX(-50%); }
+.lp-goal-l { top: -2px; border-top: none; }
+.lp-goal-r { bottom: -2px; border-bottom: none; }
 
 /* Oyuncu */
 .pp { position: absolute; transform: translate(-50%, -50%); text-align: center; width: 56px; }
