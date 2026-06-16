@@ -2962,3 +2962,69 @@ img { display: block; }
     grid-template-columns: 1fr;
   }
 }
+
+/* ═══ KADRO — GÖRSEL SAHA ═══ */
+.lu2-wrap { padding: 8px; }
+.lu2-headers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.lu-team-hdr { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--tx1, #e8e8e8); }
+.lu-team-hdr:last-child { justify-content: flex-end; }
+.lu-team-hdr img { width: 18px; height: 18px; object-fit: contain; }
+.lu-fmt { font-size: 10px; font-weight: 500; color: var(--tx3, #888); background: rgba(255,255,255,.06); padding: 1px 6px; border-radius: 10px; }
+
+/* Saha */
+.lu-pitch {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border-radius: 10px;
+  overflow: hidden;
+  background: repeating-linear-gradient(90deg, #15803d 0 10%, #166534 10% 20%);
+  border: 2px solid rgba(255,255,255,.18);
+}
+.lp-line { position: absolute; background: rgba(255,255,255,.45); }
+.lp-mid { left: 50%; top: 0; width: 2px; height: 100%; transform: translateX(-50%); }
+.lp-circle {
+  position: absolute; left: 50%; top: 50%; width: 18%; aspect-ratio: 1;
+  border: 2px solid rgba(255,255,255,.45); border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+.lp-box { position: absolute; top: 50%; width: 13%; height: 50%; border: 2px solid rgba(255,255,255,.4); transform: translateY(-50%); }
+.lp-box-l { left: -2px; border-left: none; }
+.lp-box-r { right: -2px; border-right: none; }
+.lp-goal { position: absolute; top: 50%; width: 5%; height: 24%; border: 2px solid rgba(255,255,255,.4); transform: translateY(-50%); }
+.lp-goal-l { left: -2px; border-left: none; }
+.lp-goal-r { right: -2px; border-right: none; }
+
+/* Oyuncu */
+.pp { position: absolute; transform: translate(-50%, -50%); text-align: center; width: 56px; }
+.pp-shirt {
+  position: relative; margin: 0 auto;
+  width: clamp(22px, 6.5vw, 30px); aspect-ratio: 1; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: clamp(10px, 3vw, 13px); font-weight: 700; color: #fff;
+  box-shadow: 0 2px 5px rgba(0,0,0,.4);
+}
+.pp.home .pp-shirt { background: var(--or, #f97316); }
+.pp.away .pp-shirt { background: #1e293b; border: 1.5px solid #475569; }
+.pp-ev { position: absolute; top: -8px; right: -10px; font-size: 11px; line-height: 1; }
+.pp-name {
+  margin-top: 2px; font-size: clamp(8px, 2.4vw, 10px); font-weight: 600; color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,.9); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.pp-sub { display: block; font-size: 8px; font-weight: 700; line-height: 1.2; }
+.pp-sub.down { color: #f87171; }
+
+/* Yedekler */
+.lu-subs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.lu-subs-hdr { font-size: 11px; font-weight: 600; color: var(--tx2, #aaa); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.lu-sub-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 11px; }
+.lu-sub-num { min-width: 18px; color: var(--tx3, #888); font-weight: 600; text-align: center; }
+.lu-sub-name { color: var(--tx1, #ddd); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lu-sub-ev { font-size: 10px; }
+.lu-sub-in { font-size: 9px; font-weight: 700; color: #4ade80; }
+
+@media (max-width: 420px) {
+  .pp { width: 44px; }
+  .pp-name { font-size: 8px; }
+}
