@@ -1,281 +1,636 @@
+/* ═══════════════════════════════════════════════════════
+   SCOREPOP — bball.js  (v1.0)
+   Basketbol sayfası için data + render katmanı
+
+   Data kaynakları:
+     • Canlı / Bugün  → Supabase `live_bball`  (scheduled_at kolonu)
+     • Geçmiş arşiv   → GitHub blyarchieve/data/raw/{date}/events.json
+     • Yaklaşan       → Supabase `future_matches` (basketball league_id listesi)
+
+   Skor formatı:
+     Toplam + Periyot skorları (Ç1/Ç2/Ç3/Ç4/OT)
+═══════════════════════════════════════════════════════ */
 'use strict';
 
+/* ── STATE ──────────────────────────────────────────── */
 const B = {
-  sb: null, date: todayStr(), timer: null, cd: 30,
-  archiveCache: {}, rowCache: {},
+  sb:       null,
+  page:     'today',   /* today | live | archive | upcoming */
+  date:     todayStr(),
+  timer:    null,
+  cd:       30,
+  tickTimer: null,
+  detail:   null,
+  archiveCache: {},
+  rowsCache: {},   /* id → row; canlı/bugün/yaklaşan satırları depolar */
 };
-const BBALL_ARCHIVE = 'https://raw.githubusercontent.com/bcs562793/blyarchieve/main/data/raw';
 
-function bbMono(name){
-  const n=String(name||'').trim();
-  const parts=n.split(/\s+/).filter(Boolean);
-  const ini=(parts.length>1?parts[0][0]+parts[1][0]:n.slice(0,2)).toLocaleUpperCase('tr-TR');
-  let h=0;for(let i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i))>>>0;
-  const hue=h%360;
-  return `<span class="tm-mono" style="width:20px;height:20px;font-size:8px;border-radius:5px;background:hsl(${hue} 28% 16%);border-color:hsl(${hue} 30% 26%);color:hsl(${hue} 45% 72%)">${esc(ini)}</span>`;
-}
+/* ── ARCHIVE BASE ────────────────────────────────────── */
+const BBALL_ARCHIVE_BASE = 'https://raw.githubusercontent.com/bcs562793/blyarchieve/main/data/raw';
 
-function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function fmtTime(iso){ if(!iso)return '--:--'; try{const d=new Date(iso);return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}catch{return '--:--';} }
-function dateLabel(s){ const M=['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara']; const[,m,d]=(s||'').split('-'); return m?`${+d} ${M[+m-1]}`:s; }
-function makeSlug(...p){ return p.filter(Boolean).join('-vs-').toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,80); }
+/* ── KNOWN BASKETBALL LEAGUE IDs in future_matches ──────
+   live_bball table'dan çekilen league'lerin bilyoner/mackolik ID'leri.
+   Zamanla genişletilebilir. */
+const BBALL_LEAGUE_IDS = new Set([
+  138, 139, 140, 141, 142, 143, 144, 145,   /* NBA, EuroLeague vs. */
+  2525,                                        /* Big V Avustralya */
+]);
 
-function bballStatus(m){
-  const LM={'1Q':'Ç1','Q1':'Ç1','2Q':'Ç2','Q2':'Ç2','HT':'DEVRE','HALF':'DEVRE','3Q':'Ç3','Q3':'Ç3','4Q':'Ç4','Q4':'Ç4','OT':'UZT','OT1':'UZT1','OT2':'UZT2','LIVE':'CANLI'};
-  const DONE=new Set(['FT','AOT','FINISHED','PLAYED','POST']);
-  const s=(m.status_short||'').toUpperCase();
-  if(DONE.has(s))return{live:false,done:true,label:'MS',cls:'done'};
-  if(LM[s]){return{live:true,done:false,label:LM[s],clock:m.match_clock||null,cls:'live'};}
-  return{live:false,done:false,label:fmtTime(m.scheduled_at||m.matchDate),cls:'sched'};
+/* ── HELPERS ─────────────────────────────────────────── */
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-/* ── Normalize functions (archive format → unified) ── */
-function normalizeArchiveStanding(standing){
-  if(!standing)return null;
-  const groups=standing.general;
-  if(!Array.isArray(groups)||!groups.length)return null;
-  return{season:{tables:groups.map(g=>({name:g.name||'',tablerows:(g.teams||[]).map(t=>({pos:t.position,team:{name:t.name,haslogo:false},total:t.played,winTotal:t.won,lossTotal:t.lost,goalsForTotal:t.scored,goalsAgainstTotal:t.against,goalDiffTotal:(t.scored||0)-(t.against||0),pctTotal:parseFloat((t.wpg||'0').replace(',','.'))||0,promotion:null}))}))}};
-}
-function normalizeArchiveH2H(e){
-  const split=s=>(s||'').split(' - ').map(x=>x.trim());
-  const cvt=(fd,name)=>{if(!fd||!fd.matches?.length)return null;return{title:fd.title||name,recentForms:fd.recentForms||fd.matches.slice(0,5).map(m=>m.result||''),teamForm:fd.matches.map(m=>{const sc=split(m.score),ht=split(m.htScore);return{date:m.date,homeTeamName:m.home,awayTeamName:m.away,homeTeamScore:sc[0],awayTeamScore:sc[1],htHomeScore:ht[0],htAwayScore:ht[1],markedTeamResult:m.result,tournamentName:m.tournament||m.competitionName||''};})};};
-  const hF=cvt(e.homeFormDetail,e.homeTeam), aF=cvt(e.awayFormDetail,e.awayTeam);
-  const bw=(e.h2h||[]).map(m=>{const sc=split(m.score),ht=split(m.htScore);return{date:m.date,homeTeamName:m.home,awayTeamName:m.away,homeTeamScore:sc[0],awayTeamScore:sc[1],htHomeScore:ht[0],htAwayScore:ht[1]};});
-  if(!hF&&!aF&&!bw.length)return null;
-  return{homeTeamForms:hF,awayTeamForms:aF,matchesBetween:bw.length?{title:'Aralarındaki Maçlar',matches:bw}:null};
-}
-function archiveEventToRow(e){
-  const n=v=>(v!=null&&v!==''?+v:null), id=String(e.sbsEventId||e.betRadarId||`arc_${Math.random().toString(36).slice(2)}`);
-  return{id,_isArchive:true,league_name:e.competitionName||'',country:'',home_team:e.homeTeam||'',away_team:e.awayTeam||'',home_avatar:null,away_avatar:null,status_short:e.matchStatus==='PLAYED'?'FT':(e.matchStatus==='FIXTURE'?'NS':e.matchStatus||'NS'),home_score:n(e.scoreTotal?.home),away_score:n(e.scoreTotal?.away),home_q1:n(e.scoreQ1?.home),away_q1:n(e.scoreQ1?.away),home_q2:n(e.scoreQ2?.home),away_q2:n(e.scoreQ2?.away),home_q3:n(e.scoreQ3?.home),away_q3:n(e.scoreQ3?.away),home_q4:n(e.scoreQ4?.home),away_q4:n(e.scoreQ4?.away),home_ot:null,away_ot:null,period:null,match_clock:null,scheduled_at:e.matchDate||e.date||null,home_recent_form:JSON.stringify(e.homeFormDetail?.recentForms||e.homeRecentForm||[]),away_recent_form:JSON.stringify(e.awayFormDetail?.recentForms||e.awayRecentForm||[]),h2h:JSON.stringify(normalizeArchiveH2H(e)),standings:JSON.stringify(normalizeArchiveStanding(e.standing)),live_stats:null};
-}
-function futureRowToDisplay(r){
-  return{id:String(r.nesine_bid||r.id),_futureDbId:r.id,_nesine_bid:r.nesine_bid,league_name:r.league_name||'',country:r.country||'',home_team:r.home_team||'',away_team:r.away_team||'',home_avatar:null,away_avatar:null,status_short:'NS',home_score:null,away_score:null,home_q1:null,away_q1:null,home_q2:null,away_q2:null,home_q3:null,away_q3:null,home_q4:null,away_q4:null,home_ot:null,away_ot:null,period:null,match_clock:null,scheduled_at:r.starts_at,home_recent_form:'[]',away_recent_form:'[]',h2h:null,standings:null,live_stats:null,_isFuture:true};
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-/* ── DATE STRIP ── */
-function buildBballDateStrip(){
-  const el=document.getElementById('bball-date-strip'); if(!el)return;
-  const today=todayStr(), days=[];
-  const base=new Date(B.date+'T12:00:00');
-  for(let i=-6;i<=6;i++){const d=new Date(base);d.setDate(d.getDate()+i);const s=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;days.push(s);}
-  el.innerHTML=days.map(s=>`<button class="bdp${s===B.date?' active':''}" onclick="pickBballDate('${s}')">${s===today?'Bugün':dateLabel(s)}</button>`).join('');
-  setTimeout(()=>el.querySelector('.bdp.active')?.scrollIntoView({inline:'center',behavior:'smooth'}),100);
-}
-function pickBballDate(d){B.date=d;buildBballDateStrip();loadBball(false);}
-function pickBballCalendar(d){if(!d)return;B.date=d;buildBballDateStrip();loadBball(false);}
-function bballOpenCalendar(){
-  const i=document.getElementById('bball-date-input'); if(!i)return;
-  i.value=B.date;
-  try{ i.showPicker(); }catch{ i.focus(); i.click(); }
+function fmtTime(isoStr) {
+  if (!isoStr) return '--:--';
+  try {
+    const d = new Date(isoStr);
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  } catch { return '--:--'; }
 }
 
-/* ── FETCH ── */
-async function fetchAllBball(query){
-  const PAGE=1000;let from=0,all=[];
-  while(true){const{data,error}=await query.range(from,from+PAGE-1);if(error){console.error('[bball]',error.message);break;}if(!data?.length)break;all=all.concat(data);if(data.length<PAGE)break;from+=PAGE;}
+function dateLabel(str) {
+  const months = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+  const [,m,d] = (str||'').split('-');
+  return m ? `${+d} ${months[+m-1]}` : str;
+}
+
+/* ── STATUS → DISPLAY ───────────────────────────────── */
+function bballStatus(m) {
+  /* status_short map for basketball */
+  const LIVE_MAP = {
+    '1Q': 'Ç1', 'Q1': 'Ç1',
+    '2Q': 'Ç2', 'Q2': 'Ç2',
+    'HT': 'DEVRE', 'HALF': 'DEVRE',
+    '3Q': 'Ç3', 'Q3': 'Ç3',
+    '4Q': 'Ç4', 'Q4': 'Ç4',
+    'OT': 'UZT', 'OT1': 'UZT1', 'OT2': 'UZT2',
+    'LIVE': 'CANLI',
+  };
+  const DONE_SET = new Set(['FT','AOT','FINISHED','PLAYED','POST']);
+  const s = (m.status_short || '').toUpperCase();
+
+  if (DONE_SET.has(s)) return { live: false, done: true, label: 'MS', cls: 'done' };
+
+  if (LIVE_MAP[s]) {
+    let label = LIVE_MAP[s];
+    if (m.match_clock) label += ` ${m.match_clock}`;
+    return { live: true, done: false, label, cls: 'live' };
+  }
+
+  /* NS / FIXTURE → show scheduled time */
+  return { live: false, done: false, label: fmtTime(m.scheduled_at || m.matchDate), cls: 'sched' };
+}
+
+/* ── DATE STRIP ─────────────────────────────────────── */
+function buildBballDateStrip() {
+  const el = document.getElementById('bball-date-strip');
+  if (!el) return;
+
+  const today = todayStr();
+  const days  = [];
+  for (let i = -6; i <= 6; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const s = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    days.push(s);
+  }
+
+  el.innerHTML = days.map(s => {
+    const isTod = s === today;
+    const isAct = s === B.date;
+    return `<button class="bdp${isAct ? ' active' : ''}" data-date="${s}" onclick="pickBballDate('${s}')">
+      ${isTod ? 'Bugün' : dateLabel(s)}
+    </button>`;
+  }).join('');
+
+  /* scroll active into view */
+  setTimeout(() => {
+    const act = el.querySelector('.bdp.active');
+    if (act) act.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+  }, 100);
+}
+
+function pickBballDate(d) {
+  B.date = d;
+  buildBballDateStrip();
+  loadBball(false);
+}
+
+/* ── SUPABASE FETCH (paginated) ─────────────────────── */
+async function fetchAllBballRows(query) {
+  const PAGE = 1000;
+  let from = 0, all = [];
+  while (true) {
+    const { data, error } = await query.range(from, from + PAGE - 1);
+    if (error) { console.error('[bball fetch]', error.message); break; }
+    if (!data || !data.length) break;
+    all = all.concat(data);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
   return all;
 }
 
-/* ── LOAD ── */
-async function loadBball(silent=false){
-  if(!silent)showSkel();
-  const today=todayStr();
-  if(B.date<today){await loadArchive(B.date);return;}
-  if(B.date>today){await loadFuture(B.date);return;}
-  await loadToday();
+/* ── MAIN LOAD ──────────────────────────────────────── */
+async function loadBball(silent = false) {
+  if (!silent) showLoading();
+
+  const today = todayStr();
+
+  /* Past date → GitHub archive */
+  if (B.date < today) {
+    await loadBballArchive(B.date);
+    return;
+  }
+
+  /* Future date → future_matches */
+  if (B.date > today) {
+    await loadBballFuture(B.date);
+    return;
+  }
+
+  /* Today → live_bball */
+  await loadBballToday();
 }
 
-async function loadToday(){
-  try{
-    const dayStart=`${B.date}T00:00:00+03:00`, dayEnd=`${B.date}T23:59:59+03:00`;
-    const [liveRows,futureRows]=await Promise.all([
-      fetchAllBball(
-        B.sb.from('live_bball')
-          .select('id,nesine_bid,home_team,away_team,league_name,country,status_short,home_score,away_score,home_q1,away_q1,home_q2,away_q2,home_q3,away_q3,home_q4,away_q4,home_ot,away_ot,period,match_clock,scheduled_at,home_avatar,away_avatar,home_recent_form,away_recent_form')
-          .gte('scheduled_at',dayStart)
-          .lte('scheduled_at',dayEnd)
-          .order('scheduled_at')
-      ),
-      fetchAllBball(
-        B.sb.from('future_bball')
-          .select('id,nesine_bid,home_team,away_team,league_name,country,starts_at,has_broadcast')
-          .gte('starts_at',dayStart)
-          .lte('starts_at',dayEnd)
-          .order('starts_at')
-      ),
-    ]);
-    const seen=new Set(liveRows.map(r=>r.nesine_bid).filter(Boolean));
-    const merged=liveRows
-      .concat(futureRows.filter(r=>!(r.nesine_bid&&seen.has(r.nesine_bid))).map(futureRowToDisplay))
-      .sort((a,b)=>String(a.scheduled_at||'').localeCompare(String(b.scheduled_at||'')));
-    renderBball(merged);
-  }catch(e){console.error(e);showError('Veriler yüklenemedi.');}
-}
+/* ── TODAY: live_bball ──────────────────────────────── */
+async function loadBballToday() {
+  try {
+    /* scheduled_at kolonu UTC - bugünün maçlarını çek (geniş aralık) */
+    const startUTC = `${B.date}T00:00:00+00:00`;
+    const endUTC   = `${B.date}T23:59:59+00:00`;
 
-async function loadArchive(date){
-  showLoading(`${date} yükleniyor…`);
-  try{
-    const res=await fetch(`${BBALL_ARCHIVE}/basketball-${date}/events.json`);
-    if(!res.ok){showEmpty(`${date} arşivi bulunamadı.`);return;}
-    const events=await res.json();
-    const arr=Array.isArray(events)?events:(events.events||events.data||[]);
-    if(!arr.length){showEmpty(`${date} için veri yok.`);return;}
-    B.archiveCache={};
-    arr.forEach(e=>{const id=e.sbsEventId||e.betRadarId;if(id)B.archiveCache[String(id)]=e;});
-    renderBball(arr.map(archiveEventToRow));
-  }catch(e){console.error(e);showError('Arşiv yüklenemedi.');}
-}
-
-async function loadFuture(date){
-  showLoading(`${date} fikstürü yükleniyor…`);
-  try{
-    const rows=await fetchAllBball(
-      B.sb.from('future_bball')
-        .select('id,nesine_bid,home_team,away_team,league_name,country,starts_at,has_broadcast')
-        .gte('starts_at',`${date}T00:00:00+03:00`)
-        .lte('starts_at',`${date}T23:59:59+03:00`)
-        .order('starts_at')
+    const rows = await fetchAllBballRows(
+      B.sb.from('live_bball')
+         .select('*')
+         .gte('scheduled_at', startUTC)
+         .lte('scheduled_at', endUTC)
+         .order('scheduled_at')
     );
-    if(!rows.length){
-      const res=await fetch(`${BBALL_ARCHIVE}/basketball-${date}/events.json`);
-      if(res.ok){const ev=await res.json();const arr=Array.isArray(ev)?ev:(ev.events||ev.data||[]);if(arr.length){renderBball(arr.map(archiveEventToRow));return;}}
-      showEmpty(`${date} için fikstür bulunamadı.`);return;
+
+    renderBball(rows, true);
+  } catch(e) {
+    console.error('[loadBballToday]', e);
+    showError('Canlı veriler yüklenemedi.');
+  }
+}
+
+/* ── ARCHIVE: GitHub blyarchieve ────────────────────── */
+async function loadBballArchive(date) {
+  showLoading(`${date} arşivi yükleniyor…`);
+  try {
+    const url = `${BBALL_ARCHIVE_BASE}/basketball-${date}/events.json`;
+    const res = await fetch(url);
+
+    if (!res.ok) {
+      showEmpty(`${date} tarihine ait basketbol arşivi bulunamadı.`);
+      return;
     }
-    renderBball(rows.map(futureRowToDisplay));
-  }catch(e){console.error(e);showError('Fikstür yüklenemedi.');}
+
+    const events = await res.json();
+    const arr = Array.isArray(events) ? events : (events.events || events.data || []);
+
+    if (!arr.length) {
+      showEmpty(`${date} için basketbol verisi yok.`);
+      return;
+    }
+
+    /* Cache detail data */
+    B.archiveCache = {};
+    B.rowsCache = {};   /* arşive geçişte canlı cache'i temizle */
+    arr.forEach(e => {
+      const id = e.sbsEventId || e.betRadarId;
+      if (id) B.archiveCache[String(id)] = e;
+    });
+
+    const rows = arr.map(e => archiveEventToRow(e));
+    renderBball(rows, false);
+
+  } catch(e) {
+    console.error('[loadBballArchive]', e);
+    showError('Arşiv yüklenirken hata oluştu.');
+  }
 }
 
-/* ── RENDER ── */
-function renderBball(rows){
+/* ── UPCOMING: future_matches ───────────────────────── */
+async function loadBballFuture(date) {
+  showLoading(`${date} fikstürü yükleniyor…`);
+  try {
+    const rows = await fetchAllBballRows(
+      B.sb.from('live_bball')
+         .select('*')
+         .gte('scheduled_at', `${date}T00:00:00+00:00`)
+         .lte('scheduled_at', `${date}T23:59:59+00:00`)
+         .eq('status_short', 'NS')
+         .order('scheduled_at')
+    );
+
+    if (!rows.length) {
+      showEmpty(`${date} için yaklaşan basketbol maçı bulunamadı.`);
+      return;
+    }
+
+    renderBball(rows, false);
+  } catch(e) {
+    console.error('[loadBballFuture]', e);
+    showError('Fikstür yüklenemedi.');
+  }
+}
+
+/* ── ARCHIVE EVENT → ROW ────────────────────────────── */
+function archiveEventToRow(e) {
+  const toNum = v => (v != null && v !== '' ? +v : null);
+  return {
+    id:           e.sbsEventId || e.betRadarId || Math.random(),
+    league_name:  e.competitionName || '',
+    country:      '',
+    home_team:    e.homeTeam || e.homeFormDetail?.title || '',
+    away_team:    e.awayTeam || e.awayFormDetail?.title || '',
+    home_avatar:  null,
+    away_avatar:  null,
+    status_short: e.matchStatus === 'PLAYED' ? 'FT' : 'NS',
+    home_score:   toNum(e.scoreTotal?.home),
+    away_score:   toNum(e.scoreTotal?.away),
+    home_q1:      toNum(e.scoreQ1?.home),
+    away_q1:      toNum(e.scoreQ1?.away),
+    home_q2:      toNum(e.scoreQ2?.home),
+    away_q2:      toNum(e.scoreQ2?.away),
+    home_q3:      toNum(e.scoreQ3?.home),
+    away_q3:      toNum(e.scoreQ3?.away),
+    home_q4:      toNum(e.scoreQ4?.home),
+    away_q4:      toNum(e.scoreQ4?.away),
+    home_ot:      null,
+    away_ot:      null,
+    period:       null,
+    match_clock:  null,
+    scheduled_at: e.matchDate || e.date || null,
+    home_recent_form: JSON.stringify(e.homeFormDetail?.recentForms || e.homeRecentForm || []),
+    away_recent_form: JSON.stringify(e.awayFormDetail?.recentForms || e.awayRecentForm || []),
+    standings:    JSON.stringify(e.standing || null),
+    h2h:          JSON.stringify(e.h2h || []),
+    _archive:     true,
+    _rawEvent:    e,
+  };
+}
+
+/* ── RENDER ─────────────────────────────────────────── */
+function renderBball(rows, isLive) {
   updateLiveCount(rows);
-  B.rowCache={};
-  rows.forEach(r=>{B.rowCache[String(r.id)]=r;});
-  if(!rows.length){showEmpty('Maç bulunamadı.');return;}
 
-  const groups={};
-  rows.forEach(m=>{const k=m.league_name||'Diğer';if(!groups[k])groups[k]={name:k,country:m.country||'',matches:[]};groups[k].matches.push(m);});
-  const sorted=Object.values(groups).sort((a,b)=>{
-    const aL=a.matches.some(m=>bballStatus(m).live), bL=b.matches.some(m=>bballStatus(m).live);
-    if(aL&&!bL)return -1;if(!aL&&bL)return 1;return a.name.localeCompare(b.name,'tr');
+  /* Canlı/bugün/yaklaşan satırları id → row haritasında sakla (detay modalı için) */
+  B.rowsCache = {};
+  rows.forEach(m => { B.rowsCache[String(m.id)] = m; });
+
+  if (!rows.length) {
+    showEmpty('Maç bulunamadı.');
+    return;
+  }
+
+  /* Group by league */
+  const groups = {};
+  rows.forEach(m => {
+    const k = m.league_name || 'Diğer';
+    if (!groups[k]) groups[k] = { name: k, country: m.country || '', matches: [] };
+    groups[k].matches.push(m);
   });
-  document.getElementById('bball-root').innerHTML=sorted.map(renderGroup).join('');
+
+  /* Sort: live leagues first, then alpha */
+  const sorted = Object.values(groups).sort((a, b) => {
+    const aLive = a.matches.some(m => bballStatus(m).live);
+    const bLive = b.matches.some(m => bballStatus(m).live);
+    if (aLive && !bLive) return -1;
+    if (!aLive && bLive) return 1;
+    return a.name.localeCompare(b.name, 'tr');
+  });
+
+  const html = sorted.map(g => renderBballGroup(g)).join('');
+  document.getElementById('bball-root').innerHTML = html;
 }
 
-function renderGroup(g){
-  const lc=g.matches.filter(m=>bballStatus(m).live).length;
-  const livePill=lc?`<span class="bb-live-pill"><span class="bb-live-dot"></span>${lc}</span>`:'';
-  return `<div class="bb-grp">
-    <div class="bb-hdr" onclick="this.closest('.bb-grp').classList.toggle('closed')">
-      
-      <div class="bb-hdr-info">
-        <div class="bb-hdr-name">${esc(g.name)}</div>
+function renderBballGroup(g) {
+  const liveCount = g.matches.filter(m => bballStatus(m).live).length;
+  const liveBadge = liveCount
+    ? `<span class="lg-live-ct">${liveCount} CANLI</span>`
+    : '';
+  const nm = esc(g.country ? `${g.country} ${g.name}` : g.name);
+
+  return `
+    <div class="lg-grp">
+      <div class="lg-hdr" onclick="this.closest('.lg-grp').classList.toggle('closed')">
+        <div style="display:flex;align-items:center;gap:6px;flex:1;flex-wrap:nowrap">
+          <span class="lg-hdr-name" style="white-space:nowrap;font-size:13px;font-weight:500">${nm}</span>
+          ${liveBadge}
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+          <span class="lg-arrow">▾</span>
+        </div>
       </div>
-      ${livePill}
-      <span class="bb-arrow">▾</span>
-    </div>
-    <div class="bb-body">${g.matches.map(renderRow).join('')}</div>
-  </div>`;
+      <div class="lg-body">${g.matches.map(m => renderBballRow(m)).join('')}</div>
+    </div>`;
 }
 
-function renderRow(m){
-  const st=bballStatus(m);
-  const isNS=!st.live&&!st.done;
-  const hs=isNS?null:(m.home_score??null);
-  const as_=isNS?null:(m.away_score??null);
-  const hasScore=hs!=null&&as_!=null;
+function renderBballRow(m) {
+  const st = bballStatus(m);
+  const isNS = !st.live && !st.done;
+  const stCls = st.live ? 'live' : (st.done ? 'done' : 'sched');
 
-  /* win/loss classes */
-  let hcls='',acls='';
-  if(st.done&&hasScore){if(+hs>+as_){hcls='w';acls='l';}else if(+as_>+hs){acls='w';hcls='l';}}
+  const hs = isNS ? 'v' : (m.home_score != null ? m.home_score : '-');
+  const as = isNS ? ''  : (m.away_score != null ? m.away_score : '-');
 
-  /* Logos */
-  const hl=m.home_avatar?`<img class="bb-logo" src="${esc(m.home_avatar)}" onerror="this.style.display='none'" alt="">`:bbMono(m.home_team);
-  const al=m.away_avatar?`<img class="bb-logo" src="${esc(m.away_avatar)}" onerror="this.style.display='none'" alt="">`:bbMono(m.away_team);
-
-  /* Score box */
-  let scoreHtml;
-  if(isNS){
-    scoreHtml=`<div class="bb-total"><span class="bb-vs">vs</span></div>`;
-  }else{
-    scoreHtml=`<div class="bb-total">
-      <span class="bb-sn ${hcls}">${hs??'-'}</span>
-      <span class="bb-sdiv"></span>
-      <span class="bb-sn ${acls}">${as_??'-'}</span>
-    </div>`;
+  let hcls = '', acls = '';
+  if (st.done && hs !== 'v' && as !== '') {
+    if      (+hs > +as) { hcls = 'bold'; acls = 'dim'; }
+    else if (+as > +hs) { acls = 'bold'; hcls = 'dim'; }
   }
 
-  /* Quarter chips */
-  const QMAP={'1Q':'Ç1','Q1':'Ç1','2Q':'Ç2','Q2':'Ç2','3Q':'Ç3','Q3':'Ç3','4Q':'Ç4','Q4':'Ç4','OT':'OT'};
-  const activeQ=(m.status_short||'').toUpperCase();
-  const qs=[[m.home_q1,m.away_q1,'Ç1','1Q'],[m.home_q2,m.away_q2,'Ç2','2Q'],[m.home_q3,m.away_q3,'Ç3','3Q'],[m.home_q4,m.away_q4,'Ç4','4Q']];
-  if(m.home_ot!=null||m.away_ot!=null)qs.push([m.home_ot,m.away_ot,'OT','OT']);
-  const qItems=qs.filter(([h,a])=>h!=null||a!=null).map(([h,a,lbl,key])=>{
-    const isAct=st.live&&(activeQ===key||activeQ===key.replace('Q','')+'Q'||activeQ===QMAP[activeQ]===lbl);
-    return `<div class="bb-qchip${isAct?' act':''}"><span class="bb-ql">${lbl}</span><span class="bb-qs">${h??'-'}–${a??'-'}</span></div>`;
+  const homeLogo = m.home_avatar
+    ? `<img class="mr-logo" src="${esc(m.home_avatar)}" onerror="this.style.display='none'" alt="">`
+    : `<div class="mr-logo-ph"></div>`;
+  const awayLogo = m.away_avatar
+    ? `<img class="mr-logo" src="${esc(m.away_avatar)}" onerror="this.style.display='none'" alt="">`
+    : `<div class="mr-logo-ph"></div>`;
+
+  const sbCls = st.live ? 'mr-sb live' : (isNS ? 'mr-sb ns' : 'mr-sb');
+
+  return `
+    <div class="mr${st.live ? ' is-live' : ''}" data-id="${m.id}" onclick="openBballDetail('${m.id}')">
+      <div class="mr-time"><span class="mr-t1 ${stCls}">${esc(st.label)}</span></div>
+      <div class="mr-home">
+        <span class="mr-name ${hcls}">${esc(m.home_team)}</span>
+        <div class="mr-logo-wrap">${homeLogo}</div>
+      </div>
+      <div class="mr-score">
+        <div class="${sbCls}">
+          <span class="mr-n">${hs}</span>
+          ${isNS ? '' : '<div class="mr-sep"></div>'}
+          ${isNS ? '' : `<span class="mr-n">${as}</span>`}
+        </div>
+      </div>
+      <div class="mr-away">
+        <div class="mr-logo-wrap">${awayLogo}</div>
+        <span class="mr-name ${acls}">${esc(m.away_team)}</span>
+      </div>
+      <div class="mr-x"><span class="mr-arr">›</span></div>
+    </div>`;
+}
+
+function openBballDetail(id) {
+  const row = _findBballRow(id);
+  if (!row) return;
+
+  const st = bballStatus(row);
+  const isNS = !st.live && !st.done;
+
+  /* Quarter score table */
+  const quarters = [
+    { lbl: 'Ç1', h: row.home_q1, a: row.away_q1 },
+    { lbl: 'Ç2', h: row.home_q2, a: row.away_q2 },
+    { lbl: 'Devre', h: (row.home_q1 != null && row.home_q2 != null) ? +row.home_q1 + +row.home_q2 : null,
+                    a: (row.away_q1 != null && row.away_q2 != null) ? +row.away_q1 + +row.away_q2 : null, isSub: true },
+    { lbl: 'Ç3', h: row.home_q3, a: row.away_q3 },
+    { lbl: 'Ç4', h: row.home_q4, a: row.away_q4 },
+  ];
+  if (row.home_ot != null || row.away_ot != null) {
+    quarters.push({ lbl: 'Uzatma', h: row.home_ot, a: row.away_ot });
+  }
+  quarters.push({
+    lbl: 'Toplam', h: row.home_score, a: row.away_score, isTotal: true
   });
 
-  const slug=makeSlug(m.home_team,m.away_team);
-  const url=`/basketbol/mac/${m.id}${slug?'-'+slug:''}`;
+  const qRows = quarters
+    .filter(q => q.h != null || q.a != null)
+    .map(q => `
+      <tr class="${q.isTotal ? 'bball-dtl-total' : (q.isSub ? 'bball-dtl-sub' : '')}">
+        <td>${q.lbl}</td>
+        <td>${q.h ?? '-'}</td>
+        <td>${q.a ?? '-'}</td>
+      </tr>`).join('');
 
-  /* Status label */
-  let stHtml;
-  if(st.live){
-    stHtml=`<div class="bb-st-lbl">${esc(st.label)}</div>${st.clock?`<div class="bb-st-clk">${esc(st.clock)}'</div>`:''}`;
-  }else if(st.done){
-    stHtml=`<div class="bb-st-lbl">MS</div>`;
-  }else{
-    stHtml=`<div class="bb-st-lbl">${esc(st.label)}</div>`;
+  /* Recent form */
+  const homeForms = safeParseJSON(row.home_recent_form, []);
+  const awayForms = safeParseJSON(row.away_recent_form, []);
+
+  const formBadge = arr => (arr || []).map(r =>
+    `<span class="bball-form-badge ${r === 'WON' ? 'bball-form-w' : 'bball-form-l'}">${r === 'WON' ? 'G' : 'M'}</span>`
+  ).join('');
+
+  const homeLogo = row.home_avatar
+    ? `<img src="${esc(row.home_avatar)}" onerror="this.style.display='none'" alt="" class="bball-dtl-logo">`
+    : '🏀';
+  const awayLogo = row.away_avatar
+    ? `<img src="${esc(row.away_avatar)}" onerror="this.style.display='none'" alt="" class="bball-dtl-logo">`
+    : '🏀';
+
+  /* Live stats (from live_bball liveStats or archive) */
+  let liveStatsHtml = '';
+  let statsData = null;
+
+  try {
+    if (row.live_stats) statsData = typeof row.live_stats === 'string' ? JSON.parse(row.live_stats) : row.live_stats;
+    if (!statsData && row._rawEvent?.liveStats) statsData = row._rawEvent.liveStats;
+  } catch(e) {}
+
+  if (statsData?.GENEL) {
+    const statKeys = { _2_sayi: '2 Sayı %', _3_sayi: '3 Sayı %', serbest_atis: 'Serbest Atış %' };
+    const rows2 = Object.entries(statKeys).map(([key, label]) => {
+      const v = statsData.GENEL[key];
+      if (!v) return '';
+      const hv = +v.home, av = +v.away, tot = hv + av;
+      const hpct = tot > 0 ? Math.round(hv / tot * 100) : 50;
+      const apct = 100 - hpct;
+      return `
+        <div class="bball-stat-row">
+          <span class="bball-stat-val">${v.home}%</span>
+          <div class="bball-stat-bar">
+            <div class="bball-stat-h" style="width:${hpct}%"></div>
+            <div class="bball-stat-a" style="width:${apct}%"></div>
+          </div>
+          <span class="bball-stat-lbl">${label}</span>
+          <span class="bball-stat-val">${v.away}%</span>
+        </div>`;
+    }).join('');
+    if (rows2.trim()) liveStatsHtml = `<div class="bball-dtl-section"><div class="bball-dtl-sh">İstatistikler</div>${rows2}</div>`;
   }
 
-  return `<a class="bb-mr ${st.cls}" href="${url}" data-id="${m.id}">
-    <div class="bb-st">${stHtml}</div>
-    <div class="bb-team bb-home">
-      <span class="bb-tname ${hcls}">${esc(m.home_team)}</span>
-      <div class="bb-logo-wrap">${hl}</div>
+  const modal = document.getElementById('bball-modal');
+  const body = document.getElementById('bball-modal-body');
+
+  body.innerHTML = `
+    <div class="bball-dtl-hero">
+      <div class="bball-dtl-team">
+        ${homeLogo}
+        <span class="bball-dtl-tname">${esc(row.home_team)}</span>
+      </div>
+      <div class="bball-dtl-center">
+        ${isNS
+          ? `<div class="bball-dtl-time">${esc(st.label)}</div>`
+          : `<div class="bball-dtl-score">${row.home_score ?? '-'} – ${row.away_score ?? '-'}</div>`
+        }
+        <div class="bball-dtl-status ${st.live ? 'live' : (st.done ? 'done' : 'sched')}">${esc(st.label)}</div>
+        <div class="bball-dtl-league">${esc(row.league_name)}</div>
+      </div>
+      <div class="bball-dtl-team">
+        ${awayLogo}
+        <span class="bball-dtl-tname">${esc(row.away_team)}</span>
+      </div>
     </div>
-    <div class="bb-scores">
-      ${scoreHtml}
-      ${(st.live&&qItems.length)?`<div class="bb-qtrs">${qItems.join('')}</div>`:''}
-    </div>
-    <div class="bb-team bb-away">
-      <div class="bb-logo-wrap">${al}</div>
-      <span class="bb-tname ${acls}">${esc(m.away_team)}</span>
-    </div>
-    <span class="bb-arr">›</span>
-  </a>`;
+
+    ${!isNS && qRows ? `
+      <div class="bball-dtl-section">
+        <div class="bball-dtl-sh">Periyot Skorları</div>
+        <table class="bball-qtr-table">
+          <thead><tr><th></th><th>${esc(row.home_team)}</th><th>${esc(row.away_team)}</th></tr></thead>
+          <tbody>${qRows}</tbody>
+        </table>
+      </div>` : ''}
+
+    ${liveStatsHtml}
+
+    ${(homeForms.length || awayForms.length) ? `
+      <div class="bball-dtl-section">
+        <div class="bball-dtl-sh">Son Form</div>
+        <div class="bball-dtl-forms">
+          <div>
+            <span class="bball-dtl-flbl">${esc(row.home_team)}</span>
+            <div class="bball-form-badges">${formBadge(homeForms)}</div>
+          </div>
+          <div>
+            <span class="bball-dtl-flbl">${esc(row.away_team)}</span>
+            <div class="bball-form-badges">${formBadge(awayForms)}</div>
+          </div>
+        </div>
+      </div>` : ''}
+  `;
+
+  modal.classList.add('open');
+  document.body.classList.add('modal-open');
 }
 
-/* ── UI ── */
-function showSkel(){document.getElementById('bball-root').innerHTML=`<div class="bb-skel"><div class="bb-skel-h"></div><div class="bb-skel-r"></div><div class="bb-skel-r"></div><div class="bb-skel-r"></div><div class="bb-skel-h"></div><div class="bb-skel-r"></div><div class="bb-skel-r"></div></div>`;}
-function showLoading(msg){document.getElementById('bball-root').innerHTML=`<div class="bb-empty"><div class="bb-empty-icon">⏳</div><div class="bb-empty-msg">${msg}</div></div>`;}
-function showEmpty(msg){document.getElementById('bball-root').innerHTML=`<div class="bb-empty"><div class="empty-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M6 9h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="bb-empty-msg">${msg}</div></div>`;}
-function showError(msg){document.getElementById('bball-root').innerHTML=`<div class="bb-empty"><div class="empty-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2 16.5 15h-15L9 2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M9 7v3.5M9 12.6v.1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="bb-empty-msg">${msg}</div></div>`;}
-
-function updateLiveCount(rows){
-  const n=rows.filter(m=>bballStatus(m).live).length;
-  ['bball-tb-live-n','sb-bball-live-n','bball-live-n'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=n;});
-  const b=document.getElementById('bball-tb-live');if(b)b.style.display=n>0?'flex':'none';
+function closeBballModal() {
+  document.getElementById('bball-modal').classList.remove('open');
+  document.body.classList.remove('modal-open');
 }
 
-/* ── COUNTDOWN ── */
-function startCountdown(){
-  B.cd=B.cycle||30;updateRing();
-  if(B.timer)clearInterval(B.timer);
-  B.timer=setInterval(async()=>{B.cd--;updateRing();if(B.cd<=0){B.cd=B.cycle||30;await loadBball(true);}},1000);
-}
-function updateRing(){
-  const el=document.getElementById('bball-cd');if(el)el.textContent=B.cd;
-  const ring=document.getElementById('bball-ring');if(!ring)return;
-  const C=2*Math.PI*8;ring.style.strokeDasharray=C;ring.style.strokeDashoffset=C*(1-B.cd/(B.cycle||30));
+function _findBballRow(id) {
+  const sid = String(id);
+
+  /* 1. Canlı/bugün/yaklaşan cache'i (Supabase'den gelen satırlar) */
+  if (B.rowsCache[sid]) return B.rowsCache[sid];
+
+  /* 2. Arşiv cache'i (GitHub'dan gelen eventler) */
+  if (B.archiveCache[sid]) return archiveEventToRow(B.archiveCache[sid]);
+
+  return null;
 }
 
-/* ── INIT ── */
-async function initBball(){
-  if(typeof window.supabase==='undefined'){console.error('Supabase SDK yüklenmedi!');return;}
-  B.sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+function safeParseJSON(val, fallback) {
+  if (!val) return fallback;
+  if (typeof val === 'object') return val;
+  try { return JSON.parse(val); } catch { return fallback; }
+}
+
+/* ── UI HELPERS ─────────────────────────────────────── */
+function showLoading(msg = 'Yükleniyor…') {
+  document.getElementById('bball-root').innerHTML = `
+    <div class="bball-empty">
+      <div class="bball-empty-icon">⏳</div>
+      <div>${msg}</div>
+    </div>`;
+}
+
+function showEmpty(msg) {
+  document.getElementById('bball-root').innerHTML = `
+    <div class="bball-empty">
+      <div class="bball-empty-icon">📭</div>
+      <div>${msg}</div>
+    </div>`;
+}
+
+function showError(msg) {
+  document.getElementById('bball-root').innerHTML = `
+    <div class="bball-empty">
+      <div class="bball-empty-icon">⚠️</div>
+      <div>${msg}</div>
+    </div>`;
+}
+
+function updateLiveCount(rows) {
+  const n = rows.filter(m => bballStatus(m).live).length;
+  const el = document.getElementById('bball-live-n');
+  const sbEl = document.getElementById('sb-bball-live-n');
+  if (el) el.textContent = n;
+  if (sbEl) sbEl.textContent = n;
+  /* Topbar live badge */
+  const badge = document.getElementById('bball-tb-live');
+  if (badge) badge.style.display = n > 0 ? 'flex' : 'none';
+  const badgeN = document.getElementById('bball-tb-live-n');
+  if (badgeN) badgeN.textContent = n;
+}
+
+/* ── REALTIME TICKER (periyot saati) ────────────────── */
+function startBballTick() {
+  if (B.tickTimer) clearInterval(B.tickTimer);
+  B.tickTimer = setInterval(() => {
+    document.querySelectorAll('.mr.is-live').forEach(el => {
+      const id = el.dataset.id;
+      /* Tick sadece görsel güncelleme; gerçek veri yenileme loadBball'dan gelir */
+    });
+  }, 1000);
+}
+
+/* ── COUNTDOWN RING ─────────────────────────────────── */
+function startBballCountdown() {
+  B.cd = B.cycle;
+  updateBballRing();
+  if (B.timer) clearInterval(B.timer);
+  B.timer = setInterval(async () => {
+    B.cd--;
+    updateBballRing();
+    if (B.cd <= 0) {
+      B.cd = B.cycle;
+      await loadBball(true);
+    }
+  }, 1000);
+}
+
+function updateBballRing() {
+  const el = document.getElementById('bball-cd');
+  if (el) el.textContent = B.cd;
+  const ring = document.getElementById('bball-ring');
+  if (!ring) return;
+  const r = 8, C = 2 * Math.PI * r;
+  ring.style.strokeDasharray = C;
+  ring.style.strokeDashoffset = C * (1 - B.cd / B.cycle);
+}
+
+/* ── INIT ────────────────────────────────────────────── */
+async function initBball() {
+  if (typeof window.supabase === 'undefined') {
+    console.error('Supabase SDK yüklenmedi!');
+    return;
+  }
+  B.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
   buildBballDateStrip();
   await loadBball(false);
-  startCountdown();
+  startBballCountdown();
+  startBballTick();
+
+  /* Close modal on backdrop click */
+  document.getElementById('bball-modal').addEventListener('click', e => {
+    if (e.target.id === 'bball-modal') closeBballModal();
+  });
+
+  /* Keyboard: Escape closes modal */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeBballModal();
+  });
 }
-document.addEventListener('DOMContentLoaded',initBball);
+
+document.addEventListener('DOMContentLoaded', initBball);
