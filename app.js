@@ -2770,14 +2770,33 @@ function _evNorm(s) {
 function _evKeys(name, id) {
   const keys = [];
   if (id != null && id !== '') keys.push('id:' + id);
-  const n = _evNorm(name);
-  if (n) {
-    keys.push(n);
-    const parts = n.split(' ').filter(Boolean);
-    if (parts.length > 1) keys.push('sn:' + parts[parts.length - 1]);
+
+  if (!name) return keys;
+
+  let normalized = name;
+
+  // "Soyad, Ad" → "Ad Soyad" formatına çevir
+  if (name.includes(',')) {
+    const parts = name.split(',').map(s => s.trim());
+    if (parts.length === 2) {
+      normalized = parts[1] + ' ' + parts[0]; // "Lionel Messi"
+    }
   }
+
+  const n = _evNorm(normalized);
+  if (n) {
+    keys.push(n); // "lionel messi"
+    const parts = n.split(' ').filter(Boolean);
+    if (parts.length > 1) keys.push('sn:' + parts[parts.length - 1]); // "sn:messi"
+  }
+
+  // Orijinal hali de ekle (her ihtimale karşı)
+  const nOrig = _evNorm(name);
+  if (nOrig && !keys.includes(nOrig)) keys.push(nOrig);
+
   return keys;
 }
+
 /* Kadro oyuncusunu olay haritasında ara: id → tam ad → soyad */
 function _evLookup(map, player) {
   if (!player) return undefined;
