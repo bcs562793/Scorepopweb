@@ -2756,25 +2756,58 @@ function _lineupLines(team) {
 }
 
 /* Olaylardan oyuncu→ikon haritası (gol/kart) + değişim dakikaları */
+/* İsim normalize — diakritik/noktalama temizle, küçült (TR dahil) */
+function _evNorm(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i')
+    .replace(/ö/g, 'o').replace(/ş/g, 's').replace(/ü/g, 'u')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+/* Bir oyuncu için eşleşme anahtarları: id, tam ad, soyad */
+function _evKeys(name, id) {
+  const keys = [];
+  if (id != null && id !== '') keys.push('id:' + id);
+  const n = _evNorm(name);
+  if (n) {
+    keys.push(n);
+    const parts = n.split(' ').filter(Boolean);
+    if (parts.length > 1) keys.push('sn:' + parts[parts.length - 1]);
+  }
+  return keys;
+}
+/* Kadro oyuncusunu olay haritasında ara: id → tam ad → soyad */
+function _evLookup(map, player) {
+  if (!player) return undefined;
+  if (player.id != null && map['id:' + player.id] != null) return map['id:' + player.id];
+  const n = _evNorm(player.name);
+  if (n && map[n] != null) return map[n];
+  const parts = n.split(' ').filter(Boolean);
+  if (parts.length) {
+    const sn = 'sn:' + parts[parts.length - 1];
+    if (map[sn] != null) return map[sn];
+  }
+  return undefined;
+}
+
+/* Olaylardan oyuncu→ikon (gol/kart) + değişim dakikası haritası.
+   Eşleşme id / tam ad / soyad üzerinden — isim formatı tutmasa da çalışır. */
 function _lineupEventMaps(evs) {
   const icons = {};
   const subs  = {};
+  const addIcon = (keys, ic) => keys.forEach(k => { icons[k] = (icons[k] || '') + ic; });
+  const addSub  = (keys, min) => keys.forEach(k => { if (subs[k] == null) subs[k] = min; });
   (evs || []).forEach(e => {
     const t = (e.event_type || '').toLowerCase();
     const d = (e.event_detail || '').toLowerCase();
     const min = e.elapsed_time ? `${e.elapsed_time}${e.extra_time ? '+' + e.extra_time : ''}'` : '';
-    const add = (nm, ic) => {
-      const k = (nm || '').toLowerCase().trim();
-      if (k) icons[k] = (icons[k] || '') + ic;
-    };
-    if (t === 'goal') add(e.player_name, '⚽');
-    else if (t === 'card') add(e.player_name, d.includes('red') || d.includes('kırmızı') ? '🟥' : '🟨');
-    else if (t === 'subst') {
-      [e.player_name, e.assist_name].forEach(nm => {
-        const k = (nm || '').toLowerCase().trim();
-        if (k && !subs[k]) subs[k] = min;
-      });
-    }
+    const pKeys = _evKeys(e.player_name, e.player_id);
+    const aKeys = _evKeys(e.assist_name, e.assist_id);
+    if (t === 'goal') addIcon(pKeys, '⚽');
+    else if (t === 'card') addIcon(pKeys, (d.includes('red') || d.includes('kırmızı')) ? '🟥' : '🟨');
+    else if (t === 'subst') { addSub(pKeys, min); addSub(aKeys, min); }
   });
   return { icons, subs };
 }
@@ -2791,9 +2824,8 @@ function _pitchPlayers(team, side, maps) {
     const y = side === 'home' ? (4 + yBase) : (96 - yBase);
     line.forEach((p, pi) => {
       const x = ((pi + 1) / (n + 1)) * 100;
-      const nameKey = (p.name || '').toLowerCase().trim();
-      const ic = maps.icons[nameKey] || '';
-      const subMin = maps.subs[nameKey];
+      const ic = _evLookup(maps.icons, p) || '';
+      const subMin = _evLookup(maps.subs, p);
       const subArr = subMin ? `<span class="pp-sub down">▼${subMin}</span>` : '';
       html += `
         <div class="pp ${side}" style="left:${x}%;top:${y}%">
@@ -2815,9 +2847,9 @@ function _subsColumn(team, side, maps) {
   if (!subs.length) return '';
   const rows = subs.map(p => {
     const pl = p.player || {};
-    const k = (pl.name || '').toLowerCase().trim();
-    const ic = maps.icons[k] || '';
-    const inMin = maps.subs[k] ? `<span class="lu-sub-in">▲${maps.subs[k]}</span>` : '';
+    const ic = _evLookup(maps.icons, pl) || '';
+    const _in = _evLookup(maps.subs, pl);
+    const inMin = _in ? `<span class="lu-sub-in">▲${_in}</span>` : '';
     return `<div class="lu-sub-row">
       <span class="lu-sub-num">${pl.number ?? ''}</span>
       <span class="lu-sub-name">${esc(pl.name || '')}</span>
