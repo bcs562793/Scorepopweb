@@ -2811,24 +2811,41 @@ function _evLookup(map, player) {
   return undefined;
 }
 
-/* Olaylardan oyuncu→ikon (gol/kart) + değişim dakikası haritası.
-   Eşleşme id / tam ad / soyad üzerinden — isim formatı tutmasa da çalışır. */
+/* Olaylardan oyuncu→olay haritası: { ev:{key:{g,c}}, subs:{key:min} }
+   g=gol sayısı, c=kart ('y'|'r'). Eşleşme id / tam ad / soyad. */
 function _lineupEventMaps(evs) {
-  const icons = {};
-  const subs  = {};
-  const addIcon = (keys, ic) => keys.forEach(k => { icons[k] = (icons[k] || '') + ic; });
-  const addSub  = (keys, min) => keys.forEach(k => { if (subs[k] == null) subs[k] = min; });
+  const ev = {};
+  const subs = {};
+  const slot = (k) => (ev[k] || (ev[k] = { g: 0, c: '' }));
+  const addGoal = (keys) => keys.forEach(k => { slot(k).g++; });
+  const addCard = (keys, c) => keys.forEach(k => {
+    const s = slot(k);
+    if (c === 'r') s.c = 'r';
+    else s.c = (s.c === 'y' || s.c === 'r') ? 'r' : 'y';   // 2. sarı → kırmızı
+  });
+  const addSub = (keys, min) => keys.forEach(k => { if (subs[k] == null) subs[k] = min; });
   (evs || []).forEach(e => {
     const t = (e.event_type || '').toLowerCase();
     const d = (e.event_detail || '').toLowerCase();
     const min = e.elapsed_time ? `${e.elapsed_time}${e.extra_time ? '+' + e.extra_time : ''}'` : '';
     const pKeys = _evKeys(e.player_name, e.player_id);
     const aKeys = _evKeys(e.assist_name, e.assist_id);
-    if (t === 'goal') addIcon(pKeys, '⚽');
-    else if (t === 'card') addIcon(pKeys, (d.includes('red') || d.includes('kırmızı')) ? '🟥' : '🟨');
+    if (t === 'goal') { if (!d.includes('missed')) addGoal(pKeys); }
+    else if (t === 'card') addCard(pKeys, (d.includes('red') || d.includes('kırmızı')) ? 'r' : 'y');
     else if (t === 'subst') { addSub(pKeys, min); addSub(aKeys, min); }
   });
-  return { icons, subs };
+  return { ev, subs };
+}
+
+/* Olay nesnesi → ikon HTML: gol topu (çoklu gol = top + sayı) + kart */
+function _evMarks(info) {
+  if (!info) return '';
+  let h = '';
+  if (info.g === 1) h += '⚽';
+  else if (info.g > 1) h += `<span class="g-mult">⚽<b>${info.g}</b></span>`;
+  if (info.c === 'y') h += '🟨';
+  else if (info.c === 'r') h += '🟥';
+  return h;
 }
 
 /* Bir takımın 11'ini sahaya yerleştir */
@@ -2839,11 +2856,11 @@ function _pitchPlayers(team, side, maps) {
   lines.forEach((line, li) => {
     const n = line.length;
     /* Dikey saha: ev sahibi üstte, deplasman altta */
-    const yBase = numLines > 1 ? (li / (numLines - 1)) * 42 : 0;
-    const y = side === 'home' ? (4 + yBase) : (96 - yBase);
+    const yBase = numLines > 1 ? (li / (numLines - 1)) * 36 : 0;
+    const y = side === 'home' ? (7 + yBase) : (93 - yBase);
     line.forEach((p, pi) => {
       const x = ((pi + 1) / (n + 1)) * 100;
-      const ic = _evLookup(maps.icons, p) || '';
+      const ic = _evMarks(_evLookup(maps.ev, p));
       const subMin = _evLookup(maps.subs, p);
       const subArr = subMin ? `<span class="pp-sub down">▼${subMin}</span>` : '';
       html += `
@@ -2860,20 +2877,21 @@ function _pitchPlayers(team, side, maps) {
   return html;
 }
 
-/* Yedekler kolonu */
 function _subsColumn(team, side, maps) {
   const subs = team.substitutes || [];
   if (!subs.length) return '';
+  const away = side === 'away';
   const rows = subs.map(p => {
     const pl = p.player || {};
-    const ic = _evLookup(maps.icons, pl) || '';
+    const ic = _evMarks(_evLookup(maps.ev, pl));
     const _in = _evLookup(maps.subs, pl);
     const inMin = _in ? `<span class="lu-sub-in">▲${_in}</span>` : '';
-    return `<div class="lu-sub-row">
-      <span class="lu-sub-num">${pl.number ?? ''}</span>
-      <span class="lu-sub-name">${esc(pl.name || '')}</span>
-      ${ic ? `<span class="lu-sub-ev">${ic}</span>` : ''}${inMin}
-    </div>`;
+    const marks = `${ic ? `<span class="lu-sub-ev">${ic}</span>` : ''}${inMin}`;
+    const num = `<span class="lu-sub-num">${pl.number ?? ''}</span>`;
+    const name = `<span class="lu-sub-name">${esc(pl.name || '')}</span>`;
+    return away
+      ? `<div class="lu-sub-row lu-row-a">${marks}${name}${num}</div>`
+      : `<div class="lu-sub-row">${num}${name}${marks}</div>`;
   }).join('');
   return `<div class="lu-subs-col ${side}">
     <div class="lu-subs-hdr">${esc(team.team?.name || '')} — Yedekler</div>
@@ -2894,17 +2912,19 @@ function buildLineupHTML(ld, m, evs) {
   const maps = _lineupEventMaps(evs);
 
   /* yan liste: ilk 11 (numara + isim + gol/kart + çıkan ▼) + T.D. */
-  const xiList = (team) => {
+  const xiList = (team, side) => {
+    const away = side === 'away';
     const xi = (team.startXI || []).map(p => p.player).filter(Boolean);
     const rows = xi.map(p => {
-      const ic = _evLookup(maps.icons, p) || '';
+      const ic = _evMarks(_evLookup(maps.ev, p));
       const outMin = _evLookup(maps.subs, p);
       const out = outMin ? `<span class="lu3-out">▼${outMin}</span>` : '';
-      return `<div class="lu3-row">
-        <span class="lu3-num">${p.number ?? ''}</span>
-        <span class="lu3-name">${esc(p.name || '')}</span>
-        <span class="lu3-ev">${ic}${out}</span>
-      </div>`;
+      const marks = (ic || out) ? `<span class="lu3-ev">${ic}${out}</span>` : '';
+      const num = `<span class="lu3-num">${p.number ?? ''}</span>`;
+      const name = `<span class="lu3-name">${esc(p.name || '')}</span>`;
+      return away
+        ? `<div class="lu3-row lu3-row-a">${marks}${name}${num}</div>`
+        : `<div class="lu3-row">${num}${name}${marks}</div>`;
     }).join('');
     const coach = team.coach?.name
       ? `<div class="lu3-coach">T.D. <b>${esc(team.coach.name)}</b></div>` : '';
@@ -2916,7 +2936,7 @@ function buildLineupHTML(ld, m, evs) {
   return `
     <div class="lu2-wrap">
       <div class="lu3">
-        <div class="lu3-col">${xiList(home)}</div>
+        <div class="lu3-col">${xiList(home, 'home')}</div>
         <div class="lu3-pitch">
           <div class="lu-pitch">
             <div class="lp-line lp-mid"></div>
@@ -2929,7 +2949,7 @@ function buildLineupHTML(ld, m, evs) {
             ${_pitchPlayers(away, 'away', maps)}
           </div>
         </div>
-        <div class="lu3-col">${xiList(away)}</div>
+        <div class="lu3-col lu3-col-a">${xiList(away, 'away')}</div>
       </div>
       <div class="lu-subs-grid">
         ${_subsColumn(home, 'home', maps)}
