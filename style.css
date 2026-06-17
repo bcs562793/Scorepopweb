@@ -651,7 +651,7 @@ img { display: block; }
   color: var(--live); background: var(--live2);
   border-radius: 3px; padding: 2px 7px;
 }
-..d-visual-iframe-wrap {
+.d-visual-iframe-wrap {
   position: relative;
   width: 100%;
   max-width: 100%;
@@ -3036,9 +3036,11 @@ img { display: block; }
 .lu-subs-hdr { font-size: 11px; font-weight: 600; color: var(--tx2, #aaa); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,.09); }
 .lu-sub-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 11px; }
 .lu-sub-num { min-width: 18px; color: var(--tx3, #888); font-weight: 600; text-align: center; }
-.lu-sub-name { color: var(--tx1, #ddd); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lu-sub-name { flex: 1 1 auto; min-width: 0; color: var(--tx1, #ddd); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lu-sub-ev { font-size: 10px; }
 .lu-sub-in { font-size: 9px; font-weight: 700; color: #4ade80; }
+.lu-subs-col.away { text-align: right; }
+.lu-row-a .lu-sub-name { text-align: right; }
 
 @media (max-width: 420px) {
   .pp { width: 44px; }
@@ -3048,38 +3050,38 @@ img { display: block; }
 /* === Kadro: 3 sütun (ev listesi | saha | deplasman listesi) === */
 .lu3 {
   display: grid;
-  grid-template-columns: 1fr minmax(112px, 160px) 1fr;
-  gap: 6px;
+  grid-template-columns: 1fr minmax(118px, 168px) 1fr;
+  gap: 12px;
   align-items: start;
-  margin-bottom: 12px;
+  max-width: 920px;          /* kenarlara/sahaya yapışmasın, ortalı */
+  margin: 0 auto 12px;
 }
 .lu3-pitch { min-width: 0; }
-.lu3-pitch .lu-pitch { max-width: 100%; }   /* saha sütunu doldurur */
+.lu3-pitch .lu-pitch { max-width: 100%; }
 .lu3-pitch .pp-name,
-.lu3-pitch .pp-sub { display: none; }        /* isim/çıkış yan listede */
-.lu3-team {
-  font-weight: 700; font-size: 12px; color: var(--tx1);
-  text-align: center; margin-bottom: 6px;
-}
+.lu3-pitch .pp-sub { display: none; }              /* isim/çıkış yan listede */
+.lu3-pitch .pp { width: 40px; }
+.lu3-pitch .pp-shirt { width: 24px; font-size: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+.lu3-pitch .pp-ev { top: -5px; right: -7px; font-size: 9px; }
+.lu3-team { font-weight: 700; font-size: 12px; color: var(--tx1); text-align: center; margin-bottom: 6px; }
 .lu3-team .lu-fmt { font-weight: 600; color: var(--tx3); font-size: 10px; }
-.lu3-xi { display: flex; flex-direction: column; gap: 2px; }
+.lu3-col { padding: 0 2px; }
+.lu3-col-a { text-align: right; }                  /* deplasman sağa yaslı */
+.lu3-xi { display: flex; flex-direction: column; gap: 3px; }
 .lu3-row { display: flex; align-items: center; gap: 5px; font-size: 11px; line-height: 1.35; }
-.lu3-num {
-  flex: 0 0 18px; text-align: center; font-weight: 700;
-  color: var(--tx3); font-variant-numeric: tabular-nums;
-}
-.lu3-name {
-  flex: 1 1 auto; min-width: 0; color: var(--tx1);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.lu3-ev { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 2px; font-size: 9px; }
+.lu3-num { flex: 0 0 18px; text-align: center; font-weight: 700; color: var(--tx3); font-variant-numeric: tabular-nums; }
+.lu3-name { flex: 1 1 auto; min-width: 0; color: var(--tx1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lu3-row-a .lu3-name { text-align: right; }         /* deplasman ad sağa */
+.lu3-ev { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 3px; font-size: 9px; }
 .lu3-out { color: #ef4444; font-weight: 700; }
-.lu3-coach {
-  margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--sep);
-  font-size: 10px; color: var(--tx2);
-}
+.lu3-coach { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--sep); font-size: 10px; color: var(--tx2); }
 .lu3-coach b { color: var(--tx1); font-weight: 600; }
+/* çoklu gol: top + sayı rozeti */
+.g-mult { display: inline-flex; align-items: center; }
+.g-mult b { font-style: normal; font-weight: 800; font-size: 9px; color: #fff; background: #16a34a; border-radius: 7px; padding: 0 4px; margin-left: 2px; line-height: 1.4; }
 @media (min-width: 600px) {
-  .lu3 { grid-template-columns: 1fr 240px 1fr; gap: 12px; }
+  .lu3 { grid-template-columns: 1fr 280px 1fr; gap: 28px; }
   .lu3-row { font-size: 12px; }
+  .lu3-pitch .pp { width: 46px; }
+  .lu3-pitch .pp-shirt { width: 28px; font-size: 12px; }
 }
