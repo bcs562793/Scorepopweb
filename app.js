@@ -2874,28 +2874,43 @@ function buildLineupHTML(ld, m, evs) {
   const home = ld[0], away = ld[1];
   const maps = _lineupEventMaps(evs);
 
-  const hdr = (team) => `
-    <div class="lu-team-hdr">
-      ${team.team?.logo && team.team.logo.trim() ? `<img src="${esc(team.team.logo)}" onerror="this.style.display='none'" alt="">` : ''}
-      <span class="lu-team-n">${esc(team.team?.name || '')}</span>
-      ${team.formation ? `<span class="lu-fmt">${esc(team.formation)}</span>` : ''}
-    </div>`;
+  /* yan liste: ilk 11 (numara + isim + gol/kart + çıkan ▼) + T.D. */
+  const xiList = (team) => {
+    const xi = (team.startXI || []).map(p => p.player).filter(Boolean);
+    const rows = xi.map(p => {
+      const ic = _evLookup(maps.icons, p) || '';
+      const outMin = _evLookup(maps.subs, p);
+      const out = outMin ? `<span class="lu3-out">▼${outMin}</span>` : '';
+      return `<div class="lu3-row">
+        <span class="lu3-num">${p.number ?? ''}</span>
+        <span class="lu3-name">${esc(p.name || '')}</span>
+        <span class="lu3-ev">${ic}${out}</span>
+      </div>`;
+    }).join('');
+    const coach = team.coach?.name
+      ? `<div class="lu3-coach">T.D. <b>${esc(team.coach.name)}</b></div>` : '';
+    const fmt = team.formation ? ` <span class="lu-fmt">${esc(team.formation)}</span>` : '';
+    return `<div class="lu3-team">${esc(team.team?.name || '')}${fmt}</div>
+      <div class="lu3-xi">${rows}</div>${coach}`;
+  };
 
   return `
     <div class="lu2-wrap">
-      <div class="lu2-headers">
-        ${hdr(home)}
-        ${hdr(away)}
-      </div>
-      <div class="lu-pitch">
-        <div class="lp-line lp-mid"></div>
-        <div class="lp-circle"></div>
-        <div class="lp-box lp-box-l"></div>
-        <div class="lp-box lp-box-r"></div>
-        <div class="lp-goal lp-goal-l"></div>
-        <div class="lp-goal lp-goal-r"></div>
-        ${_pitchPlayers(home, 'home', maps)}
-        ${_pitchPlayers(away, 'away', maps)}
+      <div class="lu3">
+        <div class="lu3-col">${xiList(home)}</div>
+        <div class="lu3-pitch">
+          <div class="lu-pitch">
+            <div class="lp-line lp-mid"></div>
+            <div class="lp-circle"></div>
+            <div class="lp-box lp-box-l"></div>
+            <div class="lp-box lp-box-r"></div>
+            <div class="lp-goal lp-goal-l"></div>
+            <div class="lp-goal lp-goal-r"></div>
+            ${_pitchPlayers(home, 'home', maps)}
+            ${_pitchPlayers(away, 'away', maps)}
+          </div>
+        </div>
+        <div class="lu3-col">${xiList(away)}</div>
       </div>
       <div class="lu-subs-grid">
         ${_subsColumn(home, 'home', maps)}
