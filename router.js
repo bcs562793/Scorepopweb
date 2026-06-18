@@ -18,6 +18,7 @@ const Router = (() => {
     haber:      /^\/?(haber)\/([^/]+)\/?$/i,
     tvrehberi:  /^\/?tv-rehberi(?:\/(?:index\.html)?)?\/?$/i,
     puandurumu: /^\/?puan-durumu(?:\/(?:index\.html)?)?\/?$/i,
+    team:       /^\/?takim\/(\d+)(?:-[^/]+)?\/?$/i,
   };
 
   let _busy = false;
@@ -80,6 +81,13 @@ const Router = (() => {
     if (upMatch) {
       if (upMatch[1]) S.date = upMatch[1];
       if (typeof navigate === 'function') navigate('upcoming');
+      return;
+    }
+
+    const teamM = path.match(ROUTES.team);
+    if (teamM) {
+      if (typeof showTeamView === 'function') showTeamView();
+      if (typeof loadTeam === 'function') loadTeam(parseInt(teamM[1], 10));
       return;
     }
 
