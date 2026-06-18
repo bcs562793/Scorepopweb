@@ -24,4 +24,6 @@
 /voleybol/ /voleybol/index.html 200
 /takim /takim/index.html 200
 /takim/* /takim/index.html 200
+/oyuncu /oyuncu/index.html 200
+/oyuncu/* /oyuncu/index.html 200
 /* /index.html 200

@@ -35,7 +35,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
-<link rel="stylesheet" href="style.css?v=8"/>
+<link rel="stylesheet" href="style.css?v=9"/>
 <!-- 404.html redirect trick: ?p=/mac/123 → gerçek URL -->
 <script>
 (function() {
@@ -243,6 +243,11 @@
     <div id="team-root" style="padding:0 24px 24px;"></div>
   </div>
 
+  <div id="view-player" class="hidden">
+    <button class="back-btn" onclick="history.back()" style="margin:16px 24px;">← Geri</button>
+    <div id="player-root" style="padding:0 24px 24px;"></div>
+  </div>
+
 </main>
 
 <!-- mobile overlay -->
@@ -276,12 +281,12 @@ window._watchdog = setTimeout(function() {
 }, 15000);
 </script>
 <script defer src="config.js?v=2"></script>
-<script defer src="router.js?v=10"></script>
+<script defer src="router.js?v=11"></script>
 <script defer src="auth.js?v=2"></script>
 <script defer src="forum.js?v=2"></script>
 <script defer src="payment.js?v=2"></script>
 <script defer src="indexing.js?v=1"></script>
-<script defer src="app.js?v=34"></script>
+<script defer src="app.js?v=35"></script>
 
 
 <!-- HAKKIMIZDA / İLETİŞİM OVERLAY'LERİ -->
