@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       p.team_id ? sb.from('tm_teams').select('id,name,crest_url,mac_t_id').eq('id',p.team_id).maybeSingle() : Promise.resolve({data:null}),
       sb.from('tm_market_values').select('value_date,value_eur,club,age').eq('player_id',pid).order('value_date',{ascending:true}),
       sb.from('tm_player_stats').select('*').eq('player_id',pid).order('saison_id',{ascending:false}),
-      sb.from('tm_player_transfer').select('*').eq('player_id',pid).order('transfer_date',{ascending:false})
+      sb.from('tm_player_transfers').select('*').eq('player_id',pid).order('transfer_date',{ascending:false})
     ]);
     const team=teamR?.data||null, mvals=mvR?.data||[], stats=stR?.data||[], transfers=trR?.data||[];
 
