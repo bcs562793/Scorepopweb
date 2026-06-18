@@ -3032,15 +3032,31 @@ img { display: block; }
 .pp-sub.down { color: #f87171; }
 
 /* Yedekler */
-.lu-subs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-.lu-subs-hdr { font-size: 11px; font-weight: 600; color: var(--tx2, #aaa); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,.09); }
-.lu-sub-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 11px; }
-.lu-sub-num { min-width: 18px; color: var(--tx3, #888); font-weight: 600; text-align: center; }
-.lu-sub-name { flex: 1 1 auto; min-width: 0; color: var(--tx1, #ddd); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lu-sub-ev { font-size: 10px; }
-.lu-sub-in { font-size: 9px; font-weight: 700; color: #4ade80; }
-.lu-subs-col.away { text-align: right; }
+.lu-subs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+.lu-subs-hdr {
+  font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+  color: var(--tx3); margin-bottom: 6px; padding-bottom: 5px;
+  border-bottom: 1px solid var(--b1);
+}
+.lu-subs-col.away .lu-subs-hdr { text-align: right; }
+.lu-sub-list { border: 1px solid var(--b1); border-radius: 8px; overflow: hidden; }
+.lu-sub-row {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 8px; font-size: 11px; background: var(--bg3);
+}
+.lu-sub-list .lu-sub-row:nth-child(even) { background: var(--bg4); }
+.lu-sub-row:hover { background: var(--or3); }
+.lu-sub-num {
+  flex: 0 0 22px; height: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9.5px; font-weight: 800; border-radius: 5px;
+}
+.lu-subs-col.home .lu-sub-num { background: var(--or2); color: var(--or); }
+.lu-subs-col.away .lu-sub-num { background: rgba(30,41,59,.12); color: #1e293b; }
+.lu-sub-name { flex: 1 1 auto; min-width: 0; color: var(--tx1); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lu-row-a .lu-sub-name { text-align: right; }
+.lu-sub-ev { font-size: 10px; flex: 0 0 auto; }
+.lu-sub-in { font-size: 9px; font-weight: 700; color: #4ade80; flex: 0 0 auto; }
 
 @media (max-width: 420px) {
   .pp { width: 44px; }
@@ -3066,12 +3082,28 @@ img { display: block; }
 .lu3-team { font-weight: 700; font-size: 12px; color: var(--tx1); text-align: center; margin-bottom: 6px; }
 .lu3-team .lu-fmt { font-weight: 600; color: var(--tx3); font-size: 10px; }
 .lu3-col { padding: 0 2px; }
-.lu3-col-a { text-align: right; }                  /* deplasman sağa yaslı */
-.lu3-xi { display: flex; flex-direction: column; gap: 3px; }
-.lu3-row { display: flex; align-items: center; gap: 5px; font-size: 11px; line-height: 1.35; }
-.lu3-num { flex: 0 0 18px; text-align: center; font-weight: 700; color: var(--tx3); font-variant-numeric: tabular-nums; }
-.lu3-name { flex: 1 1 auto; min-width: 0; color: var(--tx1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lu3-row-a .lu3-name { text-align: right; }         /* deplasman ad sağa */
+.lu3-col-a { text-align: right; }
+.lu3-xi {
+  display: flex; flex-direction: column; gap: 0;
+  border: 1px solid var(--b1); border-radius: 8px; overflow: hidden;
+}
+.lu3-row {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11.5px; line-height: 1.3;
+  padding: 6px 8px; background: var(--bg3);
+}
+.lu3-xi .lu3-row:nth-child(even) { background: var(--bg4); }
+.lu3-row:hover { background: var(--or3); }
+.lu3-num {
+  flex: 0 0 22px; height: 19px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; border-radius: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.lu3-col   .lu3-num { background: var(--or2); color: var(--or); }
+.lu3-col-a .lu3-num { background: rgba(30,41,59,.12); color: #1e293b; }
+.lu3-name { flex: 1 1 auto; min-width: 0; color: var(--tx1); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lu3-row-a .lu3-name { text-align: right; }
 .lu3-ev { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 3px; font-size: 9px; }
 .lu3-out { color: #ef4444; font-weight: 700; }
 .lu3-coach { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--sep); font-size: 10px; color: var(--tx2); }
