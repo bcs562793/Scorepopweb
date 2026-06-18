@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v14.7 — Arşiv Desteği)
+   SCOREPOP — app.js  (v14.8 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -1382,7 +1382,28 @@ function applyFilter() {
   });
 }
 
-/* ── DETAIL ──────────────────────────────────── */
+/* Arşiv maçında gz oranları geç gelince Oranlar panelini yeniden bas */
+function _injectArchiveOdds(m, odds) {
+  const panel = document.getElementById('d-or');
+  if (!panel) return;
+  const od = odds?.odds_data ?? null;
+  if (!od || !od.markets) return;
+
+  const mac1x2  = od.markets['1x2']  ?? null;
+  const curOu25 = od.markets['ou25'] ?? null;
+  let sofa1x2 = od.sofa_1x2 ? JSON.parse(JSON.stringify(od.sofa_1x2)) : null;
+  if (sofa1x2) {
+    ['1','x','2'].forEach(k => {
+      const d = sofa1x2[k]; if (!d) return;
+      const op = d.opening, cl = d.closing;
+      if (op != null && cl != null && Math.abs(cl - op) > 0.04) d.change = cl < op ? -1 : 1;
+    });
+  }
+  /* Sadece sinyal kartını basıyoruz — tam market dökümü istersen buildDetail'i
+     tekrar çağırmak yerine burada genişletilebilir */
+  panel.innerHTML = `<div class="or2-wrap">${renderSignalCard(m.fixture_id, sofa1x2, mac1x2, curOu25)}</div>`;
+}
+
 /* ── DETAIL ──────────────────────────────────── */
 async function loadDetail(id, isLive, oddsOnly = false) {
   setDetailHTML(`<div class="empty" style="min-height:160px"><div class="empty-i">⚽</div></div>`);
@@ -1397,9 +1418,16 @@ async function loadDetail(id, isLive, oddsOnly = false) {
       const stats = archiveAdaptStats(cached.stats);
       const lus  = archiveAdaptLineups(cached.lineups, cached);
       const h2h  = archiveAdaptH2H(cached.h2h);
+
+      /* Detayı oransız HEMEN aç — gz beklemeden */
+      buildDetail(m, evs, stats, lus, h2h, null, null, null, oddsOnly);
+
+      /* Oranları arka planda yükle, gelince Oranlar panelini güncelle */
       const matchDate = (m.kickoff_time || m.date || S.date || '').slice(0,10);
-      const gzOdds = await fetchGzOdds(matchDate, m.home_team, m.away_team);
-      buildDetail(m, evs, stats, lus, h2h, null, gzOdds, null, oddsOnly); // matchInfo null[cite: 1]
+      fetchGzOdds(matchDate, m.home_team, m.away_team).then(gzOdds => {
+        if (!gzOdds || String(S.detail) !== String(id)) return; // kullanıcı başka maça geçtiyse boşver
+        _injectArchiveOdds(m, gzOdds);
+      }).catch(()=>{});
       return;
     }
 
