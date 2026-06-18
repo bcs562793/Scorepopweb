@@ -2895,7 +2895,7 @@ function _subsColumn(team, side, maps) {
   }).join('');
   return `<div class="lu-subs-col ${side}">
     <div class="lu-subs-hdr">${esc(team.team?.name || '')} — Yedekler</div>
-    ${rows}
+    <div class="lu-sub-list">${rows}</div>
   </div>`;
 }
 
