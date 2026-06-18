@@ -1598,11 +1598,22 @@ function scaleVisualIframe() {
   iframe.style.height          = NATIVE_H + 'px';
   iframe.style.transformOrigin = '0 0';
   iframe.style.transform       = 'scale(' + scale + ')';
+
+  /* CSS'te opacity:0 ile başlıyor — ölçek uygulandı, şimdi görünür yap */
+  wrap.style.opacity = '1';
 }
 
 function _scheduleVisualScale() {
   // pushState sonrası layout gecikmesi için daha uzun süreler
   [50, 200, 600, 1500].forEach(function(ms) { setTimeout(scaleVisualIframe, ms); });
+
+  /* Wrap genişlik kazanınca otomatik ölçekle — timer'lar kaçırırsa yedek */
+  const wrap = document.querySelector('.d-visual-iframe-wrap');
+  if (wrap && 'ResizeObserver' in window) {
+    if (window._visualRO) window._visualRO.disconnect();
+    window._visualRO = new ResizeObserver(() => scaleVisualIframe());
+    window._visualRO.observe(wrap);
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════
