@@ -351,6 +351,8 @@ function showView(v) {
   if (vo) vo.classList.toggle('hidden', v !== 'odds');
   const vt = document.getElementById('view-team');
   if (vt) vt.classList.toggle('hidden', v !== 'team');
+  const vp = document.getElementById('view-player');
+  if (vp) vp.classList.toggle('hidden', v !== 'player');
   document.getElementById('col-hdr').style.display = v === 'matches' ? '' : 'none';
 }
 
@@ -2915,7 +2917,7 @@ function _pitchPlayers(team, side, maps) {
             <span class="pp-num">${p.number ?? ''}</span>
             ${ic ? `<span class="pp-ev">${ic}</span>` : ''}
           </div>
-          <div class="pp-name">${esc(_shortName(p.name || ''))}</div>
+          <div class="pp-name pp-plink" onclick="goToPlayerByName('${(p.name||'').replace(/'/g,"\\'")}',event)">${esc(_shortName(p.name || ''))}</div>
           ${subArr}
         </div>`;
     });
@@ -2934,7 +2936,7 @@ function _subsColumn(team, side, maps) {
     const inMin = _in ? `<span class="lu-sub-in">▲${_in}</span>` : '';
     const marks = `${ic ? `<span class="lu-sub-ev">${ic}</span>` : ''}${inMin}`;
     const num = `<span class="lu-sub-num">${pl.number ?? ''}</span>`;
-    const name = `<span class="lu-sub-name">${esc(pl.name || '')}</span>`;
+    const name = `<span class="lu-sub-name lu-plink" onclick="goToPlayerByName('${(pl.name||'').replace(/'/g,"\\'")}',event)">${esc(pl.name || '')}</span>`;
     return away
       ? `<div class="lu-sub-row lu-row-a">${marks}${name}${num}</div>`
       : `<div class="lu-sub-row">${num}${name}${marks}</div>`;
@@ -2967,7 +2969,7 @@ function buildLineupHTML(ld, m, evs) {
       const out = outMin ? `<span class="lu3-out">▼${outMin}</span>` : '';
       const marks = (ic || out) ? `<span class="lu3-ev">${ic}${out}</span>` : '';
       const num = `<span class="lu3-num">${p.number ?? ''}</span>`;
-      const name = `<span class="lu3-name">${esc(p.name || '')}</span>`;
+      const name = `<span class="lu3-name lu-plink" onclick="goToPlayerByName('${(p.name||'').replace(/'/g,"\\'")}',event)">${esc(p.name || '')}</span>`;
       return away
         ? `<div class="lu3-row lu3-row-a">${marks}${name}${num}</div>`
         : `<div class="lu3-row">${num}${name}${marks}</div>`;
@@ -3239,8 +3241,8 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = 
       const icCls = evCls(e.event_type, e.event_detail);
       const t = e.elapsed_time ? `${e.elapsed_time}${e.extra_time?'+'+e.extra_time:''}'` : '';
       const info = `<div class="ev-info">
-              <div class="ev-pl">${esc(e.player_name||'')}</div>
-              ${e.assist_name ? `<div class="ev-dt">⤷ ${esc(e.assist_name)}</div>` : ''}
+              <div class="ev-pl ev-plink" onclick="goToPlayerByName('${(e.player_name||'').replace(/'/g,"\\'")}',event)">${esc(e.player_name||'')}</div>
+              ${e.assist_name ? `<div class="ev-dt ev-plink" onclick="goToPlayerByName('${(e.assist_name||'').replace(/'/g,"\\'")}',event)">⤷ ${esc(e.assist_name)}</div>` : ''}
               ${e.event_detail ? `<div class="ev-dt">${esc(e.event_detail)}</div>` : ''}
             </div>`;
       const ico = `<div class="ev-ico ${icCls}">${ic}</div>`;
@@ -4591,7 +4593,7 @@ function renderTeamPage(root, macId, tmTeam, fixtures, standings, players) {
     sqHtml = `<div class="tp-squad">` + players.map(p => {
       const cat = _posCat(p.position);
       const mv = p.market_value_eur ? '€' + Number(p.market_value_eur).toLocaleString('tr-TR') : '–';
-      return `<div class="tp-prow">
+      return `<div class="tp-prow" onclick="goToPlayer(${p.id},'${(p.name||p.player_name||'').replace(/'/g,"\\'")}',event)" style="cursor:pointer">
         <div class="tp-pbar" style="background:${cat.c}"></div>
         <div class="tp-pcat" style="background:${cat.c}">${cat.k}</div>
         <div><div class="tp-pname">${esc(p.name || p.player_name || '')}</div>${p.position ? `<div class="tp-ppos">${esc(p.position)}</div>` : ''}</div>
@@ -4640,4 +4642,294 @@ function renderTeamPage(root, macId, tmTeam, fixtures, standings, players) {
       <div id="tp-squad" class="tp-panel">${sqHtml}</div>
       <div id="tp-standings" class="tp-panel">${stHtml}</div>
     </div>`;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   OYUNCU PROFİL SAYFASI  (/oyuncu/{id}-slug)
+   Kaynak: tm_players + tm_market_values + tm_player_stats + tm_player_transfer
+   - Kadro tabından doğrudan id ile açılır.
+   - Events/lineups isimlerinden goToPlayerByName ile (fuzzy) açılır.
+══════════════════════════════════════════════════════════════════ */
+
+function _plSlug(name){
+  return String(name||'').toLowerCase()
+    .replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s')
+    .replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+}
+
+window.goToPlayer = function(id, name, e){
+  if (e) e.stopPropagation();
+  if (id == null) return;
+  history.pushState(null, '', `/oyuncu/${id}-${_plSlug(name)}`);
+  window.dispatchEvent(new Event('popstate'));
+};
+
+/* Events "Soyad, Ad" / lineups "Ad Soyad" → tm_players'ta isimle bul */
+window._resolvePlayerByName = async function(rawName){
+  if (!rawName) return null;
+  let name = rawName;
+  if (name.includes(',')) {                       // "Messi, Lionel" → "Lionel Messi"
+    const parts = name.split(',').map(s=>s.trim());
+    if (parts.length === 2) name = parts[1] + ' ' + parts[0];
+  }
+  const sb = (typeof S !== 'undefined' && S.sb) ? S.sb
+           : window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
+  const toks = window._tmTokens(name);
+  const core = toks.sort((a,b)=>b.length-a.length)[0] || '';
+  if (core.length < 3) return null;
+  const rawCore = String(name).trim().split(/\s+/).sort((a,b)=>b.length-a.length)[0] || '';
+  let cands = [];
+  try {
+    const { data } = await sb.from('tm_players')
+      .select('id,name,profile_slug')
+      .or(`name.ilike.%${core}%,name.ilike.%${rawCore}%`).limit(80);
+    if (data) cands = data;
+  } catch(e){
+    try { const { data } = await sb.from('tm_players').select('id,name,profile_slug').ilike('name',`%${core}%`).limit(80); if (data) cands = data; } catch(_){}
+  }
+  let best=null, bs=0;
+  for (const c of cands){
+    const sc = window._tmJaccard(name, c.name);
+    if (sc > bs){ bs = sc; best = c; }
+  }
+  return (best && bs >= 0.5) ? best : null;
+};
+
+window.goToPlayerByName = async function(name, e){
+  if (e) e.stopPropagation();
+  const p = await window._resolvePlayerByName(name);
+  if (p) window.goToPlayer(p.id, p.name);
+  else _plToast('Bu oyuncunun detaylı profili bulunamadı');
+};
+
+function _plToast(msg){
+  let t = document.getElementById('pl-toast');
+  if (!t){ t = document.createElement('div'); t.id = 'pl-toast';
+    t.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;background:var(--bg2,#1a1d23);color:var(--tx1,#e7eaee);border:1px solid var(--b1,#23262d);padding:10px 16px;border-radius:10px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.3);opacity:0;transition:opacity .2s;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg; t.style.opacity = '1';
+  clearTimeout(t._h); t._h = setTimeout(()=>{ t.style.opacity='0'; }, 2200);
+}
+
+window.showPlayerView = function(){ showView('player'); window.scrollTo(0,0); };
+
+function _playerNameFromSlug(){
+  const last = (window.location.pathname.split('/').filter(Boolean).pop() || '');
+  const m = last.match(/^\d+-(.+)$/);
+  return m ? m[1].replace(/-/g,' ').trim() : '';
+}
+
+window.switchPlayerTab = function(name, btn){
+  document.querySelectorAll('.pl-tab').forEach(t=>t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('.pl-panel').forEach(p=>p.classList.remove('active'));
+  const panel = document.getElementById('pl-'+name);
+  if (panel) panel.classList.add('active');
+};
+
+window.loadPlayer = async function(pid, name){
+  const root = document.getElementById('player-root');
+  if (!root) return;
+  root.innerHTML = `<div class="skel" style="padding:20px;"><div class="sk-h"></div><div class="sk-r"></div><div class="sk-r"></div></div>`;
+
+  try {
+    const sb = (typeof S !== 'undefined' && S.sb) ? S.sb
+             : window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
+
+    const { data: p } = await sb.from('tm_players').select('*').eq('id', pid).maybeSingle();
+    if (!p){ root.innerHTML = `<div class="empty" style="padding:20px;"><div class="empty-t">Oyuncu bulunamadı.</div></div>`; return; }
+
+    /* Paralel: takım + değer geçmişi + sezon ist. + transferler */
+    const [teamR, mvR, stR, trR] = await Promise.all([
+      p.team_id ? sb.from('tm_teams').select('id,name,crest_url,mac_t_id,league').eq('id', p.team_id).maybeSingle() : Promise.resolve({data:null}),
+      sb.from('tm_market_values').select('value_date,value_eur,club,age').eq('player_id', pid).order('value_date',{ascending:true}),
+      sb.from('tm_player_stats').select('*').eq('player_id', pid).order('saison_id',{ascending:false}),
+      sb.from('tm_player_transfer').select('*').eq('player_id', pid).order('transfer_date',{ascending:false})
+    ]);
+    const team = teamR?.data || null;
+    const mvals = mvR?.data || [];
+    const stats = stR?.data || [];
+    const transfers = trR?.data || [];
+
+    /* Transfer kulüp id'lerini isme çevir (tm_teams) */
+    let clubMap = {};
+    const clubIds = [...new Set(transfers.flatMap(t=>[t.from_club_id,t.to_club_id]).filter(x=>x!=null))];
+    if (clubIds.length){
+      try { const { data } = await sb.from('tm_teams').select('id,name').in('id', clubIds);
+        (data||[]).forEach(c=>{ clubMap[c.id] = c.name; }); } catch(e){}
+    }
+
+    document.title = (p.name || 'Oyuncu') + ' — Profil, İstatistik, Piyasa Değeri | ScorePop';
+    renderPlayerPage(root, pid, p, team, mvals, stats, transfers, clubMap);
+  } catch(err){
+    console.error('Oyuncu sayfası hatası:', err);
+    root.innerHTML = `<div class="empty" style="padding:20px;"><div class="empty-t">Oyuncu verileri yüklenirken sorun oluştu.</div></div>`;
+  }
+};
+
+/* Piyasa değeri sparkline (inline SVG, kütüphanesiz) */
+function _plSparkline(mvals){
+  const pts = (mvals||[]).filter(m=>m.value_eur!=null);
+  if (pts.length < 2) return '';
+  const W=600, H=120, pad=8;
+  const vals = pts.map(p=>Number(p.value_eur));
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const span = (max-min)||1;
+  const x = i => pad + (i/(pts.length-1))*(W-2*pad);
+  const y = v => H-pad - ((v-min)/span)*(H-2*pad);
+  const line = pts.map((p,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(p.value_eur).toFixed(1)}`).join(' ');
+  const area = `${line} L${x(pts.length-1).toFixed(1)},${H-pad} L${x(0).toFixed(1)},${H-pad} Z`;
+  return `<svg class="pl-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <path d="${area}" fill="var(--or3)"/>
+    <path d="${line}" fill="none" stroke="var(--or)" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
+  </svg>`;
+}
+
+function _eur(v){ return v ? '€'+Number(v).toLocaleString('tr-TR') : '–'; }
+
+function renderPlayerPage(root, pid, p, team, mvals, stats, transfers, clubMap){
+  const css = `<style>
+    .pl{max-width:920px;margin:0 auto;}
+    .pl-hero{position:relative;overflow:hidden;border-radius:18px;padding:24px;margin-bottom:14px;
+      background:linear-gradient(135deg,var(--bg2) 0%,var(--bg4) 100%);border:1px solid var(--b1);
+      display:flex;gap:20px;align-items:center;}
+    .pl-portrait{width:104px;height:104px;flex-shrink:0;border-radius:14px;object-fit:cover;background:var(--bg2);border:1px solid var(--b1);}
+    .pl-ph{width:104px;height:104px;flex-shrink:0;border-radius:14px;background:var(--bg2);border:1px solid var(--b1);
+      display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:800;color:var(--tx3);}
+    .pl-head{min-width:0;}
+    .pl-num{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--or);
+      background:var(--or2);border:1px solid rgba(242,100,25,.3);padding:2px 8px;border-radius:20px;margin-bottom:7px;}
+    .pl-name{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;line-height:1.05;color:var(--tx1);}
+    .pl-team{font-size:13px;color:var(--tx2);margin-top:5px;}
+    .pl-team b{color:var(--tx1);}
+    .pl-team a{color:var(--or);text-decoration:none;cursor:pointer;}.pl-team a:hover{text-decoration:underline;}
+    .pl-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+    .pl-stat{background:var(--bg2);border:1px solid var(--b1);border-radius:12px;padding:11px 13px;}
+    .pl-stat-l{font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--tx3);margin-bottom:5px;}
+    .pl-stat-v{font-family:'JetBrains Mono',monospace;font-size:15.5px;font-weight:700;color:var(--tx1);}
+    .pl-tabs{display:flex;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:12px;padding:5px;margin-bottom:14px;position:sticky;top:8px;z-index:5;}
+    .pl-tab{flex:1;border:none;background:none;font-family:'Barlow',sans-serif;font-size:14px;font-weight:600;color:var(--tx2);padding:10px 8px;border-radius:8px;cursor:pointer;transition:all .18s;}
+    .pl-tab:hover{color:var(--tx1);background:var(--b1);}
+    .pl-tab.active{color:#fff;background:var(--or);box-shadow:0 3px 10px var(--or-glow);}
+    .pl-panel{display:none;}.pl-panel.active{display:block;animation:tpfade .25s ease;}
+    .pl-empty{text-align:center;color:var(--tx3);padding:34px 0;font-size:14px;}
+    .pl-card{border:1px solid var(--b1);border-radius:14px;background:var(--bg2);padding:16px;margin-bottom:12px;}
+    .pl-card-t{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--tx3);margin-bottom:10px;}
+    .pl-mv-now{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:800;color:var(--tx1);}
+    .pl-mv-sub{font-size:12px;color:var(--tx3);margin-top:2px;}
+    .pl-spark{width:100%;height:120px;display:block;margin-top:10px;}
+    .pl-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+    .pl-tbl th{font-size:10.5px;font-weight:700;text-transform:uppercase;color:var(--tx3);padding:9px 8px;text-align:center;border-bottom:1px solid var(--b2);background:var(--bg4);}
+    .pl-tbl th.l,.pl-tbl td.l{text-align:left;}
+    .pl-tbl td{padding:9px 8px;text-align:center;border-bottom:1px solid var(--b1);color:var(--tx2);}
+    .pl-tbl tr:last-child td{border-bottom:none;}
+    .pl-tbl td.comp{text-align:left;color:var(--tx1);font-weight:600;}
+    .pl-tbl td.g{font-family:'JetBrains Mono',monospace;color:var(--tx1);font-weight:700;}
+    .pl-tr{display:grid;grid-template-columns:78px 1fr auto;gap:12px;align-items:center;padding:11px 4px;border-bottom:1px solid var(--b1);}
+    .pl-tr:last-child{border-bottom:none;}
+    .pl-tr-date{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--tx3);}
+    .pl-tr-route{font-size:13.5px;color:var(--tx1);}.pl-tr-route .arr{color:var(--tx3);margin:0 7px;}
+    .pl-tr-fee{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--tx1);white-space:nowrap;}
+    @media(max-width:600px){.pl-stats{grid-template-columns:repeat(2,1fr);}.pl-name{font-size:24px;}.pl-portrait,.pl-ph{width:84px;height:84px;}}
+  </style>`;
+
+  const pos = p.main_position || p.position || '–';
+  const initials = (p.name||'?').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+  const teamLink = team
+    ? (team.mac_t_id != null
+        ? `<a onclick="goToTeam(${team.mac_t_id},'${(team.name||'').replace(/'/g,"\\'")}',event)">${esc(team.name)}</a>`
+        : `<b>${esc(team.name)}</b>`)
+    : '–';
+
+  const hero = `<div class="pl-hero">
+    ${p.portrait_url ? `<img class="pl-portrait" src="${esc(p.portrait_url)}" onerror="this.outerHTML='<div class=&quot;pl-ph&quot;>${esc(initials)}</div>'" alt="">` : `<div class="pl-ph">${esc(initials)}</div>`}
+    <div class="pl-head">
+      ${p.shirt_number != null && p.shirt_number !== '' ? `<span class="pl-num">#${esc(p.shirt_number)}</span>` : ''}
+      <div class="pl-name">${esc(p.name||'')}</div>
+      <div class="pl-team">${teamLink} &nbsp;·&nbsp; ${esc(pos)}</div>
+    </div></div>`;
+
+  const statChips = `<div class="pl-stats">
+    <div class="pl-stat"><div class="pl-stat-l">Piyasa Değeri</div><div class="pl-stat-v">${_eur(p.market_value_eur)}</div></div>
+    <div class="pl-stat"><div class="pl-stat-l">Yaş</div><div class="pl-stat-v">${esc(p.age ?? '–')}</div></div>
+    <div class="pl-stat"><div class="pl-stat-l">Uyruk</div><div class="pl-stat-v" style="font-size:13px">${esc(p.nationality || '–')}</div></div>
+    <div class="pl-stat"><div class="pl-stat-l">Boy</div><div class="pl-stat-v">${p.height_cm ? esc(p.height_cm)+' cm' : '–'}</div></div>
+    <div class="pl-stat"><div class="pl-stat-l">Ayak</div><div class="pl-stat-v" style="font-size:13px">${esc(p.foot || '–')}</div></div>
+    <div class="pl-stat"><div class="pl-stat-l">Mevki</div><div class="pl-stat-v" style="font-size:13px">${esc(pos)}</div></div>
+    <div class="pl-stat"><div class="pl-stat-l">Doğum</div><div class="pl-stat-v" style="font-size:13px">${p.birth_date ? esc(String(p.birth_date).slice(0,10)) : '–'}</div></div>
+    <div class="pl-stat"><div class="pl-stat-l">Menajer</div><div class="pl-stat-v" style="font-size:13px">${esc(p.agent || '–')}</div></div>
+  </div>`;
+
+  /* GENEL: değer grafiği */
+  let mvHtml;
+  if (mvals && mvals.length){
+    const cur = mvals[mvals.length-1];
+    const peak = mvals.reduce((a,b)=>Number(b.value_eur)>Number(a.value_eur)?b:a, mvals[0]);
+    mvHtml = `<div class="pl-card">
+      <div class="pl-card-t">Piyasa Değeri Gelişimi</div>
+      <div class="pl-mv-now">${_eur(cur.value_eur)}</div>
+      <div class="pl-mv-sub">Zirve: ${_eur(peak.value_eur)} (${peak.value_date?String(peak.value_date).slice(0,10):'–'}) &nbsp;·&nbsp; ${mvals.length} kayıt</div>
+      ${_plSparkline(mvals)}
+    </div>`;
+  } else {
+    mvHtml = `<div class="pl-card"><div class="pl-card-t">Piyasa Değeri Gelişimi</div><div class="pl-empty">Değer geçmişi bulunamadı.</div></div>`;
+  }
+
+  let extraHtml = '';
+  if (p.youth_clubs){
+    extraHtml = `<div class="pl-card"><div class="pl-card-t">Altyapı Kulüpleri</div>
+      <div style="font-size:13.5px;color:var(--tx2);line-height:1.6;">${esc(p.youth_clubs)}</div></div>`;
+  }
+
+  /* İSTATİSTİK */
+  let stHtml;
+  if (stats && stats.length){
+    const rows = stats.map(s=>`<tr>
+      <td class="comp">${esc(s.competition_name || s.competition || '')}</td>
+      <td>${esc(s.season_name || s.saison_id || '')}</td>
+      <td>${esc(s.games_played ?? '–')}</td>
+      <td class="g">${esc(s.goals ?? 0)}</td>
+      <td class="g">${esc(s.assists ?? 0)}</td>
+      <td>${esc(s.yellow_cards ?? 0)}</td>
+      <td>${esc(s.red_cards ?? 0)}</td>
+    </tr>`).join('');
+    stHtml = `<div class="pl-card"><table class="pl-tbl">
+      <thead><tr><th class="l">Turnuva</th><th>Sezon</th><th>O</th><th>G</th><th>A</th><th>🟨</th><th>🟥</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
+  } else {
+    stHtml = `<div class="pl-empty">Sezon istatistiği bulunamadı.</div>`;
+  }
+
+  /* TRANSFERLER */
+  let trHtml;
+  if (transfers && transfers.length){
+    trHtml = `<div class="pl-card">` + transfers.map(t=>{
+      const from = clubMap[t.from_club_id] || (t.from_competition || ('#'+(t.from_club_id??'?')));
+      const to   = clubMap[t.to_club_id]   || (t.to_competition   || ('#'+(t.to_club_id??'?')));
+      const fee  = t.fee_eur ? _eur(t.fee_eur) : (t.kind ? esc(t.kind) : '–');
+      return `<div class="pl-tr">
+        <div class="pl-tr-date">${t.transfer_date ? esc(String(t.transfer_date).slice(0,10)) : '–'}</div>
+        <div class="pl-tr-route">${esc(from)}<span class="arr">→</span>${esc(to)}</div>
+        <div class="pl-tr-fee">${fee}</div>
+      </div>`;
+    }).join('') + `</div>`;
+  } else {
+    trHtml = `<div class="pl-empty">Transfer kaydı bulunamadı.</div>`;
+  }
+
+  root.innerHTML = css + `<div class="pl">
+    ${hero}
+    ${statChips}
+    <div class="pl-tabs">
+      <button class="pl-tab active" onclick="switchPlayerTab('genel',this)">Genel</button>
+      <button class="pl-tab" onclick="switchPlayerTab('stats',this)">İstatistik</button>
+      <button class="pl-tab" onclick="switchPlayerTab('transfers',this)">Transferler</button>
+    </div>
+    <div id="pl-genel" class="pl-panel active">${mvHtml}${extraHtml}</div>
+    <div id="pl-stats" class="pl-panel">${stHtml}</div>
+    <div id="pl-transfers" class="pl-panel">${trHtml}</div>
+  </div>`;
 }

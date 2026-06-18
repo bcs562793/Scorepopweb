@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Oyuncu Detayı — ScorePop</title>
+  <link rel="stylesheet" href="/style.css?v=9">
+  <link rel="icon" href="/favicon.ico">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .tb{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:12px;
+      padding:10px 16px;background:var(--bg1,#0e1116);border-bottom:1px solid var(--b1,#23262d);}
+    .tb-btn{display:flex;align-items:center;justify-content:center;width:36px;height:36px;
+      background:var(--b1,#23262d);border:none;border-radius:8px;color:var(--tx2,#9aa3af);cursor:pointer;transition:background .12s,color .12s;}
+    .tb-btn:hover{background:var(--or,#f26419);color:#fff;}
+    .tb-logo{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:.5px;color:var(--tx1,#e7eaee);}
+    .tb-logo span{color:var(--or,#f26419);}
+  </style>
+</head>
+<body>
+  <header class="tb">
+    <button class="tb-btn" onclick="window.history.length>1?window.history.back():window.location.href='/'">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <a href="/" class="tb-logo" style="text-decoration:none;">Score<span>Pop</span></a>
+  </header>
+
+  <div class="main-content" id="player-root" style="padding:16px 16px 32px;max-width:920px;margin:0 auto;">
+    <div class="skel" style="padding:20px;"><div class="sk-h"></div><div class="sk-r"></div><div class="sk-r"></div></div>
+  </div>
+
+  <script src="/config.js"></script>
+  <script src="/oyuncu/player.js?v=1"></script>
+</body>
+</html>

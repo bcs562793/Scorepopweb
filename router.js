@@ -19,6 +19,7 @@ const Router = (() => {
     tvrehberi:  /^\/?tv-rehberi(?:\/(?:index\.html)?)?\/?$/i,
     puandurumu: /^\/?puan-durumu(?:\/(?:index\.html)?)?\/?$/i,
     team:       /^\/?takim\/(\d+)(?:-[^/]+)?\/?$/i,
+    player:     /^\/?oyuncu\/(\d+)(?:-[^/]+)?\/?$/i,
   };
 
   let _busy = false;
@@ -88,6 +89,13 @@ const Router = (() => {
     if (teamM) {
       if (typeof showTeamView === 'function') showTeamView();
       if (typeof loadTeam === 'function') loadTeam(parseInt(teamM[1], 10));
+      return;
+    }
+
+    const playerM = path.match(ROUTES.player);
+    if (playerM) {
+      if (typeof showPlayerView === 'function') showPlayerView();
+      if (typeof loadPlayer === 'function') loadPlayer(parseInt(playerM[1], 10));
       return;
     }
 

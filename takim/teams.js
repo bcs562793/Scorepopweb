@@ -205,7 +205,8 @@ function render(root, macId, tmTeam, fixtures, standings, players){
     ? `<div class="tp-squad">`+players.map(p=>{
         const cat=posCat(p.position);
         const mv=p.market_value_eur?'€'+Number(p.market_value_eur).toLocaleString('tr-TR'):'–';
-        return `<div class="tp-prow"><div class="tp-pbar" style="background:${cat.c}"></div>
+        const pslug=String(p.name||p.player_name||'').toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+        return `<div class="tp-prow" style="cursor:pointer" onclick="window.location.href='/oyuncu/${p.id}-${pslug}'"><div class="tp-pbar" style="background:${cat.c}"></div>
           <div class="tp-pcat" style="background:${cat.c}">${cat.k}</div>
           <div><div class="tp-pname">${esc(p.name||p.player_name||'')}</div>${p.position?`<div class="tp-ppos">${esc(p.position)}</div>`:''}</div>
           <div class="tp-pval${p.market_value_eur?'':' muted'}">${mv}</div></div>`;
