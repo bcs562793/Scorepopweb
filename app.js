@@ -259,11 +259,15 @@ async function _boot() {
 }
 
 /* readyState zaten complete ise load eventi bir daha tetiklenmez — direkt çağır */
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  _boot();
-} else {
-  window.addEventListener('load', _boot);
+function _bootWhenReady() {
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', _boot);
+  } else {
+    _boot();
+  }
 }
+/* Dosyanın tamamı (OA dahil) parse edilsin, sonra başlat */
+Promise.resolve().then(_bootWhenReady);
 
 /* ── EVENTS ─────────────────────────────────── */
 function bindEvents() {
