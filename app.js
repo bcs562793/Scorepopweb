@@ -227,16 +227,17 @@ async function _boot() {
   /* 1. Forum — Auth'dan önce başlat (session bağımsız) */
   try { Forum.init(S.sb); } catch(e) { console.warn('Forum:', e); }
 
-  /* 2. Auth — async, tamamlanmasını bekle */
+/* 2. Auth — bloklamadan başlat, arka planda çalışsın */
   try {
     if (typeof Auth !== 'undefined') {
-      await Auth.init(S.sb);
-      Auth.onChange(user => {
-        if (user) {
-          const n = Auth.getDisplayName();
-          if (n) try { localStorage.setItem('sp_nick', n); } catch {}
-        }
-      });
+      Auth.init(S.sb).then(() => {
+        Auth.onChange(user => {
+          if (user) {
+            const n = Auth.getDisplayName();
+            if (n) try { localStorage.setItem('sp_nick', n); } catch {}
+          }
+        });
+      }).catch(e => console.warn('Auth:', e));
     }
   } catch(e) { console.warn('Auth:', e); }
 
