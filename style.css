@@ -624,6 +624,19 @@ img { display: block; }
 .d-status.done  { color: var(--tx3); }
 .d-status.sched { color: var(--tx2); }
 
+/* Penaltı skoru — detay başlığı */
+.d-pen {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px; font-weight: 600; letter-spacing: .5px;
+  color: var(--tx2); margin-top: 2px;
+}
+/* Penaltı skoru — maç listesi satırı (skorun altında küçük) */
+.mr-pen {
+  display: block; text-align: center;
+  font-size: 10px; font-weight: 600; line-height: 1;
+  color: var(--tx3); margin-top: 3px; letter-spacing: .3px;
+}
+
 /* ── VISUAL STREAM ───────────────────────────── */
 .d-visual {
   margin: 0 14px 10px;
