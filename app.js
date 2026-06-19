@@ -1151,6 +1151,8 @@ function normFix(m) {
     away_team_id: m.teams?.away?.id   || m.away_team_id || null,
     home_score: m.home_score  ?? m.goals?.home  ?? null,
     away_score: m.away_score  ?? m.goals?.away  ?? null,
+    pen_home:   m.pen_home ?? null,
+    pen_away:   m.pen_away ?? null,
     status_short: resolvedStatus,
     elapsed_time: m.elapsed_time ?? fx?.status?.elapsed ?? null,
     kickoff_time: kt,
@@ -1330,6 +1332,7 @@ function renderRow(m, isLive) {
           ${isNS ? '' : `<span class="mr-n">${as}</span>`}
           ${awayScored ? `<span class="mr-ball">⚽</span>` : ''}
         </div>
+        ${penText(m) ? `<span class="mr-pen">${penText(m)} pen</span>` : ''}
       </div>
       <div class="mr-away${awayScored ? ' goal-band' : ''}" onclick="goToTeam(${m.away_team_id},'${(m.away_team||'').replace(/'/g,"\\'")}',event)" style="cursor:pointer">
         <div class="mr-logo-wrap">${aLogo}</div>
@@ -3078,6 +3081,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = 
             <span class="d-score-n">${as}</span>
           </div>
           <div class="d-status ${st.cls}">${st.live ? `⚡ ${st.label}` : st.label}</div>
+          ${penText(m) ? `<div class="d-pen">Penaltılar ${penText(m)}</div>` : ''}
         </div>
         <div class="d-team">
           ${m.away_logo ? `<img class="d-logo" src="${esc(m.away_logo)}" onerror="this.style.display='none'" alt="">` : ''}
@@ -3797,7 +3801,7 @@ async function silentUpdateDetail() {
   if (!S.detail) return;
   const { data } = await S.sb
     .from('live_matches')
-    .select('home_score,away_score,elapsed_time,status_short,updated_at,fixture_id,kickoff_at,second_half_at')
+    .select('home_score,away_score,elapsed_time,status_short,updated_at,fixture_id,kickoff_at,second_half_at,pen_home,pen_away')
     .eq('fixture_id', S.detail)
     .maybeSingle();
   if (!data) return;
@@ -3809,6 +3813,20 @@ async function silentUpdateDetail() {
   if (nums[1]) nums[1].textContent = m.away_score ?? '-';
   const ste = document.querySelector('.d-status');
   if (ste) ste.textContent = st.live ? `⚡ ${st.label}` : st.label;
+
+  /* Penaltı skoru — canlı patch. Kutu yoksa status'tan sonra oluştur. */
+  const pen = penText(m);
+  let penEl = document.querySelector('.d-pen');
+  if (pen) {
+    if (!penEl && ste) {
+      penEl = document.createElement('div');
+      penEl.className = 'd-pen';
+      ste.insertAdjacentElement('afterend', penEl);
+    }
+    if (penEl) penEl.textContent = `Penaltılar ${pen}`;
+  } else if (penEl) {
+    penEl.remove();
+  }
 }
 
 /* ── GOL FLASH ───────────────────────────────── */
@@ -3933,6 +3951,21 @@ if (S.detail && String(m.fixture_id) === String(S.detail)) {
   const ste = document.querySelector('.d-status');
   const st = statusInfo(m);
   if (ste) ste.textContent = st.live ? `⚡ ${st.label}` : st.label;
+  /* Penaltı skoru — realtime patch */
+  {
+    const pen = penText(m);
+    let penEl = document.querySelector('.d-pen');
+    if (pen) {
+      if (!penEl && ste) {
+        penEl = document.createElement('div');
+        penEl.className = 'd-pen';
+        ste.insertAdjacentElement('afterend', penEl);
+      }
+      if (penEl) penEl.textContent = `Penaltılar ${pen}`;
+    } else if (penEl) {
+      penEl.remove();
+    }
+  }
   /* EĞER SKOR DEĞİŞTİYSE: Olaylar tablosuna golün düşmesi için sayfayı arkadan yenile */
   if (scoreChanged) {
     loadDetail(S.detail, true);
@@ -4153,6 +4186,14 @@ function calcElapsed(m) {
 }
 
 /* ── STATUS ──────────────────────────────────── */
+/* Penaltı skoru etiketi — pen_home/pen_away doluysa "5-3" döner, yoksa '' */
+function penText(m) {
+  const ph = m.pen_home, pa = m.pen_away;
+  if (ph == null || pa == null) return '';
+  if (+ph === 0 && +pa === 0) return '';
+  return `${ph}-${pa}`;
+}
+
 function statusInfo(m) {
   const s = m.status_short;
   const liveSet = new Set(['1H','2H','HT','ET','BT','P','LIVE']);
