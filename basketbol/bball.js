@@ -359,7 +359,7 @@ function renderBballRow(m) {
   const sbCls = st.live ? 'mr-sb live' : (isNS ? 'mr-sb ns' : 'mr-sb');
 
   return `
-    <div class="mr${st.live ? ' is-live' : ''}" data-id="${m.id}" onclick="openBballDetail('${m.id}')">
+    <div class="mr${st.live ? ' is-live' : ''}" data-id="${m.id}" style="cursor:pointer" onclick="goBballMatch('${m.id}')">
       <div class="mr-time"><span class="mr-t1 ${stCls}">${esc(st.label)}</span></div>
       <div class="mr-home">
         <span class="mr-name ${hcls}">${esc(m.home_team)}</span>
@@ -378,6 +378,25 @@ function renderBballRow(m) {
       </div>
       <div class="mr-x"><span class="mr-arr">›</span></div>
     </div>`;
+}
+
+/* Maça tıklayınca /basketbol/mac/ detay sayfasına git (ana sayfayla tutarlı) */
+function _bballSlug(s) {
+  return String(s || '').toLowerCase()
+    .replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s')
+    .replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,50);
+}
+
+function goBballMatch(id) {
+  const row = _findBballRow(id);
+  const home = row?.home_team || '';
+  const away = row?.away_team || '';
+  if (home && away) {
+    location.href = `/basketbol/mac/${id}-${_bballSlug(home)}-vs-${_bballSlug(away)}`;
+  } else {
+    location.href = `/basketbol/mac/${id}`;
+  }
 }
 
 function openBballDetail(id) {
@@ -460,6 +479,7 @@ function openBballDetail(id) {
 
   const modal = document.getElementById('bball-modal');
   const body = document.getElementById('bball-modal-body');
+  if (!modal || !body) { console.error('bball-modal DOM bulunamadı'); return; }
 
   body.innerHTML = `
     <div class="bball-dtl-hero">
@@ -623,9 +643,12 @@ async function initBball() {
   startBballTick();
 
   /* Close modal on backdrop click */
-  document.getElementById('bball-modal').addEventListener('click', e => {
-    if (e.target.id === 'bball-modal') closeBballModal();
-  });
+  const _bm = document.getElementById('bball-modal');
+  if (_bm) {
+    _bm.addEventListener('click', e => {
+      if (e.target.id === 'bball-modal') closeBballModal();
+    });
+  }
 
   /* Keyboard: Escape closes modal */
   document.addEventListener('keydown', e => {
