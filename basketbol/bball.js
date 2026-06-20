@@ -122,6 +122,24 @@ function pickBballDate(d) {
   loadBball(false);
 }
 
+/* Takvim butonu → native tarih seçiciyi aç */
+function bballOpenCalendar() {
+  const inp = document.getElementById('bball-date-input');
+  if (!inp) return;
+  inp.value = B.date;
+  try {
+    if (typeof inp.showPicker === 'function') { inp.showPicker(); return; }
+  } catch (_) { /* showPicker bazı tarayıcılarda hata atabilir → fallback */ }
+  inp.focus();
+  inp.click();
+}
+
+/* Takvimden tarih seçildiğinde */
+function pickBballCalendar(val) {
+  if (!val) return;
+  pickBballDate(val);
+}
+
 /* ── SUPABASE FETCH (paginated) ─────────────────────── */
 async function fetchAllBballRows(query) {
   const PAGE = 1000;
