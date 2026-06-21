@@ -294,7 +294,7 @@ function navigate(page) {
   /* Oran Analizi sayfası — ayrı view */
   if (page === 'odds') {
     document.getElementById('date-strip').style.display = 'none';
-    const calBtn2 = document.querySelector('.tb-cal-btn');
+    const calBtn2 = document.querySelector('.tb-cal-grp');
     if (calBtn2) calBtn2.style.display = 'none';
     stopRealtime();
     showView('odds');
@@ -304,7 +304,7 @@ function navigate(page) {
 
   const showDate = page !== 'live';
   document.getElementById('date-strip').style.display = showDate ? 'flex' : 'none';
-  const calBtn2 = document.querySelector('.tb-cal-btn');
+  const calBtn2 = document.querySelector('.tb-cal-grp');
   if (calBtn2) calBtn2.style.display = showDate ? 'flex' : 'none';
 
   try {
@@ -716,6 +716,29 @@ function buildDateStrip() {
 function _activateDateBtn(activeBtn) {
   document.querySelectorAll('#date-strip .dp').forEach(p => p.classList.remove('active'));
   if (activeBtn) activeBtn.classList.add('active');
+}
+
+/* Önceki / sonraki gün — takvim yanındaki ok butonları */
+function shiftFootballDate(delta) {
+  const base = S.date || todayStr();
+  const d = new Date(base + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
+  const s = fmtDate(d);
+  S.date = s;
+  S.page = 'today';
+  document.querySelectorAll('.sb-btn[data-page]').forEach(b =>
+    b.classList.toggle('active', b.dataset.page === 'today'));
+  try { if (typeof Router !== 'undefined') Router.goToday(s); } catch(e) {}
+  let matched = null;
+  document.querySelectorAll('#date-strip .dp').forEach(b => {
+    if (b.dataset.dateVal === s) matched = b;
+  });
+  _activateDateBtn(matched);
+  const cp = document.getElementById('cal-picker');
+  if (cp) cp.value = '';
+  const calBtn = document.querySelector('.tb-cal-btn');
+  if (calBtn) calBtn.classList.remove('active');
+  loadMatches();
 }
 
 /* ── LOAD ────────────────────────────────────── */
@@ -3239,7 +3262,45 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = 
     html += `<div class="ev-list"><div class="ev-none">Henüz olay yok</div></div>`;
   } else {
     html += `<div class="ev-list">`;
+
+    /* ── Maç aşaması işaretçileri ───────────────────────────────── */
+    const FIN_SET = new Set(['FT','AET','PEN']);
+    const isFin   = FIN_SET.has(m.status_short);
+    const sShort  = m.status_short;
+    const penStr  = penText(m);
+    const hadET   = isFin
+      ? (sShort === 'AET' || sShort === 'PEN' || evs.some(e => (+e.elapsed_time||0) > 90))
+      : (sShort === 'ET'  || sShort === 'BT'  || sShort === 'P' || evs.some(e => (+e.elapsed_time||0) > 90));
+    const hadPen  = !!penStr || sShort === 'PEN' || sShort === 'P';
+
+    let _rh = 0, _ra = 0;
+    const evPhase   = e => { const el = +e.elapsed_time || 0; return el <= 45 ? 1 : el <= 90 ? 2 : 3; };
+    const applyGoal = e => {
+      const t = (e.event_type||'').toLowerCase(), d = (e.event_detail||'').toLowerCase();
+      if (t !== 'goal') return;
+      if (!(+e.elapsed_time)) return;
+      if (d.includes('missed') || d.includes('kaçır') || d.includes('saved')) return;
+      const homeTeam = e.team_id == m.home_team_id;
+      const scoringHome = d.includes('own') ? !homeTeam : homeTeam;
+      if (scoringHome) _rh++; else _ra++;
+    };
+    const phaseRow = txt => `<div class="ev-phase"><span>${txt}</span></div>`;
+
+    html += phaseRow('Maç Başladı');
+    let htShown = false, etShown = false;
+
     evs.forEach(e => {
+      const ph = evPhase(e);
+      if (ph >= 2 && !htShown) {
+        html += phaseRow(`İlk Yarı Sonu · ${_rh}-${_ra}`);
+        html += phaseRow('İkinci Yarı Başladı');
+        htShown = true;
+      }
+      if (ph >= 3 && !etShown) {
+        html += phaseRow(`Normal Süre Sonu · ${_rh}-${_ra}`);
+        html += phaseRow('Uzatmalar Başladı');
+        etShown = true;
+      }
       const home = e.team_id == m.home_team_id;
       const ic = evIcon(e.event_type, e.event_detail);
       const icCls = evCls(e.event_type, e.event_detail);
@@ -3256,7 +3317,31 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = 
           <div class="ev-min">${t}</div>
           <div class="ev-side ev-right">${home ? '' : ico + info}</div>
         </div>`;
+      applyGoal(e);
     });
+
+    if (!htShown && sShort === 'HT') {
+      html += phaseRow(`İlk Yarı Sonu · ${_rh}-${_ra}`);
+    }
+    if (isFin) {
+      if (!htShown) {
+        html += phaseRow(`İlk Yarı Sonu · ${_rh}-${_ra}`);
+        html += phaseRow('İkinci Yarı Başladı');
+        htShown = true;
+      }
+      if (hadET) {
+        if (!etShown) {
+          html += phaseRow(`Normal Süre Sonu · ${_rh}-${_ra}`);
+          html += phaseRow('Uzatmalar Başladı');
+          etShown = true;
+        }
+        html += phaseRow(`Uzatma Sonucu · ${hs}-${as}`);
+        if (hadPen) html += phaseRow(`Penaltılar · ${penStr}`);
+      } else {
+        html += phaseRow(`Maç Sonu · ${hs}-${as}`);
+      }
+    }
+
     html += `</div>`;
   }
   html += `</div>`;

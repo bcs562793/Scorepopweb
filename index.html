@@ -35,7 +35,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
-<link rel="stylesheet" href="style.css?v=1782051068"/>
+<link rel="stylesheet" href="style.css?v=1782059392"/>
 <!-- 404.html redirect trick: ?p=/mac/123 → gerçek URL -->
 <script>
 (function() {
@@ -162,10 +162,14 @@
     </div>
 
     <div class="tb-date" id="date-strip"></div>
-    <label class="tb-cal-btn" title="Tarih seç">
-      <span>📅</span>
-      <input type="date" id="cal-picker" max="">
-    </label>
+    <div class="tb-cal-grp">
+      <button class="tb-day-nav" id="tb-prev-day" title="Önceki gün" aria-label="Önceki gün" onclick="shiftFootballDate(-1)">‹</button>
+      <label class="tb-cal-btn" title="Tarih seç">
+        <span>📅</span>
+        <input type="date" id="cal-picker" max="">
+      </label>
+      <button class="tb-day-nav" id="tb-next-day" title="Sonraki gün" aria-label="Sonraki gün" onclick="shiftFootballDate(1)">›</button>
+    </div>
 
     <div class="tb-right">
       <div class="tb-live" id="tb-live">
@@ -280,13 +284,13 @@ window._watchdog = setTimeout(function() {
   }
 }, 15000);
 </script>
-<script defer src="config.js?v=1782051068"></script>
-<script defer src="router.js?v=1782051068"></script>
-<script defer src="auth.js?v=1782051068"></script>
-<script defer src="forum.js?v=1782051068"></script>
-<script defer src="payment.js?v=1782051068"></script>
-<script defer src="indexing.js?v=1782051068"></script>
-<script defer src="app.js?v=1782051068"></script>
+<script defer src="config.js?v=1782059392"></script>
+<script defer src="router.js?v=1782059392"></script>
+<script defer src="auth.js?v=1782059392"></script>
+<script defer src="forum.js?v=1782059392"></script>
+<script defer src="payment.js?v=1782059392"></script>
+<script defer src="indexing.js?v=1782059392"></script>
+<script defer src="app.js?v=1782059392"></script>
 
 
 <!-- HAKKIMIZDA / İLETİŞİM OVERLAY'LERİ -->
