@@ -122,6 +122,15 @@ function pickBballDate(d) {
   loadBball(false);
 }
 
+/* Önceki / sonraki gün — takvim yanındaki ok butonları */
+function shiftBballDate(delta) {
+  const base = B.date || todayStr();
+  const d = new Date(base + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
+  const s = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  pickBballDate(s);
+}
+
 /* Takvim butonu → native tarih seçiciyi aç */
 function bballOpenCalendar() {
   const inp = document.getElementById('bball-date-input');

@@ -89,6 +89,32 @@
   color: #fff;
   box-shadow: 0 2px 12px rgba(242,100,25,.35);
 }
+.bb-day-nav {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  border-radius: 18px;
+  background: var(--b1);
+  border: 1px solid var(--b2);
+  color: var(--tx2);
+  font-family: 'Barlow', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s, box-shadow .15s;
+}
+.bb-day-nav:last-of-type { margin-right: 0; margin-left: 6px; }
+.bb-day-nav:hover {
+  background: var(--or);
+  border-color: var(--or);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(242,100,25,.35);
+}
 .bb-cal-input {
   position: absolute;
   right: 12px;
@@ -420,10 +446,12 @@
   <div class="bb-date-wrap">
     <div id="bball-date-strip"></div>
     <div class="bb-cal-wrap">
+      <button class="bb-day-nav" onclick="shiftBballDate(-1)" title="Önceki gün" aria-label="Önceki gün">‹</button>
       <button class="bb-cal-btn" onclick="bballOpenCalendar()" title="Tarih seç" aria-label="Takvimden tarih seç">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x=".75" y="1.75" width="12.5" height="11.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 .75v2M10 .75v2M.75 5.25h12.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
         <span class="bb-cal-label">Takvim</span>
       </button>
+      <button class="bb-day-nav" onclick="shiftBballDate(1)" title="Sonraki gün" aria-label="Sonraki gün">›</button>
       <input type="date" id="bball-date-input" class="bb-cal-input" onchange="pickBballCalendar(this.value)">
     </div>
   </div>
@@ -460,6 +488,6 @@ function toggleSidebar(){
 </script>
 
 <script src="/config.js"></script>
-<script src="/basketbol/bball.js?v=3"></script>
+<script src="/basketbol/bball.js?v=4"></script>
 </body>
 </html>
