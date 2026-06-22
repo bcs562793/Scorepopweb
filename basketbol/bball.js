@@ -20,6 +20,8 @@ const B = {
   timer:    null,
   cd:       30,
   tickTimer: null,
+  rtChannel: null,   /* Supabase realtime kanalı */
+  rtReloadT: null,   /* görünmeyen satır için debounce'lu tam yenileme */
   detail:   null,
   archiveCache: {},
   rowsCache: {},   /* id → row; canlı/bugün/yaklaşan satırları depolar */
@@ -120,33 +122,6 @@ function pickBballDate(d) {
   B.date = d;
   buildBballDateStrip();
   loadBball(false);
-}
-
-/* Önceki / sonraki gün — takvim yanındaki ok butonları */
-function shiftBballDate(delta) {
-  const base = B.date || todayStr();
-  const d = new Date(base + 'T00:00:00');
-  d.setDate(d.getDate() + delta);
-  const s = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  pickBballDate(s);
-}
-
-/* Takvim butonu → native tarih seçiciyi aç */
-function bballOpenCalendar() {
-  const inp = document.getElementById('bball-date-input');
-  if (!inp) return;
-  inp.value = B.date;
-  try {
-    if (typeof inp.showPicker === 'function') { inp.showPicker(); return; }
-  } catch (_) { /* showPicker bazı tarayıcılarda hata atabilir → fallback */ }
-  inp.focus();
-  inp.click();
-}
-
-/* Takvimden tarih seçildiğinde */
-function pickBballCalendar(val) {
-  if (!val) return;
-  pickBballDate(val);
 }
 
 /* ── SUPABASE FETCH (paginated) ─────────────────────── */
@@ -343,92 +318,114 @@ function renderBball(rows, isLive) {
 function renderBballGroup(g) {
   const liveCount = g.matches.filter(m => bballStatus(m).live).length;
   const liveBadge = liveCount
-    ? `<span class="lg-live-ct">${liveCount} CANLI</span>`
+    ? `<span class="bball-live-badge">${liveCount} CANLI</span>`
     : '';
-  const nm = esc(g.country ? `${g.country} ${g.name}` : g.name);
 
   return `
-    <div class="lg-grp">
-      <div class="lg-hdr" onclick="this.closest('.lg-grp').classList.toggle('closed')">
-        <div style="display:flex;align-items:center;gap:6px;flex:1;flex-wrap:nowrap">
-          <span class="lg-hdr-name" style="white-space:nowrap;font-size:13px;font-weight:500">${nm}</span>
-          ${liveBadge}
-        </div>
-        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-          <span class="lg-arrow">▾</span>
-        </div>
+    <div class="bball-grp">
+      <div class="bball-hdr" onclick="this.closest('.bball-grp').classList.toggle('closed')">
+        <span class="bball-sport-icon">🏀</span>
+        <span class="bball-hdr-name">${esc(g.country ? `${g.country} ${g.name}` : g.name)}</span>
+        ${liveBadge}
+        <span class="bball-arrow">▾</span>
       </div>
-      <div class="lg-body">${g.matches.map(m => renderBballRow(m)).join('')}</div>
+      <div class="bball-body">${g.matches.map(m => renderBballRow(m)).join('')}</div>
     </div>`;
 }
 
 function renderBballRow(m) {
   const st = bballStatus(m);
   const isNS = !st.live && !st.done;
-  const stCls = st.live ? 'live' : (st.done ? 'done' : 'sched');
 
-  const hs = isNS ? 'v' : (m.home_score != null ? m.home_score : '-');
-  const as = isNS ? ''  : (m.away_score != null ? m.away_score : '-');
+  const hs = isNS ? '—' : (m.home_score != null ? m.home_score : '-');
+  const as = isNS ? '—' : (m.away_score != null ? m.away_score : '-');
 
   let hcls = '', acls = '';
-  if (st.done && hs !== 'v' && as !== '') {
-    if      (+hs > +as) { hcls = 'bold'; acls = 'dim'; }
-    else if (+as > +hs) { acls = 'bold'; hcls = 'dim'; }
+  if (st.done && hs !== '—' && as !== '—') {
+    if      (+hs > +as) { hcls = 'bball-win'; acls = 'bball-loss'; }
+    else if (+as > +hs) { acls = 'bball-win'; hcls = 'bball-loss'; }
+  }
+
+  /* Quarter scores (only when played/live) */
+  let qtrsHtml = '';
+  if (!isNS) {
+    const quarters = [
+      [m.home_q1, m.away_q1, 'Ç1'],
+      [m.home_q2, m.away_q2, 'Ç2'],
+      [m.home_q3, m.away_q3, 'Ç3'],
+      [m.home_q4, m.away_q4, 'Ç4'],
+    ];
+    const hasOT = m.home_ot != null || m.away_ot != null;
+    if (hasOT) quarters.push([m.home_ot, m.away_ot, 'UZT']);
+
+    const activePeriod = m.period;
+    const qItems = quarters
+      .filter(([h, a]) => h != null || a != null)
+      .map(([h, a, lbl]) => {
+        const isActive = st.live && (
+          (lbl === 'Ç1' && ['1Q','Q1'].includes(m.status_short)) ||
+          (lbl === 'Ç2' && ['2Q','Q2'].includes(m.status_short)) ||
+          (lbl === 'Ç3' && ['3Q','Q3'].includes(m.status_short)) ||
+          (lbl === 'Ç4' && ['4Q','Q4'].includes(m.status_short)) ||
+          (lbl === 'UZT' && m.status_short?.toUpperCase().startsWith('OT'))
+        );
+        return `<span class="bball-qtr${isActive ? ' bball-qtr-live' : ''}">
+          <span class="bball-qtr-lbl">${lbl}</span>
+          <span class="bball-qtr-h">${h ?? '-'}</span>
+          <span class="bball-qtr-sep">:</span>
+          <span class="bball-qtr-a">${a ?? '-'}</span>
+        </span>`;
+      });
+
+    if (qItems.length) {
+      qtrsHtml = `<div class="bball-qtrs">${qItems.join('')}</div>`;
+    }
   }
 
   const homeLogo = m.home_avatar
-    ? `<img class="mr-logo" src="${esc(m.home_avatar)}" onerror="this.style.display='none'" alt="">`
-    : `<div class="mr-logo-ph"></div>`;
+    ? `<img class="bball-logo" src="${esc(m.home_avatar)}" onerror="this.style.display='none'" alt="">`
+    : `<div class="bball-logo-ph">🏀</div>`;
   const awayLogo = m.away_avatar
-    ? `<img class="mr-logo" src="${esc(m.away_avatar)}" onerror="this.style.display='none'" alt="">`
-    : `<div class="mr-logo-ph"></div>`;
+    ? `<img class="bball-logo" src="${esc(m.away_avatar)}" onerror="this.style.display='none'" alt="">`
+    : `<div class="bball-logo-ph">🏀</div>`;
 
-  const sbCls = st.live ? 'mr-sb live' : (isNS ? 'mr-sb ns' : 'mr-sb');
+  const statusCls = st.live ? 'bball-status live' : (st.done ? 'bball-status done' : 'bball-status sched');
 
   return `
-    <div class="mr${st.live ? ' is-live' : ''}" data-id="${m.id}" style="cursor:pointer" onclick="goBballMatch('${m.id}')">
-      <div class="mr-time"><span class="mr-t1 ${stCls}">${esc(st.label)}</span></div>
-      <div class="mr-home">
-        <span class="mr-name ${hcls}">${esc(m.home_team)}</span>
-        <div class="mr-logo-wrap">${homeLogo}</div>
+    <div class="bball-mr${st.live ? ' is-live' : ''}" data-id="${m.id}" onclick="openBballDetail('${m.id}')">
+      <div class="${statusCls}">
+        <span class="bball-st-label">${esc(st.label)}</span>
       </div>
-      <div class="mr-score">
-        <div class="${sbCls}">
-          <span class="mr-n">${hs}</span>
-          ${isNS ? '' : '<div class="mr-sep"></div>'}
-          ${isNS ? '' : `<span class="mr-n">${as}</span>`}
+
+      <div class="bball-team bball-home">
+        <span class="bball-tname ${hcls}">${esc(m.home_team)}</span>
+        <div class="bball-logo-wrap">${homeLogo}</div>
+      </div>
+
+      <div class="bball-scorebox">
+        <div class="bball-total${isNS ? ' bball-vs' : ''}">
+          ${isNS
+            ? `<span class="bball-vs-txt">vs</span>`
+            : `<span class="bball-sn ${hcls}">${hs}</span><div class="bball-sdiv"></div><span class="bball-sn ${acls}">${as}</span>`
+          }
         </div>
+        ${qtrsHtml}
       </div>
-      <div class="mr-away">
-        <div class="mr-logo-wrap">${awayLogo}</div>
-        <span class="mr-name ${acls}">${esc(m.away_team)}</span>
+
+      <div class="bball-team bball-away">
+        <div class="bball-logo-wrap">${awayLogo}</div>
+        <span class="bball-tname ${acls}">${esc(m.away_team)}</span>
       </div>
-      <div class="mr-x"><span class="mr-arr">›</span></div>
+
+      <div class="bball-arr">›</div>
     </div>`;
 }
 
-/* Maça tıklayınca /basketbol/mac/ detay sayfasına git (ana sayfayla tutarlı) */
-function _bballSlug(s) {
-  return String(s || '').toLowerCase()
-    .replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s')
-    .replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c')
-    .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,50);
-}
-
-function goBballMatch(id) {
-  const row = _findBballRow(id);
-  const home = row?.home_team || '';
-  const away = row?.away_team || '';
-  if (home && away) {
-    location.href = `/basketbol/mac/${id}-${_bballSlug(home)}-vs-${_bballSlug(away)}`;
-  } else {
-    location.href = `/basketbol/mac/${id}`;
-  }
-}
-
+/* ── DETAIL MODAL ───────────────────────────────────── */
 function openBballDetail(id) {
   const row = _findBballRow(id);
   if (!row) return;
+  B.detail = id;   /* açık modal — realtime tazelemesi için */
 
   const st = bballStatus(row);
   const isNS = !st.live && !st.done;
@@ -506,7 +503,6 @@ function openBballDetail(id) {
 
   const modal = document.getElementById('bball-modal');
   const body = document.getElementById('bball-modal-body');
-  if (!modal || !body) { console.error('bball-modal DOM bulunamadı'); return; }
 
   body.innerHTML = `
     <div class="bball-dtl-hero">
@@ -560,6 +556,7 @@ function openBballDetail(id) {
 }
 
 function closeBballModal() {
+  B.detail = null;
   document.getElementById('bball-modal').classList.remove('open');
   document.body.classList.remove('modal-open');
 }
@@ -624,7 +621,7 @@ function updateLiveCount(rows) {
 function startBballTick() {
   if (B.tickTimer) clearInterval(B.tickTimer);
   B.tickTimer = setInterval(() => {
-    document.querySelectorAll('.mr.is-live').forEach(el => {
+    document.querySelectorAll('.bball-mr.is-live').forEach(el => {
       const id = el.dataset.id;
       /* Tick sadece görsel güncelleme; gerçek veri yenileme loadBball'dan gelir */
     });
@@ -656,6 +653,51 @@ function updateBballRing() {
   ring.style.strokeDashoffset = C * (1 - B.cd / B.cycle);
 }
 
+/* ── REALTIME (live_bball) ───────────────────────────────
+   Görünür 30sn sayaç yerine arka planda sessiz canlı güncelleme.
+   Değişen satır yerinde yamalanır (flicker yok); realtime koparsa
+   countdown polling'i sessiz yedek olarak devreye girer.          */
+function startBballRealtime() {
+  if (B.rtChannel) { B.sb.removeChannel(B.rtChannel); B.rtChannel = null; }
+  B.rtChannel = B.sb
+    .channel('bball-live')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'live_bball' }, payload => {
+      if (payload.eventType === 'DELETE') return;
+      if (B.date !== todayStr()) return;            /* yalnız bugün görünümünde yamala */
+      _bballPatchRow(payload.new);
+    })
+    .subscribe(status => {
+      if (status === 'SUBSCRIBED') {
+        if (B.timer) { clearInterval(B.timer); B.timer = null; }   /* görünür sayaç polling'i dur */
+        console.log('[Bball realtime] bağlandı ✓');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        startBballCountdown();                       /* yedek polling (görünür halka yok) */
+        console.warn('[Bball realtime] koptu, polling başladı');
+      }
+    });
+}
+
+/* Tek satırı yerinde günceller — renderBballRow tek kaynaktan kullanılır. */
+function _bballPatchRow(m) {
+  if (!m || m.id == null) return;
+  B.rowsCache[String(m.id)] = m;
+  const el = document.querySelector(`.bball-mr[data-id="${m.id}"]`);
+  if (!el) {
+    /* Satır görünmüyor (yeni maç / grup yok) → sessiz tam yenile, debounce'lu */
+    if (B.rtReloadT) return;
+    B.rtReloadT = setTimeout(() => { B.rtReloadT = null; loadBball(true); }, 1200);
+    return;
+  }
+  const tmp = document.createElement('div');
+  tmp.innerHTML = renderBballRow(m);
+  const fresh = tmp.firstElementChild;
+  if (fresh) el.replaceWith(fresh);
+  /* Açık modal bu maçsa tazele */
+  if (B.detail != null && String(B.detail) === String(m.id)) openBballDetail(m.id);
+  /* Canlı sayacını yeniden hesapla */
+  updateLiveCount(Object.values(B.rowsCache));
+}
+
 /* ── INIT ────────────────────────────────────────────── */
 async function initBball() {
   if (typeof window.supabase === 'undefined') {
@@ -666,16 +708,14 @@ async function initBball() {
 
   buildBballDateStrip();
   await loadBball(false);
-  startBballCountdown();
+  startBballCountdown();   /* başlangıç yedeği — realtime bağlanınca durur */
+  startBballRealtime();
   startBballTick();
 
   /* Close modal on backdrop click */
-  const _bm = document.getElementById('bball-modal');
-  if (_bm) {
-    _bm.addEventListener('click', e => {
-      if (e.target.id === 'bball-modal') closeBballModal();
-    });
-  }
+  document.getElementById('bball-modal').addEventListener('click', e => {
+    if (e.target.id === 'bball-modal') closeBballModal();
+  });
 
   /* Keyboard: Escape closes modal */
   document.addEventListener('keydown', e => {
