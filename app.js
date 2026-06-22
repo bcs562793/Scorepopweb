@@ -256,6 +256,10 @@ async function _boot() {
 
   startClock();
   startRealtime();
+
+  /* Dakika ticker'ı — sayfadan/realtime durumundan bağımsız her zaman çalışır.
+     Liste satırları ve açık maç detayındaki dakikayı saniyede bir ilerletir. */
+  if (!S.tickTimer) S.tickTimer = setInterval(_tickLiveMinutes, 1000);
 }
 
 /* readyState zaten complete ise load eventi bir daha tetiklenmez — direkt çağır */
@@ -329,17 +333,24 @@ function openDetail(id, isLive) {
   S.detail     = id;
   S.detailLive = isLive;
   showView('detail');
+  /* Detay açıkken de canlı dinle — today/upcoming/derin link ile gelinmiş olabilir */
+  if (!S.realtimeChannel) startRealtime();
   /* Oran analizi sayfasından geliyorsa sadece oranlar tabında aç */
   loadDetail(id, isLive, S.page === 'odds');
 }
 
 function closeDetail(reload = true) {
   try { if (typeof Forum !== 'undefined') Forum.close(); } catch(e) {}
-  S.detail = null;
+  /* Detay arka plan olay yenileyicisini durdur */
+  if (S.detailEvTimer) { clearInterval(S.detailEvTimer); S.detailEvTimer = null; }
+  S.detail  = null;
+  S._detailM = null;
   if (S.page === 'odds') {
     showView('odds');
     return;
   }
+  /* Canlı sayfaya dönmüyorsak realtime dinlemeyi bırak */
+  if (S.page !== 'live') stopRealtime();
   showView('matches');
   if (reload) loadMatches();
 }
@@ -632,6 +643,7 @@ function openOddsDetail(id, isLive) {
   S.detailLive = isLive;
   S.page       = 'odds'; /* geri gelince odds sayfasına dön */
   showView('detail');
+  if (!S.realtimeChannel) startRealtime();
   loadDetail(id, isLive, true /* oddsOnly */);
 }
 
@@ -3032,10 +3044,102 @@ function buildLineupHTML(ld, m, evs) {
     </div>`;
 }
 
+/* ── OLAY LİSTESİ İÇ HTML — tek kaynak ──────────────────────────────
+   Hem buildDetail hem de sessiz yenileyici (silentRefreshDetailEvents)
+   bu fonksiyonu kullanır; mantık tek yerde tutulur.                  */
+function _eventsListInner(m, evs) {
+  const hs = m.home_score ?? '-', as = m.away_score ?? '-';
+  if (!evs.length) {
+    return `<div class="ev-none">Henüz olay yok</div>`;
+  }
+  let out = '';
+
+  /* ── Maç aşaması işaretçileri ───────────────────────────────── */
+  const FIN_SET = new Set(['FT','AET','PEN']);
+  const isFin   = FIN_SET.has(m.status_short);
+  const sShort  = m.status_short;
+  const penStr  = penText(m);
+  const hadET   = isFin
+    ? (sShort === 'AET' || sShort === 'PEN' || evs.some(e => (+e.elapsed_time||0) > 90))
+    : (sShort === 'ET'  || sShort === 'BT'  || sShort === 'P' || evs.some(e => (+e.elapsed_time||0) > 90));
+  const hadPen  = !!penStr || sShort === 'PEN' || sShort === 'P';
+
+  let _rh = 0, _ra = 0;
+  const evPhase   = e => { const el = +e.elapsed_time || 0; return el <= 45 ? 1 : el <= 90 ? 2 : 3; };
+  const applyGoal = e => {
+    const t = (e.event_type||'').toLowerCase(), d = (e.event_detail||'').toLowerCase();
+    if (t !== 'goal') return;
+    if (!(+e.elapsed_time)) return;
+    if (d.includes('missed') || d.includes('kaçır') || d.includes('saved')) return;
+    const homeTeam = e.team_id == m.home_team_id;
+    const scoringHome = d.includes('own') ? !homeTeam : homeTeam;
+    if (scoringHome) _rh++; else _ra++;
+  };
+  const phaseRow = txt => `<div class="ev-phase"><span>${txt}</span></div>`;
+
+  out += phaseRow('Maç Başladı');
+  let htShown = false, etShown = false;
+
+  evs.forEach(e => {
+    const ph = evPhase(e);
+    if (ph >= 2 && !htShown) {
+      out += phaseRow(`İlk Yarı Sonu · ${_rh}-${_ra}`);
+      out += phaseRow('İkinci Yarı Başladı');
+      htShown = true;
+    }
+    if (ph >= 3 && !etShown) {
+      out += phaseRow(`Normal Süre Sonu · ${_rh}-${_ra}`);
+      out += phaseRow('Uzatmalar Başladı');
+      etShown = true;
+    }
+    const home = e.team_id == m.home_team_id;
+    const ic = evIcon(e.event_type, e.event_detail);
+    const icCls = evCls(e.event_type, e.event_detail);
+    const t = e.elapsed_time ? `${e.elapsed_time}${e.extra_time?'+'+e.extra_time:''}'` : '';
+    const info = `<div class="ev-info">
+            <div class="ev-pl ev-plink" onclick="goToPlayerByName('${(e.player_name||'').replace(/'/g,"\\'")}',event)">${esc(e.player_name||'')}</div>
+            ${e.assist_name ? `<div class="ev-dt ev-plink" onclick="goToPlayerByName('${(e.assist_name||'').replace(/'/g,"\\'")}',event)">⤷ ${esc(e.assist_name)}</div>` : ''}
+            ${e.event_detail ? `<div class="ev-dt">${esc(e.event_detail)}</div>` : ''}
+          </div>`;
+    const ico = `<div class="ev-ico ${icCls}">${ic}</div>`;
+    out += `
+      <div class="ev-row ${home?'ev-h':'ev-a'}">
+        <div class="ev-side ev-left">${home ? info + ico : ''}</div>
+        <div class="ev-min">${t}</div>
+        <div class="ev-side ev-right">${home ? '' : ico + info}</div>
+      </div>`;
+    applyGoal(e);
+  });
+
+  if (!htShown && sShort === 'HT') {
+    out += phaseRow(`İlk Yarı Sonu · ${_rh}-${_ra}`);
+  }
+  if (isFin) {
+    if (!htShown) {
+      out += phaseRow(`İlk Yarı Sonu · ${_rh}-${_ra}`);
+      out += phaseRow('İkinci Yarı Başladı');
+      htShown = true;
+    }
+    if (hadET) {
+      if (!etShown) {
+        out += phaseRow(`Normal Süre Sonu · ${_rh}-${_ra}`);
+        out += phaseRow('Uzatmalar Başladı');
+        etShown = true;
+      }
+      out += phaseRow(`Uzatma Sonucu · ${hs}-${as}`);
+      if (hadPen) out += phaseRow(`Penaltılar · ${penStr}`);
+    } else {
+      out += phaseRow(`Maç Sonu · ${hs}-${as}`);
+    }
+  }
+  return out;
+}
+
 function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = false) {
   S.detailKickoffAt   = m.kickoff_at   || null;
   S.detailSecondHalfAt = m.second_half_at || null;
   S._detailStatus      = m.status_short    || null;
+  S._detailM           = m;   /* sessiz olay yenileyici için takım id'leri/skor kaynağı */
   const st = statusInfo(m);
   const hs = m.home_score ?? '-', as = m.away_score ?? '-';
   
@@ -3255,96 +3359,8 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = 
   biHtml += `</div></div>`;
   html += biHtml;
 
-  // Eski d-ev (Olaylar) panelinin başlangıcı
-  html += `<div class="d-panel" id="d-ev">`;
-   
-  if (!evs.length) {
-    html += `<div class="ev-list"><div class="ev-none">Henüz olay yok</div></div>`;
-  } else {
-    html += `<div class="ev-list">`;
-
-    /* ── Maç aşaması işaretçileri ───────────────────────────────── */
-    const FIN_SET = new Set(['FT','AET','PEN']);
-    const isFin   = FIN_SET.has(m.status_short);
-    const sShort  = m.status_short;
-    const penStr  = penText(m);
-    const hadET   = isFin
-      ? (sShort === 'AET' || sShort === 'PEN' || evs.some(e => (+e.elapsed_time||0) > 90))
-      : (sShort === 'ET'  || sShort === 'BT'  || sShort === 'P' || evs.some(e => (+e.elapsed_time||0) > 90));
-    const hadPen  = !!penStr || sShort === 'PEN' || sShort === 'P';
-
-    let _rh = 0, _ra = 0;
-    const evPhase   = e => { const el = +e.elapsed_time || 0; return el <= 45 ? 1 : el <= 90 ? 2 : 3; };
-    const applyGoal = e => {
-      const t = (e.event_type||'').toLowerCase(), d = (e.event_detail||'').toLowerCase();
-      if (t !== 'goal') return;
-      if (!(+e.elapsed_time)) return;
-      if (d.includes('missed') || d.includes('kaçır') || d.includes('saved')) return;
-      const homeTeam = e.team_id == m.home_team_id;
-      const scoringHome = d.includes('own') ? !homeTeam : homeTeam;
-      if (scoringHome) _rh++; else _ra++;
-    };
-    const phaseRow = txt => `<div class="ev-phase"><span>${txt}</span></div>`;
-
-    html += phaseRow('Maç Başladı');
-    let htShown = false, etShown = false;
-
-    evs.forEach(e => {
-      const ph = evPhase(e);
-      if (ph >= 2 && !htShown) {
-        html += phaseRow(`İlk Yarı Sonu · ${_rh}-${_ra}`);
-        html += phaseRow('İkinci Yarı Başladı');
-        htShown = true;
-      }
-      if (ph >= 3 && !etShown) {
-        html += phaseRow(`Normal Süre Sonu · ${_rh}-${_ra}`);
-        html += phaseRow('Uzatmalar Başladı');
-        etShown = true;
-      }
-      const home = e.team_id == m.home_team_id;
-      const ic = evIcon(e.event_type, e.event_detail);
-      const icCls = evCls(e.event_type, e.event_detail);
-      const t = e.elapsed_time ? `${e.elapsed_time}${e.extra_time?'+'+e.extra_time:''}'` : '';
-      const info = `<div class="ev-info">
-              <div class="ev-pl ev-plink" onclick="goToPlayerByName('${(e.player_name||'').replace(/'/g,"\\'")}',event)">${esc(e.player_name||'')}</div>
-              ${e.assist_name ? `<div class="ev-dt ev-plink" onclick="goToPlayerByName('${(e.assist_name||'').replace(/'/g,"\\'")}',event)">⤷ ${esc(e.assist_name)}</div>` : ''}
-              ${e.event_detail ? `<div class="ev-dt">${esc(e.event_detail)}</div>` : ''}
-            </div>`;
-      const ico = `<div class="ev-ico ${icCls}">${ic}</div>`;
-      html += `
-        <div class="ev-row ${home?'ev-h':'ev-a'}">
-          <div class="ev-side ev-left">${home ? info + ico : ''}</div>
-          <div class="ev-min">${t}</div>
-          <div class="ev-side ev-right">${home ? '' : ico + info}</div>
-        </div>`;
-      applyGoal(e);
-    });
-
-    if (!htShown && sShort === 'HT') {
-      html += phaseRow(`İlk Yarı Sonu · ${_rh}-${_ra}`);
-    }
-    if (isFin) {
-      if (!htShown) {
-        html += phaseRow(`İlk Yarı Sonu · ${_rh}-${_ra}`);
-        html += phaseRow('İkinci Yarı Başladı');
-        htShown = true;
-      }
-      if (hadET) {
-        if (!etShown) {
-          html += phaseRow(`Normal Süre Sonu · ${_rh}-${_ra}`);
-          html += phaseRow('Uzatmalar Başladı');
-          etShown = true;
-        }
-        html += phaseRow(`Uzatma Sonucu · ${hs}-${as}`);
-        if (hadPen) html += phaseRow(`Penaltılar · ${penStr}`);
-      } else {
-        html += phaseRow(`Maç Sonu · ${hs}-${as}`);
-      }
-    }
-
-    html += `</div>`;
-  }
-  html += `</div>`;
+  // Olaylar paneli — içerik tek kaynaktan (_eventsListInner) üretilir
+  html += `<div class="d-panel" id="d-ev"><div class="ev-list">${_eventsListInner(m, evs)}</div></div>`;
 
   html += `<div class="d-panel" id="d-st">`;
   const sd = parseStatsData(stats);
@@ -3790,6 +3806,10 @@ html += `</div>`; /* d-or panel */
   setDetailHTML(html);
   Forum.open(m.fixture_id);
 
+  /* Canlı maç detayında olaylar kullanıcı yenilemeden gelsin:
+     realtime tetiklerine ek olarak arka planda sessiz yoklama. */
+  _startDetailEventsPoll(m);
+
   // iframe'i container'a sığacak şekilde ölçekle (3 farklı gecikme ile dene)
   _scheduleVisualScale();
 
@@ -3912,6 +3932,57 @@ async function silentUpdateDetail() {
   } else if (penEl) {
     penEl.remove();
   }
+}
+
+/* ── SESSİZ OLAY YENİLEME ───────────────────────────────────────────
+   match_events'i yeniden çeker ve yalnızca #d-ev .ev-list içeriğini
+   yerinde günceller. Panel sıfırlanmaz, aktif tab/scroll korunur.    */
+async function silentRefreshDetailEvents() {
+  if (!S.detail) return;
+  const m = S._detailM;
+  if (!m) return;                                  /* arşiv/henüz kurulmamış detay */
+  const list = document.querySelector('#d-ev .ev-list');
+  if (!list) return;
+  try {
+    const { data: evs } = await S.sb
+      .from('match_events').select('*')
+      .eq('fixture_id', S.detail).order('elapsed_time');
+    if (String(S.detail) !== String(m.fixture_id)) return;  /* kullanıcı başka maça geçti */
+    /* Skoru DOM'daki canlı değerle hizala (faz işaretçi başlıkları için) */
+    const nums = document.querySelectorAll('.d-score-n');
+    if (nums[0] && nums[0].textContent !== '-') m.home_score = nums[0].textContent;
+    if (nums[1] && nums[1].textContent !== '-') m.away_score = nums[1].textContent;
+    if (S._detailStatus) m.status_short = S._detailStatus;
+    const next = _eventsListInner(m, evs || []);
+    if (list.innerHTML !== next) list.innerHTML = next;
+  } catch (e) {
+    console.warn('[Events] sessiz yenileme hatası:', e.message);
+  }
+}
+
+/* Yoğun realtime güncellemelerini tek olay-yenilemesinde toparlar (debounce). */
+function _scheduleEventsRefresh() {
+  if (S._evRefreshT) return;
+  S._evRefreshT = setTimeout(() => {
+    S._evRefreshT = null;
+    silentRefreshDetailEvents();
+  }, 800);
+}
+
+/* Canlı maç detayı açıkken arka planda olayları sessizce yokla. */
+function _startDetailEventsPoll(m) {
+  if (S.detailEvTimer) { clearInterval(S.detailEvTimer); S.detailEvTimer = null; }
+  if (!statusInfo(m).live) return;                 /* yalnızca canlı maçlar */
+  S.detailEvTimer = setInterval(() => {
+    if (!S.detail) { clearInterval(S.detailEvTimer); S.detailEvTimer = null; return; }
+    /* Maç bittiyse yoklamayı durdur */
+    if (['FT','AET','PEN'].includes(S._detailStatus)) {
+      clearInterval(S.detailEvTimer); S.detailEvTimer = null;
+      silentRefreshDetailEvents();                 /* son bir kez tam liste */
+      return;
+    }
+    silentRefreshDetailEvents();
+  }, 12000);
 }
 
 /* ── GOL FLASH ───────────────────────────────── */
@@ -4051,10 +4122,10 @@ if (S.detail && String(m.fixture_id) === String(S.detail)) {
       penEl.remove();
     }
   }
-  /* EĞER SKOR DEĞİŞTİYSE: Olaylar tablosuna golün düşmesi için sayfayı arkadan yenile */
-  if (scoreChanged) {
-    loadDetail(S.detail, true);
-  }
+  /* Detayda her realtime güncellemesinde olayları sessizce tazele
+     (gol + kart/değişiklik gibi skor değiştirmeyen olaylar da gelsin).
+     Debounce ile yoğun tetikler tek sorguda toparlanır. */
+  _scheduleEventsRefresh();
   if (!st.live) loadMatches(true);
   /* return komutunu sildik, akış aşağıya (liste güncellemesine) devam edecek! */
 }
@@ -4084,18 +4155,14 @@ if (S.detail && String(m.fixture_id) === String(S.detail)) {
       _fetchLiveCount();
     })
     .subscribe(status => {
-      const el = document.getElementById('sb-cd');
       if (status === 'SUBSCRIBED') {
-        /* Realtime bağlandı — polling'i durdur */
+        /* Realtime bağlandı — yedek polling'i durdur */
         if (S.timer) { clearInterval(S.timer); S.timer = null; }
-        if (el) el.closest('.sb-ring-wrap') && (el.closest('.sb-ring-wrap').style.display = 'none');
         console.log('[Realtime] bağlandı ✓');
-        if (!S.tickTimer) {
-            S.tickTimer = setInterval(_tickLiveMinutes, 1000);
-        }   
+        /* Dakika ticker'ı boot'ta kalıcı başlatılır; burada güvence */
+        if (!S.tickTimer) S.tickTimer = setInterval(_tickLiveMinutes, 1000);
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        /* Bağlantı koptu — polling'e geri dön */
-        if (S.tickTimer) { clearInterval(S.tickTimer); S.tickTimer = null; }
+        /* Bağlantı koptu — yedek polling'e dön (dakika ticker'ı çalışmaya devam eder) */
         startClock();
         console.warn('[Realtime] koptu, polling başladı');
       }
@@ -4117,11 +4184,7 @@ function startClock() {
   updateRing(1);
   S.timer = setInterval(async () => {
     S.cd--;
-    updateRing(S.cd / S.cycle);
-    document.getElementById('sb-cd').textContent = S.cd;
-
-     _tickLiveMinutes();
-     
+    /* Görünür geri sayım halkası kaldırıldı; dakika ilerletme kalıcı ticker'da. */
     if (S.cd <= 0) {
       S.cd = S.cycle;
       /* Realtime bağlıysa polling gerekmez, sadece yedek */
