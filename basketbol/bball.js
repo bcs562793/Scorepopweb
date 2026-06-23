@@ -713,9 +713,12 @@ async function initBball() {
   startBballTick();
 
   /* Close modal on backdrop click */
-  document.getElementById('bball-modal').addEventListener('click', e => {
+const bballModal = document.getElementById('bball-modal');
+if (bballModal) {
+  bballModal.addEventListener('click', e => {
     if (e.target.id === 'bball-modal') closeBballModal();
   });
+}
 
   /* Keyboard: Escape closes modal */
   document.addEventListener('keydown', e => {
