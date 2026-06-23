@@ -3175,3 +3175,102 @@ img { display: block; }
 /* ── Tıklanabilir oyuncu isimleri (events / lineups → oyuncu profili) ── */
 .ev-plink,.pp-plink,.lu-plink{cursor:pointer;transition:color .12s;}
 .ev-plink:hover,.pp-plink:hover,.lu-plink:hover{color:var(--or);text-decoration:underline;}
+
+/* ═══════════════════════════════════════════════
+   SCOREPOP — BASKETBOL ÖZEL STİLLERİ
+════════════════════════════════════════════════ */
+
+/* Basketbol Satır Yapısı */
+.bball-mr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--b1);
+  background: var(--bg2);
+  cursor: pointer;
+  transition: background .1s;
+  height: 46px;
+}
+.bball-mr:hover { background: var(--bg3); }
+.bball-mr.is-live { background: var(--bg2); position: relative; }
+.bball-mr.is-live::after { 
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; background: var(--live); box-shadow: 1px 0 8px var(--live-gl); 
+}
+
+/* Takım Alanları */
+.bball-team {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+.bball-home { justify-content: flex-end; text-align: right; }
+.bball-away { justify-content: flex-start; text-align: left; }
+
+/* Logolar */
+.bball-logo, .bball-dtl-logo {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  margin: 0 10px;
+  border-radius: 3px;
+}
+.bball-logo-wrap { display: flex; align-items: center; justify-content: center; }
+
+/* Skor ve Orta Alan */
+.bball-scorebox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+.bball-total {
+  font-weight: 700;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--tx1);
+}
+.bball-mr.is-live .bball-total { color: var(--live); }
+
+/* İsimler ve Durum */
+.bball-tname {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px; font-weight: 600;
+  color: var(--tx1);
+}
+.bball-status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; font-weight: 600;
+  width: 56px; text-align: center;
+}
+.bball-status.live { color: var(--live); }
+.bball-status.done { color: var(--tx3); }
+.bball-status.sched { color: var(--tx2); }
+
+/* Modal Görünümü */
+.bball-modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.78);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+}
+.bball-modal-overlay.open { display: flex; }
+.bball-modal-content {
+  background: var(--bg3);
+  padding: 20px;
+  border-radius: 14px;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  border: 1px solid var(--b2);
+  box-shadow: 0 24px 80px rgba(0,0,0,.65);
+}
