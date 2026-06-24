@@ -2,1051 +2,1405 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://scorepop.com.tr/</loc>
-    <lastmod>2026-06-23</lastmod>
+    <lastmod>2026-06-24</lastmod>
     <changefreq>always</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/bugun</loc>
-    <lastmod>2026-06-23</lastmod>
+    <lastmod>2026-06-24</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/canli</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>always</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://scorepop.com.tr/mac/4483580-sofala-vs-ferroviario-nacala</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4483577-minija-vs-fk-panevezys</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4483576-bfa-vs-kauno-zalgiris</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4479927-coquimbo-unido-vs-deportes-limache</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4479914-flatirons-rush-vs-atl-tico-uni-n</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4478599-annan-athletic-vs-johnstone-burgh</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4478598-alloa-athletic-vs-civil-service-strollers</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4478597-nairn-county-vs-inverness-ct</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4478596-buchbach-vs-passau</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4478595-gro-schwarzenlohe-vs-eichstatt</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4478594-gomel-vs-yenisey-krasnoyarsk</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4478593-zbrojovka-brno-vs-prostejov</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4478592-olimpija-ljubljana-vs-vllaznia-shkoder</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4478591-kf-shkendija-vs-hajduk-split</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4478590-koper-vs-noah</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4478589-aluminij-vs-universitatea-cluj</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4478588-humenne-vs-zemplin-michalovce</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4478587-botev-plovdiv-vs-spartak-pleven</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4478586-levski-sofia-vs-etar-veliko-tarnovo</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4478519-by-sen-u19-vs-rosenborg-u19</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4472339-northern-indiana-vs-kings-hammer-columbus</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4471959-riverhounds-ii-vs-akron-city</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4471505-port-city-nc-vs-sc-united-bantams</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4471504-wake-vs-charlotte-independence-ii</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4471318-denton-diablos-vs-mckinney-chupacabras</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4469099-zvezda-st-petersburg-vs-spartak-moscow-ii</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4466132-fh-k-vs-valur-k</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4466131-grindavik-njardvik-k-vs-v-kingur-reykjav-k-k</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4465029-astrio-vs-angelholm</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4465011-jarfalla-vs-arlanda</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4461475-guangdong-mingtu-vs-guizhou-zhucheng</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4461474-xiamen-feilu-vs-hubei-istar</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4461345-haimen-codion-vs-shanghai-port-ii</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4461344-qingdao-red-lions-vs-dalian-kewei</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4461343-changchun-xidu-vs-lanzhou-longyuan</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4461342-shanghai-segenda-vs-dalian-yingbo-ii</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4457569-fransa-vs-irak</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4454170-confianca-vs-guarani-fc</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4453817-ponte-preta-vs-novorizontino</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4451523-neftchi-kochkor-vs-dordoi-bishkek</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4451522-alga-vs-bars</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4446441-cruzeiro-u20-vs-america-mineiro-u20</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4446440-sao-paulo-u20-vs-fortaleza-u19</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4446439-gremio-u20-vs-bahia-u20</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4446438-cuiaba-u20-vs-juventude-u20</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4446436-vitoria-u20-vs-santos-u20</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4446079-logan-lightning-u23-vs-holland-park-u23</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4446067-logan-lightning-u23-vs-redlands-united-u23</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4440729-nueva-chicago-vs-atletico-rafaela</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>always</changefreq>
-    <priority>0.95</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4439338-capalaba-k-vs-queensland-lions-k</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4439325-gold-coast-knights-k-vs-sunshine-coast-w-k</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4435405-fc-iberia-1999-vs-meshakhte</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4435401-dinamo-tbilisi-vs-dinamo-batumi</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4425436-ifk-mariehamn-vs-hjk-helsinki</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4425435-inter-turku-vs-sjk-seinajoki</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4425434-jaro-vs-gnistan</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4425433-vps-vs-oulu</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4425432-fc-lahti-vs-tps-turku</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4425431-kups-kuopio-vs-ilves-tampere</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4423641-talleres-de-cordoba-k-vs-huracan-k</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4421717-edgeworth-eagles-vs-lambton-jaffas</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4421584-logan-lightning-vs-holland-park-hawks</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4421573-robina-city-vs-capalaba</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4421000-gold-coast-knights-vs-eastern-suburbs-brisbane</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4412523-norvec-vs-senegal</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4412519-urdun-vs-cezayir</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4412514-portekiz-vs-ozbekistan</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4412509-i-ngiltere-vs-gana</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>always</changefreq>
-    <priority>0.95</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4483678-real-frontera-vs-atletico-barinas</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://scorepop.com.tr/mac/4483672-academia-anzoategui-vs-atletico-avila</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4483660-mineros-de-guayana-vs-bol-var</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4483649-urena-vs-deportivo-lara</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4483648-rayo-zuliano-vs-trujillanos</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4483637-fundacion-lara-deportiva-vs-yaracuyanos</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4483636-caracas-fc-vs-aragua</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4483608-rustavi-ii-vs-irao</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://scorepop.com.tr/mac/4483583-chingale-de-tete-vs-ad-pemba</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4483582-ferroviario-beira-vs-ferroviario-nampula</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://scorepop.com.tr/mac/4483581-ferrovi-rio-de-lichinga-vs-costa-do-sol</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <loc>https://scorepop.com.tr/mac/4483580-sofala-vs-ferroviario-nacala</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4483579-fk-dainava-alytus-vs-transinvest-vilnius</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4483578-fa-siauliai-vs-dziugas-telsiai</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4483537-fc-ulaanbaatar-vs-khangarid</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4483536-fc-deren-vs-tuv-azarganuud</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4483243-bad-schallerbach-vs-lask-linz</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4483242-gyori-eto-vs-vojvodina</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4483241-zeleznicar-pancevo-vs-zemun</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4483240-nk-brinje-vs-corvinul-hunedoara</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4479975-palestino-vs-audax-italiano</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4479943-la-serena-vs-cobresal</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4479935-cd-everton-vs-universidad-catolica</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478616-richelle-united-vs-rfc-liege</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478615-tasmania-berlin-vs-bfc-preussen</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478614-sc-weiz-vs-first-vienna</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478613-universitatea-craiova-vs-sabah</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478612-schweinfurt-vs-chemie-leipzig</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478611-hacken-vs-hammarby</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478610-grazer-ak-vs-slovan-bratislava</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478609-slovacko-vs-jihlava</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478608-ruzomberok-vs-malzenice</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478607-cherno-more-varna-vs-yantra-1919</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478606-dynamo-kiev-vs-zilina</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478605-dukla-banska-bystrica-vs-tatran-presov</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478604-gyori-eto-vs-universitatea-cluj</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478603-gornik-zabrze-vs-puszcza-niepolomice</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478602-botev-vratsa-vs-dunav-2010</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478601-cska-sofia-vs-polessya</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478600-annapolis-blues-vs-santos-laguna</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4478598-alloa-athletic-vs-civil-service-strollers</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4478597-nairn-county-vs-inverness-ct</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4478589-aluminij-vs-universitatea-cluj</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478522-lillehammer-u19-vs-lillestrom-u19</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478521-nordhordland-u19-vs-brann-u19</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4478520-hallingdal-u19-vs-hamkam-u19</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4472992-paksi-se-vs-szentlorinc-se</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4472967-freienbach-vs-rapperswil-jona</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4472628-louisiana-krewe-vs-hattiesburg</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4472590-hill-country-lobos-vs-laredo-heat</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4472551-peoria-city-vs-st-louis-ambush</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4472340-toledo-villa-vs-dayton-dutch-lions</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4472339-northern-indiana-vs-kings-hammer-columbus</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4471961-cleveland-force-vs-buffalo</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4471959-riverhounds-ii-vs-akron-city</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4471505-port-city-nc-vs-sc-united-bantams</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4471504-wake-vs-charlotte-independence-ii</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4471503-salem-city-fc-vs-asheville-city</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4470527-glentoran-fc-vs-the-new-saints</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4470447-sporting-jax-ii-vs-shark-coast</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4470056-midlakes-united-vs-snohomish-united</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4469554-nona-vs-brooke-house</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4468941-boston-city-vs-vermont-green</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4468940-black-rock-vs-ac-connecticut</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4468939-blackwatch-rush-vs-western-mass-pioneers</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4468757-nsi-runavik-vs-ki-klaksvik</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4468748-eagle-fc-vs-pennsylvania-classics</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4468725-union-macomb-vs-lansing-city</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4468580-west-chester-united-ii-vs-ocean-city-noreasters</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4468579-delaware-fc-vs-reading-united</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4468339-southern-soccer-academy-vs-montgomery-united</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4467293-palmerston-rovers-vs-mindil-aces</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4461479-chengdu-rongcheng-ii-vs-guangzhou-dandelion</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4461478-wenzhou-fc-vs-wuhan-three-towns-ii</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4461477-jiangxi-beidamen-vs-ganzhou-ruishi</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4461476-shenzhen-2028-vs-hangzhou-linping</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4461347-bit-beijing-vs-shandong-taishan-ii</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4461346-xian-ronghai-vs-taian-tiankuang</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>always</changefreq>
+    <priority>0.95</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4459418-karlbergs-bk-vs-pitea-if</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4459313-kubikenborgs-if-vs-fransta</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4459214-vastra-frolunda-if-vs-qviding-fif</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4459030-lindo-ff-vs-smedby-ais</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4458847-lilla-torg-vs-torns</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4458593-angby-vs-enskede-ik</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4458411-grebbestads-if-vs-ifk-kumla</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4457566-kolombiya-vs-d-kongo-cumhuriyeti</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4457564-bosna-hersek-vs-katar</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4453819-america-mineiro-vs-criciuma</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4453039-babrungas-vs-kauno-zalgiris-ii</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4452795-mjallby-vs-halmstad</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4451523-neftchi-kochkor-vs-dordoi-bishkek</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4448496-brisbane-knights-vs-souths-united</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4446444-avai-u20-vs-paranaense-u20</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4446067-logan-lightning-u23-vs-redlands-united-u23</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4439325-gold-coast-knights-k-vs-sunshine-coast-w-k</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4439318-sunshine-coast-w-k-vs-brisbane-city-k</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4439316-gold-coast-knights-k-vs-olympic-fc-k</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4439315-gold-coast-united-k-vs-fq-qas-k</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4435403-gagra-vs-samgurali</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4434844-tb-tvoroyri-vs-hb-torshavn-ii</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4434096-al-ansar-vs-jwaya</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4434094-al-ahed-vs-safa</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4434092-reyady-abaseya-vs-shabab-al-sahel</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4429336-gamle-oslo-vs-lokomotiv-oslo</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4427148-vaxjo-k-vs-brommapojkarna-k</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4427145-uppsala-k-vs-hacken-k</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4427144-norrkoping-k-vs-vittsjo-k</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4427143-rosengard-k-vs-djurgarden-k</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4427142-aik-k-vs-eskilstuna-united-k</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4421720-kahibah-vs-adamstown-rosebuds</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4421683-charlestown-city-blues-vs-cooks-hill-united</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4412510-panama-vs-hirvatistan</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4412482-i-svicre-vs-kanada</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4409335-kamboi-eagles-vs-mighty-blackpool</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://scorepop.com.tr/mac/4409333-east-end-lions-vs-diamond-stars</loc>
-    <lastmod>2026-06-23T21:42:53.612Z</lastmod>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4483678-real-frontera-vs-atletico-barinas</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4440729-nueva-chicago-vs-atletico-rafaela</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>always</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4485305-marin-vs-san-juan-sc</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4483696-los-andes-alcorta-vs-godeken</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4483695-leones-de-rosario-vs-atletico-san-jorge</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4483694-central-cordoba-vs-central-arg-fighiera</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4483661-dinamo-puerto-la-cruz-vs-monagas</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4483630-zamora-vs-atletico-el-vigia</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4483624-deportivo-miranda-vs-mar-timo</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4483584-vilankulo-vs-ferroviario-maputo</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4483581-ferrovi-rio-de-lichinga-vs-costa-do-sol</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4483539-khoromkhon-vs-ulaangom-city</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4483538-khovd-vs-hunters</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4483245-cukaricki-stankom-vs-fc-arges</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4483244-botosani-vs-dunfermline-athletic</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4480993-olympique-dcheira-vs-ittihad-tanger</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4480992-uts-rabat-vs-difaa-el-jadida</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4480991-rsb-berkane-vs-far-rabat</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4480990-wydad-casablanca-vs-maghreb-fes</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4480989-cr-khemis-zemamra-vs-olympic-safi</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4480988-yacoub-el-mansour-vs-raja-casablanca</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4480987-kawkab-marrakech-vs-fus-rabat</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4480986-codm-meknes-vs-hassania-agadir</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4479983-concepcion-vs-huachipato</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4479951-union-la-calera-vs-universidad-chile</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4479915-colorado-storm-vs-real-colorado</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4478620-phonix-lubeck-vs-eichholzer-sv</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4478619-amstetten-vs-kizilyildiz</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4478618-fk-orenburg-vs-neftekhimik</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4478617-katowice-vs-swit-skolwin</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4478270-al-salmiyah-vs-al-arabi</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4478269-al-kuwait-vs-kazma</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4478268-al-fahaheel-vs-al-qadsia</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4472674-colorado-isa-vs-albion-colorado</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4472652-mississippi-brilla-vs-memphis-fc</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4472614-lonestar-vs-san-antonio-ii</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4472592-gfi-vs-brazos-valley</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4472591-houston-sur-vs-ahfc-royals</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4472552-santafe-wanderers-vs-sunflower-state</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4472368-rockford-raptors-vs-edgewater-castle</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4472341-louisville-city-ii-vs-west-virginia-chaos</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4472244-sueno-vs-river-light</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4472243-minneapolis-city-vs-rkc</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4471960-erie-sports-center-vs-steel-city</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4471506-hickory-vs-tobacco-road</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4471429-stars-fc-vs-city-sc</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4471428-ventura-country-fusion-vs-seahorses</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4471401-amsg-vs-capo-ii</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4471329-west-texas-vs-fort-worth-vaqueros</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4471328-lubbock-matadors-vs-mckinney-chupacabras</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4470820-kaspiy-ii-vs-tobol-ii</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4470817-jaiyq-vs-akademiya-ontustik</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4470816-aktobe-jas-vs-arys</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4470815-sport-academy-kairat-vs-khan-tengri</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4470814-yelimay-ii-vs-fk-turan</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4470528-karvina-vs-prostejov</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4470416-patuxent-vs-loudoun-united-ii</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4470415-bethesda-vs-annapolis-blues</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4470414-northern-virginia-vs-hill-city</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4470372-westchester-flames-vs-hudson-valley-hammers</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4470371-morris-elite-vs-new-jersey-copa</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4470370-ironbound-vs-fc-motown-ii</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4470057-ballard-vs-west-seattle-junction</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4469555-the-villages-vs-inter-gainesville</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4469537-charlottesville-blues-vs-lionsbridge</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4468969-connecticut-rush-vs-new-england</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4468810-fort-lauderdale-united-vs-weston</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4468809-miami-ac-vs-fc-miami-city</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4468758-vikingur-gota-vs-hb-torshavn</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4468727-kalamazoo-fc-vs-midwest-united</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4468726-afc-ann-arbor-vs-flint-city-bucks</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4468581-real-central-new-jersey-vs-lehigh-valley-united</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4468033-academica-vs-san-francisco-city-fc</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4468032-davis-legacy-vs-project-51o</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4467295-darwin-hearts-vs-port-darwin</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4463664-los-angeles-ii-vs-minnesota-united-ii</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4459211-galtabacks-vs-boljan</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4459029-nykopings-bis-vs-nacka-iliria</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4458597-helges-vs-sunnersta</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4458412-ifk-skovde-vs-lidkopings-fk</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4457561-cekya-vs-meksika</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4449781-colorado-springs-vs-san-antonio</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4449780-miami-fc-vs-orange-county-sc</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4449779-charleston-battery-vs-loudoun-united</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4448742-queensland-u16-vs-eastern-suburbs-u23</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4448494-grange-thistle-vs-swq-thunder</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4446730-super-nova-vs-fs-jelgava</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4446729-bfc-daugavpils-vs-riga-fc</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4446728-grobina-vs-auda</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4446445-vasco-da-gama-u20-vs-criciuma-u20</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4446443-bragantino-u20-vs-botafogo-u20</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4446442-corinthians-u20-vs-flamengo-u20</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4446437-fluminense-u20-vs-palmeiras-u20</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4444593-umf-tindastoll-vs-sindri</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4444207-breidablik-vs-vikingur-r</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4442399-jjk-jyvaskyla-vs-inter-turku-ii</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4442398-fc-jazz-vs-tampere-united</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4434095-al-nejmeh-vs-tadamon-sour</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4434093-al-mabarrah-vs-al-hikma</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4430249-brumunddal-vs-gjovik-lyn</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4430248-bjorkelangen-vs-sarpsborg-08-ii</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4429886-vag-fk-vs-viking-stavanger-ii</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4429883-staal-jorpeland-vs-hinna</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4429705-asane-ii-vs-os-turn-fotball</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4429703-austevoll-vs-fyllingsdalen</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4429518-strindheim-vs-melhus</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4429338-konnerud-vs-if-ready</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4427147-pitea-k-vs-hammarby-k</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4419936-charlotte-independence-vs-greenville-triumph</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4419222-spokane-velocity-vs-westchester-sc</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4419221-corpus-christi-vs-alta</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4419220-new-york-cosmos-vs-tormenta</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4419219-portland-hearts-of-pine-vs-richmond-kickers</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4412530-curacao-vs-fildisi-sahili</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4412529-ekvador-vs-almanya</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4412488-fas-vs-haiti</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4412487-i-skocya-vs-brezilya</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4412479-guney-afrika-vs-guney-kore</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4409349-kallon-vs-freetonians-slifa</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://scorepop.com.tr/mac/4409347-old-edwardians-vs-luawa</loc>
+    <lastmod>2026-06-24T07:40:45.920Z</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
