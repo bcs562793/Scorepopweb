@@ -346,42 +346,6 @@ function renderBballRow(m) {
     else if (+as > +hs) { acls = 'bball-win'; hcls = 'bball-loss'; }
   }
 
-  /* Quarter scores (only when played/live) */
-  let qtrsHtml = '';
-  if (!isNS) {
-    const quarters = [
-      [m.home_q1, m.away_q1, 'Ç1'],
-      [m.home_q2, m.away_q2, 'Ç2'],
-      [m.home_q3, m.away_q3, 'Ç3'],
-      [m.home_q4, m.away_q4, 'Ç4'],
-    ];
-    const hasOT = m.home_ot != null || m.away_ot != null;
-    if (hasOT) quarters.push([m.home_ot, m.away_ot, 'UZT']);
-
-    const activePeriod = m.period;
-    const qItems = quarters
-      .filter(([h, a]) => h != null || a != null)
-      .map(([h, a, lbl]) => {
-        const isActive = st.live && (
-          (lbl === 'Ç1' && ['1Q','Q1'].includes(m.status_short)) ||
-          (lbl === 'Ç2' && ['2Q','Q2'].includes(m.status_short)) ||
-          (lbl === 'Ç3' && ['3Q','Q3'].includes(m.status_short)) ||
-          (lbl === 'Ç4' && ['4Q','Q4'].includes(m.status_short)) ||
-          (lbl === 'UZT' && m.status_short?.toUpperCase().startsWith('OT'))
-        );
-        return `<span class="bball-qtr${isActive ? ' bball-qtr-live' : ''}">
-          <span class="bball-qtr-lbl">${lbl}</span>
-          <span class="bball-qtr-h">${h ?? '-'}</span>
-          <span class="bball-qtr-sep">:</span>
-          <span class="bball-qtr-a">${a ?? '-'}</span>
-        </span>`;
-      });
-
-    if (qItems.length) {
-      qtrsHtml = `<div class="bball-qtrs">${qItems.join('')}</div>`;
-    }
-  }
-
   const homeLogo = m.home_avatar
     ? `<img class="bball-logo" src="${esc(m.home_avatar)}" onerror="this.style.display='none'" alt="">`
     : `<div class="bball-logo-ph">🏀</div>`;
@@ -409,7 +373,6 @@ function renderBballRow(m) {
             : `<span class="bball-sn ${hcls}">${hs}</span><div class="bball-sdiv"></div><span class="bball-sn ${acls}">${as}</span>`
           }
         </div>
-        ${qtrsHtml}
       </div>
 
       <div class="bball-team bball-away">
