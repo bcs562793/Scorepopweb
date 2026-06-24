@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   SCOREPOP — bball.js  (v1.0)
+   SCOREPOP — bball.js  (v1.10)
    Basketbol sayfası için data + render katmanı
 
    Data kaynakları:
