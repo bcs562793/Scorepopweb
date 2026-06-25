@@ -48,6 +48,8 @@ function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function _bbSlug(s){return String(s||'').toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,50);}
+
 function fmtTime(isoStr) {
   if (!isoStr) return '--:--';
   try {
@@ -355,8 +357,9 @@ function renderBballRow(m) {
 
   const statusCls = st.live ? 'bball-status live' : (st.done ? 'bball-status done' : 'bball-status sched');
 
+  const _href = `/basketbol/mac/${m.id}-${_bbSlug(m.home_team)}-vs-${_bbSlug(m.away_team)}`;
   return `
-    <div class="bball-mr${st.live ? ' is-live' : ''}" data-id="${m.id}" onclick="openBballDetail('${m.id}')">
+    <div class="bball-mr${st.live ? ' is-live' : ''}" data-id="${m.id}" onclick="window.location.href='${_href}'">
       <div class="${statusCls}">
         <span class="bball-st-label">${esc(st.label)}</span>
       </div>
