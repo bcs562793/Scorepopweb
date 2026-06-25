@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<base href="/">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ScorePop AI Tahmin — Yapay Zeka Maç Tahminleri ve İsabet Oranı</title>
+<meta name="description" content="ScorePop AI Tahmin: yapay zeka destekli maç sonucu sinyalleri, güven yüzdeleri ve geçmiş isabet oranı takibi. Futbol tahminleri ScorePop'ta."/>
+<meta name="robots" content="index,follow"/>
+<link rel="canonical" href="https://scorepop.com.tr/tahmin"/>
+<meta property="og:title" content="ScorePop AI Tahmin"/>
+<meta property="og:description" content="Yapay zeka destekli maç tahminleri, güven yüzdeleri ve isabet oranı takibi."/>
+<meta property="og:url" content="https://scorepop.com.tr/tahmin"/>
+<meta property="og:type" content="website"/>
+<meta property="og:image" content="https://scorepop.com.tr/logo.png"/>
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JS4J2RCJJ9"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-JS4J2RCJJ9');</script>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6664942674336301" crossorigin="anonymous"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<link rel="stylesheet" href="../style.css?v=10"/>
+
+<style>
+/* ══════════════════════════════════════
+   SCOREPOP AI TAHMİN — sayfa stilleri
+   (paylaşılan style.css tokenlarını kullanır)
+══════════════════════════════════════ */
+.ai-wrap { padding: 14px 16px 40px; max-width: 860px; }
+
+.ai-head { margin-bottom: 6px; }
+.ai-head-title {
+  font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 800;
+  letter-spacing: .4px; color: var(--tx1); display: flex; align-items: center; gap: 9px;
+}
+.ai-head-badge { font-size: 11px; font-weight: 700; letter-spacing: .5px; padding: 3px 9px; border-radius: 5px; background: var(--or2); color: var(--or); border: 1px solid rgba(242,100,25,.28); }
+.ai-head-sub { font-size: 13px; color: var(--tx2); margin-top: 4px; line-height: 1.6; max-width: 640px; }
+
+.ai-stats { display: flex; gap: 8px; margin: 16px 0 14px; }
+.ai-stat { flex: 1; display: flex; flex-direction: column; gap: 2px; background: var(--bg2); border: 1px solid var(--b1); border-radius: 9px; padding: 12px 14px; }
+.ai-stat-n { font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 800; line-height: 1; color: var(--tx1); }
+.ai-stat-acc { color: var(--or); }
+.ai-stat-l { font-size: 10px; color: var(--tx3); letter-spacing: .3px; }
+
+.ai-filters { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.ai-fbtn { font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 20px; background: var(--bg2); border: 1px solid var(--b2); color: var(--tx2); transition: all .15s; }
+.ai-fbtn:hover { border-color: var(--b3); color: var(--tx1); }
+.ai-fbtn.active { background: var(--or2); border-color: rgba(242,100,25,.35); color: var(--or); }
+
+.ai-card { margin-bottom: 8px; background: var(--bg2); border: 1px solid var(--b1); border-left: 3px solid var(--tx3); border-radius: 9px; padding: 11px 13px; }
+.ai-card.ai-won  { border-left-color: var(--green); }
+.ai-card.ai-lost { border-left-color: var(--live); }
+.ai-card.ai-pend { border-left-color: var(--or); }
+.ai-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ai-match { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: .2px; color: var(--tx1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ai-tier { flex-shrink: 0; font-size: 9px; font-weight: 700; letter-spacing: .5px; padding: 2px 7px; border-radius: 4px; background: var(--b2); color: var(--tx2); border: 1px solid var(--b2); text-transform: uppercase; }
+.ai-tier-premier { background: rgba(242,100,25,.14); color: var(--or); border-color: rgba(242,100,25,.28); }
+.ai-card-mid { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+.ai-pred { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.ai-pred-short { flex-shrink: 0; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 5px; background: var(--or2); color: var(--or); border: 1px solid rgba(242,100,25,.25); }
+.ai-pred-txt { font-size: 13px; font-weight: 600; color: var(--tx1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ai-status { flex-shrink: 0; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; letter-spacing: .2px; }
+.ai-status.ai-won  { background: rgba(16,185,129,.14); color: var(--green); border: 1px solid rgba(16,185,129,.25); }
+.ai-status.ai-lost { background: rgba(244,63,94,.12); color: var(--live); border: 1px solid rgba(244,63,94,.22); }
+.ai-status.ai-pend { background: var(--b1); color: var(--tx2); border: 1px solid var(--b2); }
+.ai-card-bot { display: flex; align-items: center; gap: 14px; margin-top: 9px; }
+.ai-meta { font-size: 11px; color: var(--tx3); }
+.ai-meta b { font-family: 'JetBrains Mono', monospace; color: var(--tx1); font-weight: 700; }
+.ai-meta-ko { margin-left: auto; }
+.ai-bar { margin-top: 9px; height: 4px; border-radius: 3px; background: var(--b1); overflow: hidden; }
+.ai-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--or), #ffb38a); }
+
+.ai-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px; gap: 10px; color: var(--tx3); }
+.ai-state .icon { font-size: 32px; opacity: .4; }
+.ai-spinner { width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--b2); border-top-color: var(--or); animation: ai-spin .7s linear infinite; }
+@keyframes ai-spin { to { transform: rotate(360deg); } }
+
+.ai-foot { margin-top: 18px; font-size: 11px; color: var(--tx3); line-height: 1.7; max-width: 720px; }
+
+@media (max-width: 520px) {
+  .ai-stat-n { font-size: 20px; }
+  .ai-head-title { font-size: 21px; }
+  .ai-card-mid { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+
+<aside id="sidebar">
+  <div class="sb-top">
+    <a class="sb-brand" href="/" style="text-decoration:none;cursor:pointer;">
+      <div class="sb-mark"><img src="/logo.png" alt="ScorePop Logo"></div>
+      <div class="sb-name">SCORE<em>POP</em></div>
+    </a>
+  </div>
+
+  <nav class="sb-nav">
+    <a class="sb-btn" href="/" style="text-decoration:none;">
+      <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 4.2 9.4 6l-.9 2.8H5.5L4.6 6 7 4.2z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M7 1.2v3M12.7 5.6 9.4 6M11 11.5 8.5 8.8M3 11.5l2.5-2.7M1.3 5.6 4.6 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg><span>Futbol</span>
+    </a>
+    <a class="sb-btn" href="/basketbol/" style="text-decoration:none;">
+      <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 1v12M1 7h12M2.8 2.8c2 1.6 2 6.8 0 8.4M11.2 2.8c-2 1.6-2 6.8 0 8.4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg><span>Basketbol</span>
+    </a>
+    <a class="sb-btn" href="/voleybol/" style="text-decoration:none;">
+      <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 1c2.8 2 3.9 5.4 2.9 8.8M7 1C4.6 3.2 2.1 4 1.2 7.6M12.8 7.8c-3.2 1.6-7.6 1-9.9-1.6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg><span>Voleybol</span>
+    </a>
+  </nav>
+
+  <div class="sb-sep"></div>
+
+  <nav class="sb-nav" style="padding-top:4px;padding-bottom:4px;">
+    <button class="sb-btn active" style="pointer-events:none">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.2c-2.4 0-4.3 1.8-4.3 4 0 1.3.6 2.4 1.6 3.2v1.4c0 .4.3.7.7.7h4c.4 0 .7-.3.7-.7V8.4c1-.8 1.6-1.9 1.6-3.2 0-2.2-1.9-4-4.3-4z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M5 11.8h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>ScorePop AI Tahmin</span>
+      <span class="sb-sport-badge">AI</span>
+    </button>
+    <a class="sb-btn" href="/haberler" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y=".75" width="11.5" height="11.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3 4h7M3 6.5h7M3 9h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>Haberler</span>
+    </a>
+    <a class="sb-btn" href="/tv-rehberi/" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y="1.75" width="11.5" height="8.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 10.25v1.5M9 10.25v1.5M2.5 11.75h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="6.5" cy="5.75" r="1.5" stroke="currentColor" stroke-width="1.1"/></svg>
+      <span>TV Rehberi</span>
+    </a>
+    <a class="sb-btn" href="/puan-durumu/" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y="3.75" width="2.5" height="8.5" rx="1" fill="currentColor" opacity=".7"/><rect x="5.25" y="1.75" width="2.5" height="10.5" rx="1" fill="currentColor"/><rect x="9.75" y="5.75" width="2.5" height="6.5" rx="1" fill="currentColor" opacity=".5"/></svg>
+      <span>Puan Durumu</span>
+    </a>
+    <a class="sb-btn" href="/wc-2026" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5a5 5 0 1 0 0 10 5 5 0 0 0 0-10z" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 6.5h10M6.5 1.5c-1.5 1.5-2 3-2 5s.5 3.5 2 5M6.5 1.5c1.5 1.5 2 3 2 5s-.5 3.5-2 5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+      <span>2026 Dünya Kupası</span>
+    </a>
+    <a class="sb-btn" href="/hakkimizda" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.2"/><path d="M2 11c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>Hakkımızda</span>
+    </a>
+    <a class="sb-btn" href="/iletisim" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y="2.75" width="11.5" height="7.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 3.5l5.5 4 5.5-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>İletişim</span>
+    </a>
+  </nav>
+
+  <div class="sb-bottom">
+  </div>
+</aside>
+
+<main id="main">
+  <header id="topbar">
+    <div class="tb-left">
+      <button class="tb-menu" onclick="toggleSidebar()">
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+          <path d="M0 1h16M0 6h16M0 11h16" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <span class="tb-mob-brand" style="display:flex;align-items:center;gap:6px;">
+        <svg width="14" height="14" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.2c-2.4 0-4.3 1.8-4.3 4 0 1.3.6 2.4 1.6 3.2v1.4c0 .4.3.7.7.7h4c.4 0 .7-.3.7-.7V8.4c1-.8 1.6-1.9 1.6-3.2 0-2.2-1.9-4-4.3-4z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M5 11.8h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span style="font-size:13px;font-weight:700;color:var(--tx1)">AI Tahmin</span>
+      </span>
+    </div>
+    <div style="flex:1"></div>
+  </header>
+
+  <div class="ai-wrap">
+
+    <div class="ad-slot" style="margin-bottom:14px;min-height:90px;">
+      <ins class="adsbygoogle"
+           style="display:block;width:100%;min-height:90px;"
+           data-ad-client="ca-pub-6664942674336301"
+           data-ad-slot="auto"
+           data-ad-format="horizontal"
+           data-full-width-responsive="true"></ins>
+    </div>
+
+    <div class="ai-head">
+      <div class="ai-head-title">ScorePop AI Tahmin <span class="ai-head-badge">AI</span></div>
+      <div class="ai-head-sub">Yapay zeka modelimizin ürettiği maç sonucu sinyalleri, güven yüzdeleri ve geçmiş isabet oranı. Tahminler bilgilendirme amaçlıdır, kesin sonuç garantisi vermez.</div>
+    </div>
+
+    <div class="ai-stats" id="ai-stats"></div>
+
+    <div class="ai-filters" id="ai-filters">
+      <button class="ai-fbtn active" data-pf="all">Tümü</button>
+      <button class="ai-fbtn" data-pf="pending">Bekleyen</button>
+      <button class="ai-fbtn" data-pf="settled">Sonuçlanan</button>
+    </div>
+
+    <div id="predictions-root">
+      <div class="ai-state"><div class="ai-spinner"></div><p>Tahminler yükleniyor…</p></div>
+    </div>
+
+    <div class="ai-foot">
+      Sinyaller; oran hareketleri, model olasılıkları ve geçmiş eğilimler kullanılarak otomatik üretilir. İsabet oranı yalnızca sonuçlanmış maçlar üzerinden hesaplanır. 18 yaş ve üzeri kullanıcılar içindir.
+    </div>
+
+  </div>
+</main>
+
+<div id="overlay" onclick="toggleSidebar()"></div>
+
+<script>
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+</script>
+
+<script src="../config.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  let supabase;
+  try {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  } catch(e) {
+    document.getElementById('predictions-root').innerHTML =
+      `<div class="ai-state"><div class="icon">⚠️</div><p>Bağlantı hatası: config.js bulunamadı.</p></div>`;
+  }
+
+  const AIP = { rows: [], filter: 'all' };
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function predLabel(p) {
+    const s = (p.signal_type || p.signal_label || '').toUpperCase();
+    
+    if (s.includes('HOME'))  return { txt: 'Ev Sahibi Kazanır', short: 'MS 1' };
+    if (s.includes('AWAY'))  return { txt: 'Deplasman Kazanır', short: 'MS 2' };
+    if (s.includes('DRAW'))  return { txt: 'Beraberlik', short: 'MS X' };
+    if (s.includes('BTTS'))  return { txt: 'Karşılıklı Gol', short: 'KG' };
+
+    // OU15, OU25, OU35 gibi gol barajlarını yakalayalım
+    let baraj = "";
+    if (s.includes('OU15')) baraj = "1.5 ";
+    else if (s.includes('OU25')) baraj = "2.5 ";
+    else if (s.includes('OU35')) baraj = "3.5 ";
+    else if (s.includes('OU45')) baraj = "4.5 ";
+
+    if (s.includes('OVER'))  return { txt: baraj + 'Üst Gol', short: baraj + 'ÜST' };
+    if (s.includes('UNDER')) return { txt: baraj + 'Alt Gol', short: baraj + 'ALT' };
+
+    return { txt: p.signal_label || p.signal_type || 'Sinyal', short: '' };
+  }
+
+  function settle(p) {
+    if (p.is_correct === null || p.is_correct === undefined) return 'pending';
+    return p.is_correct ? 'won' : 'lost';
+  }
+
+  async function load() {
+    if (!supabase) return;
+    try {
+      const { data, error } = await supabase
+        .from('ai_predictions')
+        .select('*')
+        .order('predicted_at', { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      AIP.rows = data || [];
+      renderStats();
+      render();
+    } catch(e) {
+      console.error('[AITahmin]', e);
+      document.getElementById('predictions-root').innerHTML =
+        `<div class="ai-state"><div class="icon">⚠️</div><p>Tahminler yüklenemedi.</p></div>`;
+    }
+  }
+
+  function renderStats() {
+    const el = document.getElementById('ai-stats');
+    if (!el) return;
+    const total   = AIP.rows.length;
+    const settled = AIP.rows.filter(p => settle(p) !== 'pending');
+    const won     = settled.filter(p => settle(p) === 'won').length;
+    const pending = total - settled.length;
+    const acc     = settled.length ? Math.round((won / settled.length) * 100) : null;
+    el.innerHTML = `
+      <div class="ai-stat"><span class="ai-stat-n">${total}</span><span class="ai-stat-l">Toplam Sinyal</span></div>
+      <div class="ai-stat"><span class="ai-stat-n ai-stat-acc">${acc !== null ? '%' + acc : '—'}</span><span class="ai-stat-l">İsabet · ${settled.length} maç</span></div>
+      <div class="ai-stat"><span class="ai-stat-n">${pending}</span><span class="ai-stat-l">Bekleyen</span></div>`;
+  }
+
+  function filtered() {
+    if (AIP.filter === 'pending') return AIP.rows.filter(p => settle(p) === 'pending');
+    if (AIP.filter === 'settled') return AIP.rows.filter(p => settle(p) !== 'pending');
+    return AIP.rows;
+  }
+
+  function render() {
+    const root = document.getElementById('predictions-root');
+    if (!root) return;
+    const rows = filtered();
+    if (!rows.length) {
+      root.innerHTML = `<div class="ai-state"><div class="icon">📭</div><p>Bu filtrede tahmin yok.</p></div>`;
+      return;
+    }
+    root.innerHTML = rows.map(card).join('');
+  }
+
+  function card(p) {
+    const pred = predLabel(p);
+    const st   = settle(p);
+    const map = {
+      pending: { cls: 'ai-pend', ic: '⏳', txt: 'Bekliyor' },
+      won:     { cls: 'ai-won',  ic: '✓', txt: 'Tutturuldu' },
+      lost:    { cls: 'ai-lost', ic: '✗', txt: 'Tutmadı' },
+    };
+    const s    = map[st];
+    const prob = p.probability != null ? Math.round(parseFloat(p.probability) * 100) : null;
+    const ko   = p.kickoff ? new Date(p.kickoff) : null;
+    const koStr = ko ? ko.toLocaleString('tr-TR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', timeZone:'Europe/Istanbul' }) : '';
+    const tier = (p.tier || '').toUpperCase();
+    const lift = p.effective_lift != null ? parseFloat(p.effective_lift).toFixed(2)
+               : (p.lift != null ? parseFloat(p.lift).toFixed(2) : null);
+
+    return `
+      <div class="ai-card ${s.cls}">
+        <div class="ai-card-top">
+          <span class="ai-match">${esc(p.match_name || '')}</span>
+          ${tier ? `<span class="ai-tier ai-tier-${esc(tier.toLowerCase())}">${esc(tier)}</span>` : ''}
+        </div>
+        <div class="ai-card-mid">
+          <div class="ai-pred">
+            ${pred.short ? `<span class="ai-pred-short">${esc(pred.short)}</span>` : ''}
+            <span class="ai-pred-txt">${esc(pred.txt)}</span>
+          </div>
+          <span class="ai-status ${s.cls}">${s.ic} ${s.txt}</span>
+        </div>
+        <div class="ai-card-bot">
+          ${prob !== null ? `<span class="ai-meta">Güven <b>%${prob}</b></span>` : ''}
+          ${lift ? `<span class="ai-meta">Lift <b>${lift}x</b></span>` : ''}
+          ${koStr ? `<span class="ai-meta ai-meta-ko">${esc(koStr)}</span>` : ''}
+        </div>
+        ${prob !== null ? `<div class="ai-bar"><div class="ai-bar-fill" style="width:${prob}%"></div></div>` : ''}
+      </div>`;
+  }
+
+  document.getElementById('ai-filters').addEventListener('click', function(e) {
+    const btn = e.target.closest('.ai-fbtn');
+    if (!btn) return;
+    this.querySelectorAll('.ai-fbtn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    AIP.filter = btn.dataset.pf;
+    render();
+  });
+
+  try { (adsbygoogle = window.adsbygoogle || []).push({}); } catch(_) {}
+
+  load();
+})();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "ScorePop AI Tahmin",
+  "description": "Yapay zeka destekli maç sonucu tahminleri, güven yüzdeleri ve isabet oranı takibi.",
+  "url": "https://scorepop.com.tr/tahmin",
+  "isPartOf": { "@type": "WebSite", "name": "ScorePop", "url": "https://scorepop.com.tr" },
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Ana Sayfa", "item": "https://scorepop.com.tr" },
+      { "@type": "ListItem", "position": 2, "name": "AI Tahmin", "item": "https://scorepop.com.tr/tahmin" }
+    ]
+  }
+}
+</script>
+
+</body>
+</html>
