@@ -18,6 +18,7 @@ const Router = (() => {
     haber:      /^\/?(haber)\/([^/]+)\/?$/i,
     tvrehberi:  /^\/?tv-rehberi(?:\/(?:index\.html)?)?\/?$/i,
     puandurumu: /^\/?puan-durumu(?:\/(?:index\.html)?)?\/?$/i,
+    transferler: /^\/?transferler(?:\/(?:index\.html)?)?\/?$/i,
     team:       /^\/?takim\/(\d+)(?:-[^/]+)?\/?$/i,
     player:     /^\/?oyuncu\/(\d+)(?:-[^/]+)?\/?$/i,
   };
@@ -138,6 +139,14 @@ const Router = (() => {
         // SADECE trailing slash eksikse yönlendir.
         // path zaten '/puan-durumu/' ise replace() ÇAĞIRMA — sonsuz döngüye girer!
         window.location.replace('/puan-durumu/');
+      }
+      return;
+    }
+
+    // transferler sayfası — fiziksel HTML dosyasını göster
+    if (ROUTES.transferler.test(path)) {
+      if (path === '/transferler') {
+        window.location.replace('/transferler/');
       }
       return;
     }
