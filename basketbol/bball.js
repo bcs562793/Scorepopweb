@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   SCOREPOP — bball.js  (v1.10)
+   SCOREPOP — bball.js  (v1.11)
    Basketbol sayfası için data + render katmanı
 
    Data kaynakları:
@@ -166,9 +166,12 @@ async function loadBball(silent = false) {
 /* ── TODAY: live_bball ──────────────────────────────── */
 async function loadBballToday() {
   try {
-    /* scheduled_at kolonu UTC - bugünün maçlarını çek (geniş aralık) */
-    const startUTC = `${B.date}T00:00:00+00:00`;
-    const endUTC   = `${B.date}T23:59:59+00:00`;
+    /* scheduled_at kolonu UTC - B.date ise TR yerel günü (UTC+3).
+       Yerel gün sınırlarını UTC'ye çevirerek sorgula, aksi halde
+       TR saatiyle 00:00-03:00 arası başlayan maçlar (UTC'de bir
+       önceki günde) listeden düşer. */
+    const startUTC = `${B.date}T00:00:00+03:00`;
+    const endUTC   = `${B.date}T23:59:59+03:00`;
 
     const rows = await fetchAllBballRows(
       B.sb.from('live_bball')
@@ -229,8 +232,9 @@ async function loadBballFuture(date) {
     const rows = await fetchAllBballRows(
       B.sb.from('live_bball')
          .select('*')
-         .gte('scheduled_at', `${date}T00:00:00+00:00`)
-         .lte('scheduled_at', `${date}T23:59:59+00:00`)
+         /* TR yerel günü (UTC+3) sınırlarını kullan, bkz. loadBballToday() */
+         .gte('scheduled_at', `${date}T00:00:00+03:00`)
+         .lte('scheduled_at', `${date}T23:59:59+03:00`)
          .eq('status_short', 'NS')
          .order('scheduled_at')
     );
