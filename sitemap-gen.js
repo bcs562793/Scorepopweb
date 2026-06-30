@@ -120,6 +120,7 @@ async function generate() {
     `  <url>\n    <loc>${BASE_URL}/bugun</loc>\n    <lastmod>${fmt(today)}</lastmod>\n    <changefreq>hourly</changefreq>\n    <priority>0.9</priority>\n  </url>`,
     `  <url>\n    <loc>${BASE_URL}/canli</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>always</changefreq>\n    <priority>0.9</priority>\n  </url>`,
     `  <url>\n    <loc>${BASE_URL}/tahmin</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>hourly</changefreq>\n    <priority>0.8</priority>\n  </url>`,
+    `  <url>\n    <loc>${BASE_URL}/transferler</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>hourly</changefreq>\n    <priority>0.8</priority>\n  </url>`,
     `  <url>\n    <loc>${BASE_URL}/wc-2026</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>`,
     ...matches.map(m => {
       const slug    = `${slugify(m.home_team)}-vs-${slugify(m.away_team)}`;
