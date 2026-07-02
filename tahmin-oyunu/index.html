@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<base href="/">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tahmin Oyunu — Ücretsiz Maç Tahmin Yarışması | ScorePop</title>
+<meta name="description" content="ScorePop Tahmin Oyunu: tamamen ücretsiz maç tahmin yarışması. En az 4 maç seç, hepsini doğru bil, 250 kredi kazan. Maç sonucu, 2.5 alt/üst ve ilk yarı tahminleri."/>
+<meta name="robots" content="index,follow"/>
+<link rel="canonical" href="https://scorepop.com.tr/tahmin-oyunu"/>
+<meta property="og:title" content="ScorePop Tahmin Oyunu"/>
+<meta property="og:description" content="Ücretsiz tahmin yarışması: 4 maçı doğru bil, 250 kredi kazan."/>
+<meta property="og:url" content="https://scorepop.com.tr/tahmin-oyunu"/>
+<meta property="og:type" content="website"/>
+<meta property="og:image" content="https://scorepop.com.tr/logo.png"/>
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JS4J2RCJJ9"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-JS4J2RCJJ9');</script>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6664942674336301" crossorigin="anonymous"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<script src="/config.js?v=0"></script>
+<link rel="stylesheet" href="../style.css?v=10"/>
+
+<style>
+/* ══════════════════════════════════════
+   TAHMİN OYUNU — sayfa stilleri
+   (paylaşılan style.css tokenlarını kullanır)
+══════════════════════════════════════ */
+.po-wrap { padding: 14px 16px 60px; max-width: 1060px; margin: 0 auto; }
+
+.po-head-title {
+  font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 800;
+  letter-spacing: .4px; color: var(--tx1); display: flex; align-items: center; gap: 9px;
+}
+.po-head-badge { font-size: 11px; font-weight: 700; letter-spacing: .5px; padding: 3px 9px; border-radius: 5px; background: var(--or2); color: var(--or); border: 1px solid rgba(242,100,25,.28); }
+.po-head-sub { font-size: 13px; color: var(--tx2); margin-top: 4px; line-height: 1.6; max-width: 680px; }
+
+/* Sekmeler */
+.po-tabs { display: flex; gap: 6px; margin: 16px 0 14px; flex-wrap: wrap; }
+.po-tab { font-size: 12.5px; font-weight: 600; padding: 7px 16px; border-radius: 20px; background: var(--bg2); border: 1px solid var(--b2); color: var(--tx2); cursor: pointer; transition: all .15s; }
+.po-tab:hover { border-color: var(--b3); color: var(--tx1); }
+.po-tab.active { background: var(--or2); border-color: rgba(242,100,25,.4); color: var(--or); }
+.po-tab .cnt { font-weight: 800; }
+
+/* Kupon düzeni: solda maçlar, sağda kupon */
+.po-grid { display: grid; grid-template-columns: 1fr 300px; gap: 14px; align-items: start; }
+
+/* Maç kartı */
+.po-league { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: .4px; color: var(--tx2); margin: 14px 0 6px; display: flex; align-items: center; gap: 6px; }
+.po-match { background: var(--bg2); border: 1px solid var(--b1); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+.po-mrow { display: flex; align-items: center; gap: 8px; }
+.po-time { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--tx3); min-width: 40px; }
+.po-teams { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--tx1); display: flex; align-items: center; gap: 6px; }
+.po-teams img { width: 16px; height: 16px; object-fit: contain; flex-shrink: 0; }
+.po-teams .vs { color: var(--tx3); font-size: 11px; font-weight: 500; }
+.po-mkts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.po-mkt { display: flex; align-items: center; gap: 4px; }
+.po-mkt-l { font-size: 10px; font-weight: 700; letter-spacing: .3px; color: var(--tx3); margin-right: 2px; }
+
+/* Oran hücresi */
+.po-cell {
+  min-width: 52px; padding: 6px 8px; border-radius: 7px; text-align: center; cursor: pointer;
+  background: var(--bg4); border: 1px solid var(--b1); transition: all .12s; user-select: none;
+}
+.po-cell:hover { border-color: var(--or); }
+.po-cell .cl { display: block; font-size: 9px; font-weight: 600; color: var(--tx3); }
+.po-cell .cv { display: block; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 700; color: var(--tx1); }
+.po-cell.sel { background: var(--or2); border: 2px solid var(--or); padding: 5px 7px; }
+.po-cell.sel .cv { color: var(--or); }
+.po-cell.dis { opacity: .38; cursor: not-allowed; pointer-events: none; }
+
+/* Kupon paneli */
+.po-slip { position: sticky; top: 70px; background: var(--bg2); border: 1px solid var(--b1); border-radius: 12px; overflow: hidden; }
+.po-slip-h { padding: 12px 14px; border-bottom: 1px solid var(--b1); display: flex; align-items: center; justify-content: space-between; }
+.po-slip-t { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 800; color: var(--tx1); }
+.po-slip-n { font-size: 12px; font-weight: 800; padding: 2px 10px; border-radius: 20px; background: var(--bg4); color: var(--tx2); border: 1px solid var(--b2); }
+.po-slip-n.ok { background: rgba(34,197,94,.12); color: #16a34a; border-color: rgba(34,197,94,.4); }
+.po-slip-rule { padding: 10px 14px; font-size: 11.5px; line-height: 1.5; color: var(--tx2); background: var(--or3); border-bottom: 1px solid var(--b1); }
+.po-slip-rule b { color: var(--or); }
+.po-slip-list { max-height: 300px; overflow-y: auto; }
+.po-pick { padding: 9px 14px; border-bottom: 1px solid var(--b1); display: flex; align-items: center; gap: 8px; }
+.po-pick-i { flex: 1; min-width: 0; }
+.po-pick-m { font-size: 12px; font-weight: 600; color: var(--tx1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.po-pick-s { font-size: 10.5px; color: var(--or); font-weight: 700; margin-top: 1px; }
+.po-pick-o { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; color: var(--or); }
+.po-pick-x { background: none; border: none; color: var(--tx3); font-size: 14px; cursor: pointer; padding: 2px 4px; }
+.po-pick-x:hover { color: var(--live); }
+.po-slip-empty { padding: 26px 14px; text-align: center; font-size: 12px; color: var(--tx3); }
+.po-slip-f { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.po-warn { font-size: 11px; color: var(--tx3); text-align: center; }
+.po-btn-row { display: flex; gap: 8px; }
+.po-clear { font-size: 12px; padding: 10px 12px; border-radius: 9px; background: var(--bg4); border: 1px solid var(--b2); color: var(--tx2); cursor: pointer; }
+.po-save { flex: 1; font-size: 13px; font-weight: 800; padding: 10px; border-radius: 9px; background: var(--or); border: none; color: #fff; cursor: pointer; letter-spacing: .3px; }
+.po-save:disabled { background: var(--bg5); color: var(--tx3); cursor: not-allowed; }
+
+/* Sosyal / Tahminlerim kartları */
+.po-scard { background: var(--bg2); border: 1px solid var(--b1); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+.po-scard-h { padding: 10px 14px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid var(--b1); }
+.po-ava { width: 28px; height: 28px; border-radius: 50%; background: var(--or2); color: var(--or); font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.po-uname { flex: 1; font-size: 13px; font-weight: 700; color: var(--tx1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.po-status { font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 6px; }
+.po-status.pending { background: var(--or2); color: var(--or); }
+.po-status.won  { background: rgba(34,197,94,.12); color: #16a34a; }
+.po-status.lost { background: var(--live2); color: var(--live); }
+.po-spicks { padding: 8px 14px; }
+.po-spick { display: flex; align-items: center; gap: 7px; padding: 3px 0; font-size: 12px; }
+.po-tick { width: 15px; text-align: center; flex-shrink: 0; }
+.po-spick-m { flex: 1; min-width: 0; color: var(--tx1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.po-spick-s { color: var(--or); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.po-scard-f { padding: 6px 14px 8px; display: flex; align-items: center; justify-content: space-between; }
+.po-corr { font-size: 11px; font-weight: 600; color: var(--tx3); }
+.po-cbtn { background: none; border: none; color: var(--or); font-size: 12px; font-weight: 600; cursor: pointer; padding: 4px 0; }
+.po-comments { border-top: 1px solid var(--b1); padding: 8px 14px 12px; }
+.po-comment { padding: 5px 0; }
+.po-comment-n { font-size: 11px; font-weight: 800; color: var(--or); }
+.po-comment-c { font-size: 12.5px; color: var(--tx1); line-height: 1.4; margin-top: 1px; }
+.po-cform { display: flex; gap: 6px; margin-top: 8px; }
+.po-cinput { flex: 1; font-size: 12.5px; padding: 8px 10px; border-radius: 8px; background: var(--bg4); border: 1px solid var(--b2); color: var(--tx1); font-family: 'Barlow', sans-serif; }
+.po-cinput:focus { outline: none; border-color: var(--or); }
+.po-csend { font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 8px; background: var(--or); color: #fff; border: none; cursor: pointer; }
+
+/* Nasıl Oynanır */
+.po-info-hero { background: linear-gradient(120deg, var(--or), #f9843f); border-radius: 14px; padding: 20px 22px; color: #fff; margin-bottom: 14px; }
+.po-info-hero h2 { font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 800; margin: 0 0 6px; }
+.po-info-hero p { font-size: 13px; line-height: 1.55; margin: 0; opacity: .95; }
+.po-info-card { display: flex; gap: 12px; background: var(--bg2); border: 1px solid var(--b1); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+.po-info-card.accent { background: var(--or3); border-color: rgba(242,100,25,.3); }
+.po-info-ic { font-size: 20px; flex-shrink: 0; }
+.po-info-t { font-size: 13.5px; font-weight: 800; color: var(--tx1); margin-bottom: 4px; }
+.po-info-b { font-size: 12.5px; color: var(--tx2); line-height: 1.55; white-space: pre-line; }
+
+.state-box {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 50px 20px; gap: 12px;
+  color: var(--tx3); font-size: 13px; text-align: center;
+}
+.spinner {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 3px solid var(--b2); border-top-color: var(--or);
+  animation: po-spin .8s linear infinite;
+}
+@keyframes po-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 860px) {
+  .po-grid { grid-template-columns: 1fr; }
+  .po-slip { position: fixed; left: 0; right: 0; bottom: 0; top: auto; border-radius: 14px 14px 0 0; z-index: 60; box-shadow: 0 -6px 24px rgba(0,0,0,.14); }
+  .po-slip-list { max-height: 32vh; }
+  .po-wrap { padding-bottom: 120px; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="topbar-brand" href="/">
+    <div class="topbar-mark"><img src="/logo.png" alt="ScorePop Logo"></div>
+    <span class="topbar-name">SCORE<em>POP</em></span>
+  </a>
+  <div class="topbar-sep"></div>
+  <span class="topbar-title">Tahmin Oyunu</span>
+  <nav class="topbar-nav">
+    <a class="topbar-link" href="/canli">Canlı</a>
+    <a class="topbar-link" href="/bugun">Bugün</a>
+    <a class="topbar-link" href="/puan-durumu/">Puan Durumu</a>
+    <a class="topbar-link" href="/transferler/">Transferler</a>
+    <a class="topbar-link active" href="/tahmin-oyunu/">Tahmin Oyunu</a>
+  </nav>
+  <div class="tb-right"></div>
+</header>
+
+<div class="po-wrap">
+
+  <div class="po-head">
+    <div class="po-head-title">🏆 Tahmin Oyunu <span class="po-head-badge">ÜCRETSİZ</span></div>
+    <div class="po-head-sub">En az 4 maç seç, tümünü doğru bil, <b style="color:var(--or)">250 kredi</b> kazan. Tamamen ücretsiz — sadece tahmin gücün konuşur.</div>
+  </div>
+
+  <div class="po-tabs">
+    <button class="po-tab active" data-tab="kupon">Kupon <span class="cnt" id="tabCnt"></span></button>
+    <button class="po-tab" data-tab="sosyal">Sosyal</button>
+    <button class="po-tab" data-tab="benim">Tahminlerim</button>
+    <button class="po-tab" data-tab="nasil">Nasıl Oynanır</button>
+  </div>
+
+  <!-- ── KUPON ── -->
+  <section id="tab-kupon">
+    <div class="po-grid">
+      <div id="matchList"><div class="state-box"><div class="spinner"></div></div></div>
+      <aside class="po-slip" id="slipPanel">
+        <div class="po-slip-h">
+          <span class="po-slip-t">KUPONUM</span>
+          <span class="po-slip-n" id="slipCount">0/4</span>
+        </div>
+        <div class="po-slip-rule">Listendeki maçların <b>tümünü</b> doğru bilirsen <b>250 kredi</b> kazanırsın. Min. oran <b>1.50</b>, en az <b>4 maç</b>.</div>
+        <div class="po-slip-list" id="slipList">
+          <div class="po-slip-empty">Aşağıdan oranlara dokunarak maç ekle.</div>
+        </div>
+        <div class="po-slip-f">
+          <div class="po-warn" id="slipWarn"></div>
+          <div class="po-btn-row">
+            <button class="po-clear" id="btnClear">Temizle</button>
+            <button class="po-save" id="btnSave" disabled>Tahminleri Kaydet</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ── SOSYAL ── -->
+  <section id="tab-sosyal" style="display:none">
+    <div id="socialList"><div class="state-box"><div class="spinner"></div></div></div>
+  </section>
+
+  <!-- ── TAHMİNLERİM ── -->
+  <section id="tab-benim" style="display:none">
+    <div id="mySlips"><div class="state-box"><div class="spinner"></div></div></div>
+  </section>
+
+  <!-- ── NASIL OYNANIR ── -->
+  <section id="tab-nasil" style="display:none">
+    <div class="po-info-hero">
+      <h2>🏆 Tahmin Yarışması</h2>
+      <p>Tamamen ücretsiz! Maç tahminlerini yap, listendeki tüm maçları doğru bil, 250 kredi kazan.</p>
+    </div>
+    <div class="po-info-card">
+      <div class="po-info-ic">👆</div>
+      <div><div class="po-info-t">Nasıl Oynanır?</div>
+      <div class="po-info-b">1. Kupon sekmesindeki oranlardan tahminini seç.
+2. En az 4 farklı maç ekle.
+3. Kuponunu kaydet (giriş yapman gerekir).</div></div>
+    </div>
+    <div class="po-info-card">
+      <div class="po-info-ic">🎯</div>
+      <div><div class="po-info-t">Hangi Tahminler?</div>
+      <div class="po-info-b">Maç Sonucu (1X2), 2.5 Alt/Üst ve İlk Yarı 1X2 oranlarından seçebilirsin.</div></div>
+    </div>
+    <div class="po-info-card accent">
+      <div class="po-info-ic">🏅</div>
+      <div><div class="po-info-t">Nasıl Kazanılır?</div>
+      <div class="po-info-b">Listendeki maçların TÜMÜNÜ doğru bilirsen 250 kredi hesabına eklenir. Bir maç bile yanlış çıkarsa liste yanar.</div></div>
+    </div>
+    <div class="po-info-card">
+      <div class="po-info-ic">⚖️</div>
+      <div><div class="po-info-t">Kurallar</div>
+      <div class="po-info-b">• Sadece henüz başlamamış maçlar eklenebilir.
+• Eklenebilir minimum oran 1.50.
+• Her maç için tek tahmin geçerlidir.
+• En az 4 maç gereklidir.</div></div>
+    </div>
+    <div class="po-info-card">
+      <div class="po-info-ic">✅</div>
+      <div><div class="po-info-t">Sonuçlar</div>
+      <div class="po-info-b">Maçlar oynandıkça tahminlerin işaretlenir: doğru, yanlış veya bekliyor olarak görünür.</div></div>
+    </div>
+  </section>
+
+</div>
+
+<script src="/auth.js?v=1"></script>
+<script>
+(() => {
+'use strict';
+
+/* ═══ SABİTLER ═══ */
+const MIN_PICKS = 4;
+const MIN_ODDS  = 1.50;
+const REWARD    = 250;
+const LS_KEY    = 'po_slip_picks';
+const MARKET_L  = { '1x2': 'Maç Sonucu', 'ou25': '2.5 A/Ü', 'ht_1x2': 'İlk Yarı' };
+
+let sb = null;
+let picks = {};          /* fixtureId -> pick objesi (Flutter ile aynı şema) */
+let matchesById = {};
+
+/* ═══ YARDIMCILAR ═══ */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $  = id => document.getElementById(id);
+
+function selLabel(p) {
+  if (p.market === 'ou25') return p.selection === 'over' ? 'Üst' : 'Alt';
+  if (p.selection === 'home') return p.home_name;
+  if (p.selection === 'away') return p.away_name;
+  return 'Berabere';
+}
+function tickIcon(r) {
+  if (r === 'correct') return '<span class="po-tick" style="color:#16a34a">✔</span>';
+  if (r === 'wrong')   return '<span class="po-tick" style="color:var(--live)">✘</span>';
+  return '<span class="po-tick" style="color:var(--tx3)">⏳</span>';
+}
+function statusBadge(st) {
+  const m = { pending: 'Bekliyor', won: 'Kazandı', lost: 'Kaybetti' };
+  return `<span class="po-status ${esc(st)}">${m[st] || st}</span>`;
+}
+
+/* ═══ KUPON STATE ═══ */
+function loadPicks() {
+  try { picks = JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch(_) { picks = {}; }
+}
+function savePicks() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(picks)); } catch(_) {}
+}
+function togglePick(p) {
+  const ex = picks[p.fixture_id];
+  if (ex && ex.market === p.market && ex.selection === p.selection) {
+    delete picks[p.fixture_id];
+  } else {
+    if (p.odds < MIN_ODDS) return;
+    picks[p.fixture_id] = p;
+  }
+  savePicks(); renderSlip(); refreshCellStates();
+}
+
+/* ═══ KUPON PANELİ ═══ */
+function renderSlip() {
+  const list = $('slipList'), arr = Object.values(picks);
+  $('tabCnt').textContent = arr.length ? `(${arr.length})` : '';
+  const cnt = $('slipCount');
+  cnt.textContent = `${arr.length}/${MIN_PICKS}`;
+  cnt.classList.toggle('ok', arr.length >= MIN_PICKS);
+
+  if (!arr.length) {
+    list.innerHTML = `<div class="po-slip-empty">Aşağıdan oranlara dokunarak maç ekle.</div>`;
+  } else {
+    list.innerHTML = arr.map(p => `
+      <div class="po-pick">
+        <div class="po-pick-i">
+          <div class="po-pick-m">${esc(p.home_name)} - ${esc(p.away_name)}</div>
+          <div class="po-pick-s">${MARKET_L[p.market] || p.market} · ${esc(selLabel(p))}</div>
+        </div>
+        <span class="po-pick-o">${p.odds.toFixed(2)}</span>
+        <button class="po-pick-x" data-fid="${p.fixture_id}" title="Kaldır">✕</button>
+      </div>`).join('');
+    list.querySelectorAll('.po-pick-x').forEach(b =>
+      b.addEventListener('click', () => { delete picks[b.dataset.fid]; savePicks(); renderSlip(); refreshCellStates(); }));
+  }
+
+  const canSubmit = arr.length >= MIN_PICKS;
+  const logged = (typeof Auth !== 'undefined') && Auth.isLoggedIn();
+  $('btnSave').disabled = !canSubmit;
+  $('btnSave').textContent = logged ? 'Tahminleri Kaydet' : 'Giriş Yap ve Kaydet';
+  $('slipWarn').textContent = !canSubmit
+    ? `Ödüle hak kazanmak için en az ${MIN_PICKS} tahmin yapmalısınız`
+    : (!logged ? 'Kaydetmek için giriş yapman gerekir' : '');
+}
+
+async function submitSlip() {
+  const arr = Object.values(picks);
+  if (arr.length < MIN_PICKS) return;
+  if (!Auth.isLoggedIn()) { Auth.showLoginModal(); return; }
+
+  const btn = $('btnSave');
+  btn.disabled = true; btn.textContent = 'Kaydediliyor…';
+  try {
+    const { error } = await sb.from('prediction_slips').insert({
+      user_id: Auth.getUser().id,
+      picks: arr,
+      pick_count: arr.length,
+      status: 'pending',
+    });
+    if (error) throw error;
+    picks = {}; savePicks(); renderSlip(); refreshCellStates();
+    switchTab('benim');
+  } catch (e) {
+    console.error('[PO] submit:', e);
+    $('slipWarn').textContent = 'Kaydedilemedi, tekrar deneyin';
+    btn.disabled = false; btn.textContent = 'Tahminleri Kaydet';
+  }
+}
+
+/* ═══ MAÇ LİSTESİ ═══ */
+function fmtDateTR(d) {
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+}
+
+async function loadMatches() {
+  const box = $('matchList');
+  try {
+    const now = new Date();
+    const today = fmtDateTR(now);
+    const tomorrow = fmtDateTR(new Date(now.getTime() + 86400000));
+
+    const [f1, f2] = await Promise.all([
+      sb.from('future_matches').select('*').eq('date', today).limit(300),
+      sb.from('future_matches').select('*').eq('date', tomorrow).limit(300),
+    ]);
+    let rows = [...(f1.data || []), ...(f2.data || [])];
+
+    /* Başlamamış maçlar: kickoff zamanı gelecekte olanlar */
+    rows = rows.filter(m => {
+      if (!m.fixture_id) return false;
+      const kt = (m.kickoff_time || '').slice(0, 5);
+      if (!/^\d{2}:\d{2}$/.test(kt)) return false;
+      const ko = new Date(`${m.date}T${kt}:00`);
+      return ko.getTime() > now.getTime() + 5 * 60000; /* 5 dk marj */
+    });
+
+    if (!rows.length) {
+      box.innerHTML = `<div class="state-box">Şu an tahmin yapılabilecek maç yok. Daha sonra tekrar bak!</div>`;
+      return;
+    }
+
+    /* Oranları toplu çek */
+    const ids = rows.map(m => m.fixture_id);
+    const oddsMap = {};
+    for (let i = 0; i < ids.length; i += 100) {
+      const { data } = await sb.from('match_odds')
+        .select('fixture_id, odds_data').in('fixture_id', ids.slice(i, i + 100));
+      (data || []).forEach(o => { oddsMap[o.fixture_id] = o.odds_data?.markets || null; });
+    }
+
+    /* Sadece en az bir seçilebilir marketi olan maçlar */
+    rows = rows.filter(m => {
+      const mk = oddsMap[m.fixture_id];
+      return mk && (mk['1x2'] || mk['ou25'] || mk['ht_1x2']);
+    });
+    if (!rows.length) {
+      box.innerHTML = `<div class="state-box">Oranı açılmış maç bulunamadı. Daha sonra tekrar bak!</div>`;
+      return;
+    }
+
+    rows.sort((a, b) => (a.date + a.kickoff_time).localeCompare(b.date + b.kickoff_time));
+    matchesById = {};
+    rows.forEach(m => { matchesById[m.fixture_id] = { row: m, mk: oddsMap[m.fixture_id] }; });
+
+    /* Lige göre grupla */
+    const groups = new Map();
+    rows.forEach(m => {
+      const k = m.league_name || 'Diğer';
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(m);
+    });
+
+    let html = '';
+    for (const [lig, ms] of groups) {
+      html += `<div class="po-league">⚽ ${esc(lig)}</div>`;
+      for (const m of ms) html += matchCard(m, oddsMap[m.fixture_id]);
+    }
+    box.innerHTML = html;
+    bindCells();
+    refreshCellStates();
+  } catch (e) {
+    console.error('[PO] loadMatches:', e);
+    box.innerHTML = `<div class="state-box">⚠️ Maçlar yüklenemedi.</div>`;
+  }
+}
+
+function oddsNum(v) { const n = parseFloat(v); return isFinite(n) && n > 0 ? n : 0; }
+
+function cellHtml(fid, market, selection, label, val) {
+  const v = oddsNum(val);
+  if (!v) return '';
+  const dis = v < MIN_ODDS ? ' dis' : '';
+  return `<div class="po-cell${dis}" data-fid="${fid}" data-market="${market}" data-sel="${selection}" data-odds="${v}">
+    <span class="cl">${esc(label)}</span><span class="cv">${v.toFixed(2)}</span></div>`;
+}
+
+function matchCard(m, mk) {
+  const fid = m.fixture_id;
+  const kt = (m.kickoff_time || '').slice(0, 5);
+  const isTomorrow = m.date !== fmtDateTR(new Date());
+  const hLogo = m.home_logo ? `<img src="${esc(m.home_logo)}" onerror="this.style.display='none'" alt="">` : '';
+  const aLogo = m.away_logo ? `<img src="${esc(m.away_logo)}" onerror="this.style.display='none'" alt="">` : '';
+
+  let mkts = '';
+  if (mk['1x2']) {
+    mkts += `<div class="po-mkt"><span class="po-mkt-l">MS</span>
+      ${cellHtml(fid, '1x2', 'home', '1', mk['1x2'].home)}
+      ${cellHtml(fid, '1x2', 'draw', 'X', mk['1x2'].draw)}
+      ${cellHtml(fid, '1x2', 'away', '2', mk['1x2'].away)}</div>`;
+  }
+  if (mk['ou25']) {
+    mkts += `<div class="po-mkt"><span class="po-mkt-l">2.5</span>
+      ${cellHtml(fid, 'ou25', 'under', 'Alt', mk['ou25'].under)}
+      ${cellHtml(fid, 'ou25', 'over', 'Üst', mk['ou25'].over)}</div>`;
+  }
+  if (mk['ht_1x2']) {
+    mkts += `<div class="po-mkt"><span class="po-mkt-l">İY</span>
+      ${cellHtml(fid, 'ht_1x2', 'home', '1', mk['ht_1x2'].home)}
+      ${cellHtml(fid, 'ht_1x2', 'draw', 'X', mk['ht_1x2'].draw)}
+      ${cellHtml(fid, 'ht_1x2', 'away', '2', mk['ht_1x2'].away)}</div>`;
+  }
+
+  return `<div class="po-match">
+    <div class="po-mrow">
+      <span class="po-time">${isTomorrow ? 'Yarın ' : ''}${esc(kt)}</span>
+      <div class="po-teams">${hLogo}<span>${esc(m.home_team||'')}</span><span class="vs">vs</span>${aLogo}<span>${esc(m.away_team||'')}</span></div>
+    </div>
+    <div class="po-mkts">${mkts}</div>
+  </div>`;
+}
+
+function bindCells() {
+  document.querySelectorAll('.po-cell:not(.dis)').forEach(c => {
+    c.addEventListener('click', () => {
+      const fid = Number(c.dataset.fid);
+      const info = matchesById[fid];
+      if (!info) return;
+      const m = info.row;
+      togglePick({
+        fixture_id: fid,
+        home_name: m.home_team || '',
+        away_name: m.away_team || '',
+        league_name: m.league_name || null,
+        kickoff: new Date(`${m.date}T${(m.kickoff_time||'00:00').slice(0,5)}:00`).toISOString(),
+        market: c.dataset.market,
+        selection: c.dataset.sel,
+        odds: parseFloat(c.dataset.odds),
+      });
+    });
+  });
+}
+
+function refreshCellStates() {
+  document.querySelectorAll('.po-cell').forEach(c => {
+    const p = picks[c.dataset.fid];
+    c.classList.toggle('sel',
+      !!p && p.market === c.dataset.market && p.selection === c.dataset.sel);
+  });
+}
+
+/* ═══ SOSYAL ═══ */
+async function loadSocial() {
+  const box = $('socialList');
+  box.innerHTML = `<div class="state-box"><div class="spinner"></div></div>`;
+  try {
+    const { data, error } = await sb.rpc('social_slips', { p_limit: 50 });
+    if (error) throw error;
+    if (!data || !data.length) {
+      box.innerHTML = `<div class="state-box">Henüz paylaşılan tahmin yok</div>`;
+      return;
+    }
+    box.innerHTML = data.map(s => slipCard(s, true)).join('');
+    bindComments(box);
+  } catch (e) {
+    console.error('[PO] social:', e);
+    box.innerHTML = `<div class="state-box">⚠️ Sosyal akış yüklenemedi.</div>`;
+  }
+}
+
+function slipCard(s, social) {
+  const name = social ? (s.display_name || 'Anonim') : 'Benim Kuponum';
+  const reward = (!social && s.status === 'won' && s.reward_amount > 0)
+    ? `<span style="color:var(--or);font-weight:800;font-size:12px">\u{1FA99} +${s.reward_amount}</span>` : '';
+  const pk = (s.picks || []).map(p => `
+    <div class="po-spick">${tickIcon(p.result)}
+      <span class="po-spick-m">${esc(p.home_name)} - ${esc(p.away_name)}</span>
+      <span class="po-spick-s">${MARKET_L[p.market] || p.market} · ${esc(selLabel(p))}</span>
+    </div>`).join('');
+  const cc = s.comment_count > 0 ? ` (${s.comment_count})` : '';
+  const sid = s.slip_id || s.id;
+  return `<div class="po-scard" data-sid="${esc(sid)}">
+    <div class="po-scard-h">
+      <div class="po-ava">${esc(name[0]?.toUpperCase() || '?')}</div>
+      <div class="po-uname">${esc(name)}</div>
+      ${statusBadge(s.status)}
+    </div>
+    <div class="po-spicks">${pk}</div>
+    <div class="po-scard-f">
+      <span class="po-corr">${s.correct_count}/${s.pick_count} doğru</span>
+      ${social ? `<button class="po-cbtn">💬 Yorumlar${cc}</button>` : reward}
+    </div>
+    ${social ? `<div class="po-comments" style="display:none"></div>` : ''}
+  </div>`;
+}
+
+function bindComments(root) {
+  root.querySelectorAll('.po-scard').forEach(card => {
+    const btn = card.querySelector('.po-cbtn');
+    if (!btn) return;
+    const panel = card.querySelector('.po-comments');
+    btn.addEventListener('click', async () => {
+      const open = panel.style.display !== 'none';
+      panel.style.display = open ? 'none' : 'block';
+      if (open || panel.dataset.loaded) return;
+      panel.innerHTML = `<div class="state-box" style="padding:14px 0"><div class="spinner"></div></div>`;
+      await renderComments(card.dataset.sid, panel);
+    });
+  });
+}
+
+async function renderComments(sid, panel) {
+  try {
+    const { data } = await sb.from('prediction_comments')
+      .select().eq('slip_id', sid).order('created_at', { ascending: true }).limit(100);
+    const items = (data || []).map(c => `
+      <div class="po-comment">
+        <div class="po-comment-n">${esc(c.nickname)}</div>
+        <div class="po-comment-c">${esc(c.content)}</div>
+      </div>`).join('');
+    panel.innerHTML = `${items || `<div class="po-comment-c" style="color:var(--tx3)">İlk yorumu sen yaz!</div>`}
+      <div class="po-cform">
+        <input class="po-cinput" maxlength="500" placeholder="Yorum yaz..."/>
+        <button class="po-csend">Gönder</button>
+      </div>`;
+    panel.dataset.loaded = '1';
+    panel.querySelector('.po-csend').addEventListener('click', async () => {
+      if (!Auth.isLoggedIn()) { Auth.showLoginModal(); return; }
+      const inp = panel.querySelector('.po-cinput');
+      const text = inp.value.trim();
+      if (!text) return;
+      const { error } = await sb.from('prediction_comments').insert({
+        slip_id: sid,
+        user_id: Auth.getUser().id,
+        nickname: Auth.getDisplayName() || 'Anonim',
+        content: text,
+      });
+      if (!error) { panel.dataset.loaded = ''; await renderComments(sid, panel); }
+    });
+  } catch (e) { console.error('[PO] comments:', e); }
+}
+
+/* ═══ TAHMİNLERİM ═══ */
+async function loadMine() {
+  const box = $('mySlips');
+  box.innerHTML = `<div class="state-box"><div class="spinner"></div></div>`;
+  if (!Auth.isLoggedIn()) {
+    box.innerHTML = `<div class="state-box">Tahminlerini görmek için giriş yap.<br><br>
+      <button class="po-save" style="max-width:220px;margin:0 auto" onclick="Auth.showLoginModal()">Giriş Yap</button></div>`;
+    return;
+  }
+  try {
+    /* Cron yedeği: önce sunucu çözümleyicisini tetikle (hata yut) */
+    try { await sb.rpc('resolve_prediction_slips'); } catch(_) {}
+    const { data, error } = await sb.from('prediction_slips')
+      .select().eq('user_id', Auth.getUser().id)
+      .order('created_at', { ascending: false }).limit(50);
+    if (error) throw error;
+    if (!data || !data.length) {
+      box.innerHTML = `<div class="state-box">Henüz kaydedilmiş tahminin yok</div>`;
+      return;
+    }
+    box.innerHTML = data.map(s => slipCard({ ...s, slip_id: s.id }, false)).join('');
+  } catch (e) {
+    console.error('[PO] mine:', e);
+    box.innerHTML = `<div class="state-box">⚠️ Tahminler yüklenemedi.</div>`;
+  }
+}
+
+/* ═══ SEKMELER ═══ */
+function switchTab(t) {
+  document.querySelectorAll('.po-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+  ['kupon', 'sosyal', 'benim', 'nasil'].forEach(k => {
+    $('tab-' + k).style.display = (k === t) ? '' : 'none';
+  });
+  $('slipPanel').style.display = (t === 'kupon') ? '' : 'none';
+  if (t === 'sosyal') loadSocial();
+  if (t === 'benim')  loadMine();
+}
+document.querySelectorAll('.po-tab').forEach(b =>
+  b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+/* ═══ BAŞLAT ═══ */
+try {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch (e) {
+  $('matchList').innerHTML = `<div class="state-box">⚠️ Bağlantı hatası: config.js bulunamadı.</div>`;
+}
+
+if (sb) {
+  if (typeof Auth !== 'undefined') {
+    Auth.init(sb).then(() => { renderSlip(); });
+    Auth.onChange(() => renderSlip());
+  }
+  loadPicks();
+  renderSlip();
+  loadMatches();
+  $('btnSave').addEventListener('click', submitSlip);
+  $('btnClear').addEventListener('click', () => { picks = {}; savePicks(); renderSlip(); refreshCellStates(); });
+}
+
+/* AdSense */
+try { (adsbygoogle = window.adsbygoogle || []).push({}); } catch(_) {}
+
+})();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Tahmin Oyunu — ScorePop",
+  "description": "Ücretsiz maç tahmin yarışması: en az 4 maç seç, tümünü doğru bil, 250 kredi kazan.",
+  "url": "https://scorepop.com.tr/tahmin-oyunu",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "ScorePop",
+    "url": "https://scorepop.com.tr"
+  },
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Ana Sayfa", "item": "https://scorepop.com.tr" },
+      { "@type": "ListItem", "position": 2, "name": "Tahmin Oyunu", "item": "https://scorepop.com.tr/tahmin-oyunu" }
+    ]
+  }
+}
+</script>
+
+</body>
+</html>
