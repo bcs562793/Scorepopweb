@@ -34,7 +34,7 @@ const S = {
 /* ── LİG ÖNCELİK SİSTEMİ (JSON league_id tabanlı) ───────────────────── */
 const LEAGUE_CONF = [
    
-  { id: 14597, source: "mackolik", priority: -1, name: "Dünya kupası 2026 Son 32" },
+  { id: 14598, source: "mackolik", priority: -1, name: "Dünya kupası 2026 Son 32" },
   { id: 14364, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
   { id: 14365, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
   { id: 14366, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
