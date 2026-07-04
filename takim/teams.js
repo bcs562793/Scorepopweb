@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let standings=[], players=[];
     if(tmTeam && tmTeam.league){
-      try{ const { data } = await sb.from('tm_standings').select('*').eq('league',tmTeam.league).order('rank',{ascending:true}); if(data) standings=data; }catch(e){}
+      try{ const { data } = await sb.from('tm_standings').select('*').eq('league',tmTeam.league); if(data) standings=data; }catch(e){}
     }
     if(tmTeam && tmTeam.id){
       try{ const { data } = await sb.from('tm_players').select('*').eq('team_id',tmTeam.id).order('market_value_eur',{ascending:false}); if(data) players=data; }catch(e){}
@@ -215,11 +215,20 @@ function render(root, macId, tmTeam, fixtures, standings, players){
 
   let stHtml;
   if(standings&&standings.length){
-    const rows=standings.map(s=>{
+    const num=v=>{const n=parseFloat(v);return isNaN(n)?-Infinity:n;};
+    const gdOf=s=>{const d=num(s.goal_diff??s.goal_difference??s.gd);
+      if(d!==-Infinity)return d;
+      const gf=num(s.goals_for),ga=num(s.goals_against);
+      return (gf!==-Infinity&&ga!==-Infinity)?gf-ga:-Infinity;};
+    standings=[...standings].sort((a,b)=>
+      num(b.points??b.pts)-num(a.points??a.pts) ||
+      gdOf(b)-gdOf(a) ||
+      num(b.win??b.wins??b.won??b.w)-num(a.win??a.wins??a.won??a.w));
+    const rows=standings.map((s,i)=>{
       const nm=s.team_name||s.team||s.name||'';
       const me=(tmTeam&&tmTeam.name&&nm===tmTeam.name)?' class="me"':'';
-      const g=s.win??s.wins??s.won??s.w??'–', b=s.draw??s.draws??s.drawn??s.d??'–', l=s.loss??s.losses??s.lost??s.l??'–', av=s.goal_diff??s.goal_difference??s.gd??'–';
-      return `<tr${me}><td>${esc(s.rank??'')}</td><td class="team">${esc(nm)}</td>
+      const g=s.win??s.wins??s.won??s.w??'–', b=s.draw??s.draws??s.drawn??s.d??'–', l=s.loss??s.losses??s.lost??s.l??'–', gdv=gdOf(s), av=(gdv===-Infinity?'–':(gdv>0?'+':'')+gdv);
+      return `<tr${me}><td>${i+1}</td><td class="team">${esc(nm)}</td>
         <td>${esc(s.played??s.matches??s.mp??'–')}</td><td>${esc(g)}</td><td>${esc(b)}</td><td>${esc(l)}</td><td>${esc(av)}</td><td class="pts">${esc(s.points??s.pts??'')}</td></tr>`;
     }).join('');
     stHtml=`<div class="tp-stand"><table><thead><tr><th class="l">#</th><th class="l">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>Av</th><th>P</th></tr></thead><tbody>${rows}</tbody></table></div>`;
