@@ -82,6 +82,17 @@ function posCat(pos){
   return {c:'#8b95a4',k:'•'};
 }
 
+/* Sezon chip'i: tabloyu seçilen sezonla yeniden çiz */
+window.tpSetSeason = function(y){
+  const by = window.__tpSeasons, build = window.__tpBuildRows;
+  if(!by || !by[y] || !build) return;
+  window.__tpSeasonSel = y;
+  const tbl = document.querySelector('#tp-stand-tbl tbody');
+  if(tbl) tbl.innerHTML = build(by[y]);
+  document.querySelectorAll('.tp-schip').forEach(b=>
+    b.classList.toggle('active', b.textContent.startsWith(String(y))));
+};
+
 /* ───────── Giriş ───────── */
 document.addEventListener('DOMContentLoaded', async () => {
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -105,9 +116,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     const today = new Date().toLocaleDateString('sv-SE',{ timeZone:'Europe/Istanbul' });
     const { data: futRows } = await sb.from('future_matches')
       .select('*').gte('date', today).order('date',{ ascending:true }).limit(2000);
-    const fixtures = (futRows||[]).map(parseFixture)
+    const parsed = (futRows||[]).map(parseFixture);
+    let fixtures = parsed
       .filter(f => String(f.home_team_id)===String(macId) || String(f.away_team_id)===String(macId))
       .slice(0,15);
+    /* id eşleşmesi boşsa: takım adından eşleştir (tm_teams lookup'ıyla aynı desen) */
+    if(!fixtures.length){
+      const nrm=s=>String(s||'').toLowerCase()
+        .replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c')
+        .replace(/[^a-z0-9]+/g,' ').trim();
+      const targets=[];
+      if(tmTeam&&tmTeam.name) targets.push(nrm(tmTeam.name));
+      if(nameGuess) targets.push(nrm(nameGuess));
+      const match1=(a,b)=>a&&b&&(a===b||a.startsWith(b+' ')||b.startsWith(a+' '));
+      fixtures = parsed.filter(f=>{
+        const h=nrm(f.home_team), a=nrm(f.away_team);
+        return targets.some(t=>match1(h,t)||match1(a,t));
+      }).slice(0,15);
+    }
+
+    /* Sezonluk fikstür: tm_fixtures (team_mac_id = URL'deki mac_t_id) */
+    let seasonFx=[];
+    try{
+      const { data } = await sb.from('tm_fixtures').select('*')
+        .eq('team_mac_id', macId).order('kickoff',{ascending:true});
+      if(data) seasonFx=data;
+    }catch(e){}
 
     let standings=[], players=[];
     if(tmTeam && tmTeam.league){
@@ -118,14 +152,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     document.title = (tmTeam?.name ? tmTeam.name : 'Takım') + ' — Fikstür, Kadro, Puan Durumu | ScorePop';
-    render(root, macId, tmTeam, fixtures, standings, players);
+    render(root, macId, tmTeam, fixtures, standings, players, seasonFx);
   }catch(err){
     console.error(err);
     root.innerHTML = `<div class="empty"><div class="empty-t">Bağlantı hatası oluştu.</div></div>`;
   }
 });
 
-function render(root, macId, tmTeam, fixtures, standings, players){
+function render(root, macId, tmTeam, fixtures, standings, players, seasonFx){
   const css = `<style>
     .tp{max-width:920px;margin:0 auto;}
     .tp-hero{position:relative;overflow:hidden;border-radius:18px;padding:26px 26px 22px;margin-bottom:14px;
@@ -155,6 +189,10 @@ function render(root, macId, tmTeam, fixtures, standings, players){
     .tp-pcat{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;}
     .tp-pname{font-size:14px;font-weight:600;color:var(--tx1);}.tp-ppos{font-size:11.5px;color:var(--tx3);margin-top:2px;}
     .tp-pval{font-size:13.5px;font-weight:600;color:var(--tx1);padding-right:16px;white-space:nowrap;}.tp-pval.muted{color:var(--tx3);}
+    .tp-seasons{display:flex;gap:6px;margin-bottom:10px;}
+    .tp-schip{border:1px solid var(--b1);background:var(--bg2);color:var(--tx2);font-size:12.5px;font-weight:600;
+      padding:6px 14px;border-radius:20px;cursor:pointer;}
+    .tp-schip.active{background:var(--or);border-color:var(--or);color:#fff;}
     .tp-stand{border:1px solid var(--b1);border-radius:14px;overflow:hidden;background:var(--bg2);}
     .tp-stand table{width:100%;border-collapse:collapse;font-size:13px;}
     .tp-stand th{font-size:10.5px;font-weight:700;text-transform:uppercase;color:var(--tx3);padding:11px 8px;text-align:center;border-bottom:1px solid var(--b2);background:var(--bg4);}
@@ -166,6 +204,10 @@ function render(root, macId, tmTeam, fixtures, standings, players){
     .tp-frow{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--b1);cursor:pointer;}
     .tp-frow:last-child{border-bottom:none;}.tp-frow:hover{background:var(--or3);}
     .tp-fdate{font-size:11px;color:var(--tx3);width:54px;text-align:center;flex-shrink:0;line-height:1.3;}
+    .tp-fcomp{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);
+      background:var(--bg4);padding:8px 14px;border-bottom:1px solid var(--b1);}
+    .tp-fscore{width:64px;text-align:center;flex-shrink:0;font-size:13.5px;color:var(--tx1);}
+    .tp-frow.next{background:var(--or3);}
     .tp-fteams{flex:1;font-size:13.5px;color:var(--tx1);}.tp-fvs{color:var(--tx3);margin:0 6px;}
     @media(max-width:600px){.tp-stats{grid-template-columns:repeat(2,1fr);}.tp-name{font-size:24px;}.tp-crest{width:72px;height:72px;}.tp-crest img{width:50px;height:50px;}}
   </style>`;
@@ -191,15 +233,48 @@ function render(root, macId, tmTeam, fixtures, standings, players){
       <div class="tp-meta">Bu takımın detaylı profili henüz oluşturulmamış.</div></div>`;
   }
 
-  let fxHtml = (fixtures&&fixtures.length)
-    ? `<div class="tp-fx">`+fixtures.map(m=>{
+  let fxHtml;
+  if(seasonFx&&seasonFx.length){
+    /* Sezonluk fikstür (tm_fixtures). Maç linki: match_id sitedeki fixture_id ile
+       aynıysa tıklanabilir — future_matches'ten kanıtla, varsayma. */
+    const knownIds = new Set((fixtures||[]).map(f=>String(f.fixture_id)));
+    const now = Date.now();
+    let lastComp = null, nextMarked = false;
+    fxHtml = `<div class="tp-fx">`+seasonFx.map(m=>{
+      const ko = m.kickoff ? new Date(m.kickoff) : null;
+      const d  = ko ? ko.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'}) : '';
+      const t  = ko ? ko.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '--:--';
+      const played = m.home_score!=null;
+      const mid = played
+        ? `<b>${m.home_score} - ${m.away_score}</b>`
+        : `<span class="tp-fvs">${t}</span>`;
+      let compHdr='';
+      if(m.competition && m.competition!==lastComp){
+        compHdr = `<div class="tp-fcomp">${esc(m.competition)}</div>`;
+        lastComp = m.competition;
+      }
+      let cls='tp-frow';
+      if(!played && !nextMarked && ko && ko.getTime()>=now-6*36e5){ cls+=' next'; nextMarked=true; }
+      const click = knownIds.has(String(m.match_id))
+        ? ` onclick="window.location.href='/mac/${m.match_id}'" style="cursor:pointer"`
+        : ` style="cursor:default"`;
+      return compHdr+`<div class="${cls}"${click}>
+        <div class="tp-fdate">${d}</div>
+        <div class="tp-fteams" style="text-align:right">${esc(m.home_name)}</div>
+        <div class="tp-fscore">${mid}</div>
+        <div class="tp-fteams">${esc(m.away_name)}</div></div>`;
+    }).join('')+`</div>`;
+  } else if(fixtures&&fixtures.length){
+    fxHtml = `<div class="tp-fx">`+fixtures.map(m=>{
         const t = m.kickoff ? new Date(m.kickoff).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '--:--';
         const d = m.date ? new Date(m.date).toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'}) : '';
         return `<div class="tp-frow" onclick="window.location.href='/mac/${m.fixture_id}'">
           <div class="tp-fdate">${d}<br>${t}</div>
           <div class="tp-fteams">${esc(m.home_team)}<span class="tp-fvs">v</span>${esc(m.away_team)}</div></div>`;
-      }).join('')+`</div>`
-    : `<div class="tp-empty">Yaklaşan maç bulunamadı.</div>`;
+      }).join('')+`</div>`;
+  } else {
+    fxHtml = `<div class="tp-empty">Fikstür bulunamadı.</div>`;
+  }
 
   let sqHtml = (players&&players.length)
     ? `<div class="tp-squad">`+players.map(p=>{
@@ -216,22 +291,44 @@ function render(root, macId, tmTeam, fixtures, standings, players){
   let stHtml;
   if(standings&&standings.length){
     const num=v=>{const n=parseFloat(v);return isNaN(n)?-Infinity:n;};
+    /* Sezon ayrımı: saison_id'ye göre grupla, varsayılan = en çok maç oynanmış
+       sezon (eşitlikte yeni olan). Diğer sezonlar chip ile seçilebilir. */
+    const bySeason = {};
+    for(const s of standings){ const k = s.saison_id ?? 0; (bySeason[k]=bySeason[k]||[]).push(s); }
+    const seasons = Object.keys(bySeason).map(Number).sort((a,b)=>b-a);
+    let season = seasons[0];
+    if(seasons.length>1){
+      let best=-1;
+      for(const y of seasons){
+        const pl = bySeason[y].reduce((t,s)=>t+(parseInt(s.played)||0),0);
+        if(pl>best){ best=pl; season=y; }
+      }
+    }
+    window.__tpSeasons = bySeason; window.__tpSeasonSel = season;
+    standings = bySeason[season];
     const gdOf=s=>{const d=num(s.goal_diff??s.goal_difference??s.gd);
       if(d!==-Infinity)return d;
       const gf=num(s.goals_for),ga=num(s.goals_against);
       return (gf!==-Infinity&&ga!==-Infinity)?gf-ga:-Infinity;};
-    standings=[...standings].sort((a,b)=>
-      num(b.points??b.pts)-num(a.points??a.pts) ||
-      gdOf(b)-gdOf(a) ||
-      num(b.win??b.wins??b.won??b.w)-num(a.win??a.wins??a.won??a.w));
-    const rows=standings.map((s,i)=>{
+    const buildRows = list => [...list].sort((a,b)=>
+        num(b.points??b.pts)-num(a.points??a.pts) ||
+        gdOf(b)-gdOf(a) ||
+        num(b.win??b.wins??b.won??b.w)-num(a.win??a.wins??a.won??a.w)
+      ).map((s,i)=>{
       const nm=s.team_name||s.team||s.name||'';
       const me=(tmTeam&&tmTeam.name&&nm===tmTeam.name)?' class="me"':'';
       const g=s.win??s.wins??s.won??s.w??'–', b=s.draw??s.draws??s.drawn??s.d??'–', l=s.loss??s.losses??s.lost??s.l??'–', gdv=gdOf(s), av=(gdv===-Infinity?'–':(gdv>0?'+':'')+gdv);
       return `<tr${me}><td>${i+1}</td><td class="team">${esc(nm)}</td>
         <td>${esc(s.played??s.matches??s.mp??'–')}</td><td>${esc(g)}</td><td>${esc(b)}</td><td>${esc(l)}</td><td>${esc(av)}</td><td class="pts">${esc(s.points??s.pts??'')}</td></tr>`;
     }).join('');
-    stHtml=`<div class="tp-stand"><table><thead><tr><th class="l">#</th><th class="l">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>Av</th><th>P</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    window.__tpBuildRows = buildRows;
+    const rows = buildRows(standings);
+    const chips = seasons.length>1
+      ? `<div class="tp-seasons">`+seasons.map(y=>
+          `<button class="tp-schip${y===season?' active':''}" onclick="tpSetSeason(${y})">${y}/${String(y+1).slice(2)}</button>`
+        ).join('')+`</div>`
+      : '';
+    stHtml=chips+`<div class="tp-stand" id="tp-stand-tbl"><table><thead><tr><th class="l">#</th><th class="l">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>Av</th><th>P</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   } else {
     stHtml=`<div class="tp-empty">Puan durumu bulunamadı.</div>`;
   }
