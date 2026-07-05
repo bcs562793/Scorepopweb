@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v14.8 — Arşiv Desteği)
+   SCOREPOP — app.js  (v14.9 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -4634,6 +4634,14 @@ window.loadTeam = async function(macId, teamName) {
       .filter(f => f && (String(f.home_team_id)===String(macId) || String(f.away_team_id)===String(macId)))
       .slice(0, 15);
 
+    /* 2b) Sezonluk fikstür: tm_fixtures (team_mac_id = URL'deki mac_t_id) */
+    let seasonFx = [];
+    try {
+      const { data } = await sb.from('tm_fixtures').select('*')
+        .eq('team_mac_id', macId).order('kickoff', { ascending: true });
+      if (data) seasonFx = data;
+    } catch(e){}
+
     /* 3) Puan durumu + kadro (varsa) */
     let standings = [], players = [];
     if (tmTeam && tmTeam.league) {
@@ -4643,7 +4651,7 @@ window.loadTeam = async function(macId, teamName) {
       try { const { data } = await sb.from('tm_players').select('*').eq('team_id', tmTeam.id).order('market_value_eur', { ascending: false }); if (data) players = data; } catch(e){}
     }
 
-    renderTeamPage(root, macId, tmTeam, fixtures, standings, players);
+    renderTeamPage(root, macId, tmTeam, fixtures, standings, players, seasonFx);
   } catch (err) {
     console.error('Takım sayfası hatası:', err);
     root.innerHTML = `<div class="empty" style="padding:20px;"><div class="empty-t">Takım verileri yüklenirken sorun oluştu.</div></div>`;
@@ -4668,7 +4676,7 @@ function _posCat(pos) {
   return { c: '#8b95a4', k: '•' };
 }
 
-function renderTeamPage(root, macId, tmTeam, fixtures, standings, players) {
+function renderTeamPage(root, macId, tmTeam, fixtures, standings, players, seasonFx) {
   const css = `<style>
     .tp{max-width:920px;margin:0 auto;}
     .tp-hero{position:relative;overflow:hidden;border-radius:18px;padding:26px 26px 22px;margin-bottom:14px;
@@ -4700,6 +4708,17 @@ function renderTeamPage(root, macId, tmTeam, fixtures, standings, players) {
     .tp-panel.active{display:block;animation:tpfade .25s ease;}
     @keyframes tpfade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
     .tp-empty{text-align:center;color:var(--tx3);padding:40px 0;font-size:14px;}
+
+    /* Sezonluk fikstür (tm_fixtures) */
+    .tp-fx{border:1px solid var(--b1);border-radius:14px;overflow:hidden;background:var(--bg2);}
+    .tp-frow{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--b1);cursor:pointer;}
+    .tp-frow:last-child{border-bottom:none;}.tp-frow:hover{background:var(--or3);}
+    .tp-frow.next{background:var(--or3);}
+    .tp-fdate{font-size:11px;color:var(--tx3);width:54px;text-align:center;flex-shrink:0;line-height:1.3;}
+    .tp-fcomp{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);
+      padding:10px 14px 4px;background:var(--bg4);border-bottom:1px solid var(--b1);}
+    .tp-fscore{width:64px;text-align:center;flex-shrink:0;font-size:13.5px;color:var(--tx1);}
+    .tp-fteams{flex:1;font-size:13.5px;color:var(--tx1);}.tp-fvs{color:var(--tx3);margin:0 6px;}
 
     /* Kadro — zebra grid */
     .tp-squad{border:1px solid var(--b1);border-radius:14px;overflow:hidden;background:var(--bg2);}
@@ -4770,7 +4789,37 @@ function renderTeamPage(root, macId, tmTeam, fixtures, standings, players) {
 
   /* ── FİKSTÜR ── */
   let fxHtml = '';
-  if (fixtures && fixtures.length) {
+  if (seasonFx && seasonFx.length) {
+    /* Sezonluk fikstür (tm_fixtures). Maç linki: match_id sitedeki fixture_id ile
+       aynıysa tıklanabilir — future_matches'ten kanıtla, varsayma. */
+    const knownIds = new Set((fixtures || []).map(f => String(f.fixture_id)));
+    const now = Date.now();
+    let lastComp = null, nextMarked = false;
+    fxHtml = `<div class="tp-fx">` + seasonFx.map(m => {
+      const ko = m.kickoff ? new Date(m.kickoff) : null;
+      const d  = ko ? ko.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'}) : '';
+      const t  = ko ? ko.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '--:--';
+      const played = m.home_score != null;
+      const mid = played
+        ? `<b>${m.home_score} - ${m.away_score}</b>`
+        : `<span class="tp-fvs">${t}</span>`;
+      let compHdr = '';
+      if (m.competition && m.competition !== lastComp) {
+        compHdr = `<div class="tp-fcomp">${esc(m.competition)}</div>`;
+        lastComp = m.competition;
+      }
+      let cls = 'tp-frow';
+      if (!played && !nextMarked && ko && ko.getTime() >= now - 6*36e5) { cls += ' next'; nextMarked = true; }
+      const click = knownIds.has(String(m.match_id))
+        ? ` onclick="window.location.href='/mac/${m.match_id}'" style="cursor:pointer"`
+        : ` style="cursor:default"`;
+      return compHdr + `<div class="${cls}"${click}>
+        <div class="tp-fdate">${d}</div>
+        <div class="tp-fteams" style="text-align:right">${esc(m.home_name)}</div>
+        <div class="tp-fscore">${mid}</div>
+        <div class="tp-fteams">${esc(m.away_name)}</div></div>`;
+    }).join('') + `</div>`;
+  } else if (fixtures && fixtures.length) {
     fxHtml = `<div class="tp-fx-wrap">` + fixtures.map(m => (typeof renderRow === 'function' ? renderRow(m, false) : '')).join('') + `</div>`;
   } else {
     fxHtml = `<div class="tp-empty">Yaklaşan maç bulunamadı.</div>`;
