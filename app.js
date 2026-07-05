@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SCOREPOP — app.js  (v14.9 — Arşiv Desteği)
+   SCOREPOP — app.js  (v15.0 — Arşiv Desteği)
    Fixes: 
      - Sidebar lig isimleri yatay (flex-wrap) 
      - --:-- sorunu giderildi (fmtKickoff robust)
@@ -4719,6 +4719,12 @@ function renderTeamPage(root, macId, tmTeam, fixtures, standings, players, seaso
       padding:10px 14px 4px;background:var(--bg4);border-bottom:1px solid var(--b1);}
     .tp-fscore{width:64px;text-align:center;flex-shrink:0;font-size:13.5px;color:var(--tx1);}
     .tp-fteams{flex:1;font-size:13.5px;color:var(--tx1);}.tp-fvs{color:var(--tx3);margin:0 6px;}
+    .tp-fres{width:20px;height:20px;flex-shrink:0;border-radius:6px;display:flex;align-items:center;justify-content:center;
+      font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;color:#fff;}
+    .tp-fres.g{background:#10b981;}
+    .tp-fres.b{background:#8b95a4;}
+    .tp-fres.m{background:#ef4444;}
+    .tp-fres.none{background:transparent;}
 
     /* Kadro — zebra grid */
     .tp-squad{border:1px solid var(--b1);border-radius:14px;overflow:hidden;background:var(--bg2);}
@@ -4800,6 +4806,15 @@ function renderTeamPage(root, macId, tmTeam, fixtures, standings, players, seaso
       const d  = ko ? ko.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'}) : '';
       const t  = ko ? ko.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '--:--';
       const played = m.home_score != null;
+      /* G/B/M rozeti — takımın kendi perspektifinden (side: home/away) */
+      let resBadge = `<span class="tp-fres none"></span>`;
+      if (played) {
+        const hs = Number(m.home_score), as = Number(m.away_score);
+        const mine   = m.side === 'away' ? as : hs;
+        const theirs = m.side === 'away' ? hs : as;
+        const r = mine > theirs ? ['g','G'] : mine < theirs ? ['m','M'] : ['b','B'];
+        resBadge = `<span class="tp-fres ${r[0]}" title="${r[0]==='g'?'Galibiyet':r[0]==='b'?'Beraberlik':'Mağlubiyet'}">${r[1]}</span>`;
+      }
       const mid = played
         ? `<b>${m.home_score} - ${m.away_score}</b>`
         : `<span class="tp-fvs">${t}</span>`;
@@ -4815,6 +4830,7 @@ function renderTeamPage(root, macId, tmTeam, fixtures, standings, players, seaso
         : ` style="cursor:default"`;
       return compHdr + `<div class="${cls}"${click}>
         <div class="tp-fdate">${d}</div>
+        ${resBadge}
         <div class="tp-fteams" style="text-align:right">${esc(m.home_name)}</div>
         <div class="tp-fscore">${mid}</div>
         <div class="tp-fteams">${esc(m.away_name)}</div></div>`;
