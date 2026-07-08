@@ -1194,6 +1194,7 @@ function normFix(m) {
     kickoff_at:    m.kickoff_at    || null,
     second_half_at: m.second_half_at || null, 
     visual_url:   m.visual_url || null,
+    stream_url:   m.stream_url || m.m3u8_url || null,  /* TV yayını (m3u8) — varsa görselin önüne geçer */
     raw_data:     m.raw_data   || null,   /* venue + referee için buildDetail'e gerekli */
   };
 }
@@ -1334,7 +1335,7 @@ function renderRow(m, isLive) {
     : `<div class="mr-logo-ph"></div>`;
 
   const sbCls = st.live ? 'mr-sb live' : (isNS ? 'mr-sb ns' : 'mr-sb');
-  const extra = m.visual_url
+  const extra = (m.stream_url || m.visual_url)
     ? `<span class="mr-tv">TV</span>`
     : `<span class="mr-arr">›</span>`;
 
@@ -1615,6 +1616,126 @@ async function loadDetail(id, isLive, oddsOnly = false) {
     console.error(e);
     setDetailHTML(`<div class="empty"><div class="empty-t">Hata: ${esc(e.message)}</div></div>`);
   }
+}
+
+/* ── TV YAYIN OYNATICI (m3u8 / HLS) ──────────────────────────
+   stream_url doluysa 2D görsel yerine bu oynatıcı gösterilir. */
+function _loadHlsJs() {
+  if (window.Hls) return Promise.resolve();
+  if (window._hlsLoadPromise) return window._hlsLoadPromise;
+  window._hlsLoadPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js';
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('hls.js yüklenemedi'));
+    document.head.appendChild(s);
+  });
+  return window._hlsLoadPromise;
+}
+
+function _destroyStreamPlayer() {
+  if (window._hlsInstance) {
+    try { window._hlsInstance.destroy(); } catch (e) {}
+    window._hlsInstance = null;
+  }
+  if (window._streamVideoRO) {
+    try { window._streamVideoRO.disconnect(); } catch (e) {}
+    window._streamVideoRO = null;
+  }
+}
+
+/* ── VİDEO SARMALAYICIYI PİKSEL CİNSİNDEN SABİTLE ────────────────
+   aspect-ratio CSS'i tek başına native fullscreen giriş/çıkışında
+   bazı tarayıcılarda bozuluyor (video dikeye uzuyor). CSS'e güvenmek
+   yerine, eski d-visual-iframe scaling mantığıyla aynı şekilde
+   wrapper'ın yüksekliğini JS ile piksel olarak hesaplayıp zorluyoruz
+   ve fullscreen değişiminde + belirli aralıklarla kendini onarıyoruz. */
+function _scaleStreamVideoWrap() {
+  const wrap  = document.querySelector('.d-visual-video-wrap');
+  const video = document.getElementById('d-stream-player');
+  if (!wrap) return;
+
+  /* Fullscreen'deyken hiçbir şeye dokunma — tarayıcı kendi boyutlandırır */
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+  if (fsEl) return;
+
+  void wrap.offsetWidth; /* layout'u zorla hesaplat */
+  const w = wrap.getBoundingClientRect().width;
+  if (!w || w < 10) return;
+
+  const maxH = window.innerHeight * 0.7;
+  const h = Math.min(Math.round(w * 9 / 16), Math.round(maxH));
+
+  wrap.style.height    = h + 'px';
+  wrap.style.maxHeight = '';   /* px height zaten sınırlıyor */
+
+  if (video) {
+    video.style.width  = '100%';
+    video.style.height = '100%';
+  }
+}
+
+function _scheduleStreamVideoScale() {
+  [0, 100, 300, 600, 1000, 2000, 3500, 5000, 8000, 12000].forEach(ms => {
+    setTimeout(_scaleStreamVideoWrap, ms);
+  });
+
+  const wrap = document.querySelector('.d-visual-video-wrap');
+  if (wrap && 'ResizeObserver' in window) {
+    if (window._streamVideoRO) window._streamVideoRO.disconnect();
+    window._streamVideoRO = new ResizeObserver(() => _scaleStreamVideoWrap());
+    window._streamVideoRO.observe(wrap);
+  }
+}
+
+if (!window._streamFsGuardAdded) {
+  window._streamFsGuardAdded = true;
+  ['fullscreenchange', 'webkitfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+    document.addEventListener(evt, () => {
+      /* Fullscreen'den çıkışta tarayıcının bıraktığı boyutu ez —
+         hemen ve birkaç kez tekrar dene (bazı tarayıcılar geç uyguluyor) */
+      [0, 50, 150, 400, 1000, 2000].forEach(ms => setTimeout(_scaleStreamVideoWrap, ms));
+    });
+  });
+  window.addEventListener('resize', () => _scaleStreamVideoWrap());
+}
+
+async function _initStreamPlayer(url) {
+  _destroyStreamPlayer();
+  const video = document.getElementById('d-stream-player');
+  if (!video || !url) return;
+
+  /* Safari / iOS: native HLS desteği var, hls.js'e gerek yok */
+  if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = url;
+    video.play().catch(() => {});
+    _scheduleStreamVideoScale();
+    return;
+  }
+
+  try {
+    await _loadHlsJs();
+    if (window.Hls && window.Hls.isSupported()) {
+      const hls = new window.Hls({ lowLatencyMode: true });
+      window._hlsInstance = hls;
+      hls.loadSource(url);
+      hls.attachMedia(video);
+      hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
+        video.play().catch(() => {});
+        _scaleStreamVideoWrap();
+      });
+      hls.on(window.Hls.Events.ERROR, (evt, data) => {
+        if (data?.fatal) console.warn('[stream] hls.js fatal error', data);
+      });
+    } else {
+      /* Tarayıcı ne native ne hls.js destekliyor — düz src dene */
+      video.src = url;
+      video.play().catch(() => {});
+    }
+  } catch (e) {
+    console.warn('[stream] oynatıcı başlatılamadı:', e);
+  }
+  _scheduleStreamVideoScale();
 }
 
 function scaleVisualIframe() {
@@ -3218,16 +3339,25 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = 
     </div>`;
 
   /* oddsOnly=true ise canlı görsel ve diğer tabları gizle */
+  /* Yayın önceliği: TV yayını (m3u8) varsa onu göster, yoksa 2D görsel simülasyonu,
+     o da yoksa boş durum mesajı. Alan adı: matches tablosunda `stream_url` kolonu. */
+  const streamUrl = m.stream_url || m.m3u8_url || null;
   if (!oddsOnly) {
+    let visualBody;
+    if (streamUrl) {
+      visualBody = `<div class="d-visual-video-wrap" style="position:relative;width:100%;aspect-ratio:16/9;max-height:70vh;background:#000;overflow:hidden;"><video id="d-stream-player" class="d-visual-video" style="display:block;width:100%;height:100%;border:none;background:#000;object-fit:contain;" controls playsinline autoplay muted></video></div>`;
+    } else if (m.visual_url) {
+      visualBody = `<div class="d-visual-iframe-wrap"><iframe class="d-visual-iframe" src="${esc(m.visual_url)}" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe></div>`;
+    } else {
+      visualBody = `<div class="d-visual-empty">📡<span>Görsel stream mevcut değil</span></div>`;
+    }
     html += `
       <div class="d-visual">
         <div class="d-visual-hdr">
-          <div class="d-visual-hdr-l">📺 Canlı Görsel</div>
-          ${m.visual_url ? `<span class="d-visual-live">LIVE</span>` : ''}
+          <div class="d-visual-hdr-l">${streamUrl ? '📺 Canlı Yayın' : '📺 Canlı Görsel'}</div>
+          ${(streamUrl || m.visual_url) ? `<span class="d-visual-live">LIVE</span>` : ''}
         </div>
-        ${m.visual_url
-          ? `<div class="d-visual-iframe-wrap"><iframe class="d-visual-iframe" src="${esc(m.visual_url)}" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe></div>`
-          : `<div class="d-visual-empty">📡<span>Görsel stream mevcut değil</span></div>`}
+        ${visualBody}
       </div>`;
 
     html += `
@@ -3809,6 +3939,13 @@ html += `</div>`; /* d-or panel */
   /* Canlı maç detayında olaylar kullanıcı yenilemeden gelsin:
      realtime tetiklerine ek olarak arka planda sessiz yoklama. */
   _startDetailEventsPoll(m);
+
+  // TV yayını varsa oynatıcıyı başlat, yoksa (başka maça geçişte) eskisini temizle
+  if (streamUrl) {
+    _initStreamPlayer(streamUrl);
+  } else {
+    _destroyStreamPlayer();
+  }
 
   // iframe'i container'a sığacak şekilde ölçekle (3 farklı gecikme ile dene)
   _scheduleVisualScale();
