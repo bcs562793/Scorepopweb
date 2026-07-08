@@ -696,6 +696,29 @@ img { display: block; }
   gap: 6px; color: var(--tx3); font-size: 12px;
 }
 
+/* ── TV YAYIN OYNATICI (m3u8 / HLS) ──────────────────────── */
+.d-visual-video-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 70vh;
+  background: #000;
+  overflow: hidden;
+}
+.d-visual-video {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
+  border: none;
+  background: #000;
+  object-fit: contain;
+}
+/* Bazı tarayıcılar native fullscreen'den çıkışta video'ya geçici
+   inline boyut stili bırakabiliyor — !important ile bunu ezip
+   her zaman wrapper'a sığmasını garanti ediyoruz. */
+
 /* ── DETAIL TABS ─────────────────────────────── */
 .d-tabs {
   display: flex;
