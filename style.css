@@ -3235,6 +3235,14 @@ img { display: block; }
   color: var(--tx1);
 }
 .bball-mr.is-live .bball-total { color: var(--live); }
+.bball-total.live {
+  border: 1px solid rgba(244,63,94,.3);
+  border-radius: 4px;
+  padding: 2px 8px;
+  background: var(--bg);
+}
+.bball-total.live .bball-sn { color: var(--live); }
+.bball-total.live .bball-sdiv { background: var(--live); opacity: .6; }
 
 /* İsimler ve Durum */
 .bball-tname {
