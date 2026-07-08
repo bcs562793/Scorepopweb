@@ -374,7 +374,7 @@ function renderBballRow(m) {
       </div>
 
       <div class="bball-scorebox">
-        <div class="bball-total${isNS ? ' bball-vs' : ''}">
+        <div class="bball-total${isNS ? ' bball-vs' : ''}${st.live ? ' live' : ''}">
           ${isNS
             ? `<span class="bball-vs-txt">vs</span>`
             : `<span class="bball-sn ${hcls}">${hs}</span><div class="bball-sdiv"></div><span class="bball-sn ${acls}">${as}</span>`
