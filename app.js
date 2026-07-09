@@ -5085,6 +5085,7 @@ function renderTeamPage(root, macId, tmTeam, fixtures, standings, players, seaso
   } else {
     stHtml = `<div class="tp-empty">Puan durumu bulunamadı.</div>`;
   }
+    }
 
 
 /* ══════════════════════════════════════════════════════════════════
