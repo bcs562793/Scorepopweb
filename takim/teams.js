@@ -209,6 +209,12 @@ function render(root, macId, tmTeam, fixtures, standings, players, seasonFx){
     .tp-fscore{width:64px;text-align:center;flex-shrink:0;font-size:13.5px;color:var(--tx1);}
     .tp-frow.next{background:var(--or3);}
     .tp-fteams{flex:1;font-size:13.5px;color:var(--tx1);}.tp-fvs{color:var(--tx3);margin:0 6px;}
+    .tp-fres{width:20px;height:20px;flex-shrink:0;border-radius:6px;display:flex;align-items:center;justify-content:center;
+      font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;color:#fff;}
+    .tp-fres.g{background:#10b981;}
+    .tp-fres.b{background:#eab308;}
+    .tp-fres.m{background:#ef4444;}
+    .tp-fres.none{background:transparent;}
     @media(max-width:600px){.tp-stats{grid-template-columns:repeat(2,1fr);}.tp-name{font-size:24px;}.tp-crest{width:72px;height:72px;}.tp-crest img{width:50px;height:50px;}}
   </style>`;
 
@@ -245,6 +251,15 @@ function render(root, macId, tmTeam, fixtures, standings, players, seasonFx){
       const d  = ko ? ko.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'}) : '';
       const t  = ko ? ko.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '--:--';
       const played = m.home_score!=null;
+      /* G/B/M rozeti — takımın kendi perspektifinden (side: home/away) */
+      let resBadge = `<span class="tp-fres none"></span>`;
+      if (played) {
+        const hs = Number(m.home_score), as = Number(m.away_score);
+        const mine   = m.side === 'away' ? as : hs;
+        const theirs = m.side === 'away' ? hs : as;
+        const r = mine > theirs ? ['g','G'] : mine < theirs ? ['m','M'] : ['b','B'];
+        resBadge = `<span class="tp-fres ${r[0]}" title="${r[0]==='g'?'Galibiyet':r[0]==='b'?'Beraberlik':'Mağlubiyet'}">${r[1]}</span>`;
+      }
       const mid = played
         ? `<b>${m.home_score} - ${m.away_score}</b>`
         : `<span class="tp-fvs">${t}</span>`;
@@ -262,7 +277,8 @@ function render(root, macId, tmTeam, fixtures, standings, players, seasonFx){
         <div class="tp-fdate">${d}</div>
         <div class="tp-fteams" style="text-align:right">${esc(m.home_name)}</div>
         <div class="tp-fscore">${mid}</div>
-        <div class="tp-fteams">${esc(m.away_name)}</div></div>`;
+        <div class="tp-fteams">${esc(m.away_name)}</div>
+        ${resBadge}</div>`;
     }).join('')+`</div>`;
   } else if(fixtures&&fixtures.length){
     fxHtml = `<div class="tp-fx">`+fixtures.map(m=>{
