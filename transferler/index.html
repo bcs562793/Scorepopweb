@@ -232,6 +232,7 @@
       color: var(--tx1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .tf-pmeta { font-size: 11px; color: var(--tx3); margin-top: 2px; }
+    .tf-pname a:hover { color: var(--or); }
 
     .tf-clubs {
       display: flex; align-items: center; gap: 8px; flex: 1.6; min-width: 0;
@@ -387,6 +388,18 @@ function eur(v){ return (v!=null) ? '€'+Number(v).toLocaleString('tr-TR') : nu
 function teamSlug(name){
   return String(name||'').toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s')
     .replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+}
+const playerSlug = teamSlug;
+function playerCell(r){
+  const nameInner = esc(r.player_name || '—');
+  const meta = playerMeta(r);
+  const name = (r.player_id != null)
+    ? `<a href="/oyuncu/${r.player_id}-${playerSlug(r.player_name)}">${nameInner}</a>`
+    : nameInner;
+  return `<div class="tf-player">
+    <div class="tf-pname">${name}</div>
+    ${meta ? `<div class="tf-pmeta">${esc(meta)}</div>` : ''}
+  </div>`;
 }
 function playerMeta(r){
   const parts = [];
@@ -584,15 +597,11 @@ function render(){
 
   for (const r of rows) {
     const chip = showChip ? `<div class="tf-league-chip">${esc((LEAGUE_MAP[r.league_id]||{}).flag || r.league_id)}</div>` : '';
-    const meta = playerMeta(r);
 
     if (activeTab === 'official') {
       html += `<div class="tf-row">
         ${chip}
-        <div class="tf-player">
-          <div class="tf-pname">${esc(r.player_name)}</div>
-          ${meta ? `<div class="tf-pmeta">${esc(meta)}</div>` : ''}
-        </div>
+        ${playerCell(r)}
         <div class="tf-clubs">
           ${clubCell(r.from_club_id)}
           <svg class="tf-arrow" width="16" height="10" viewBox="0 0 16 10" fill="none"><path d="M1 5h13M9 1l5 4-5 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -603,10 +612,7 @@ function render(){
     } else {
       html += `<div class="tf-row">
         ${chip}
-        <div class="tf-player">
-          <div class="tf-pname">${esc(r.player_name)}</div>
-          ${meta ? `<div class="tf-pmeta">${esc(meta)}</div>` : ''}
-        </div>
+        ${playerCell(r)}
         <div class="tf-clubs">
           ${clubCell(r.current_club_id)}
           <svg class="tf-arrow" width="16" height="10" viewBox="0 0 16 10" fill="none"><path d="M1 5h13M9 1l5 4-5 4" stroke-dasharray="2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
