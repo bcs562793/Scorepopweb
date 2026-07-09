@@ -4735,6 +4735,15 @@ window.showTeamView = function() {
   window.scrollTo(0, 0);
 };
 
+window.tpSetSeason = function(y) {
+  y = Number(y);
+  const by = window.__tpSeasons, build = window.__tpBuildRows;
+  if (!by || !by[y] || !build) return;
+  window.__tpSeasonSel = y;
+  const tbl = document.querySelector('#tp-stand-tbl tbody');
+  if (tbl) tbl.innerHTML = build(by[y]);
+};
+
 /* URL slug'undan ("1-galatasaray") takım adını tahmin et — fallback için */
 function _teamNameFromSlug() {
   const last = (window.location.pathname.split('/').filter(Boolean).pop() || '');
@@ -4884,6 +4893,12 @@ function renderTeamPage(root, macId, tmTeam, fixtures, standings, players, seaso
     .tp-pval.muted{color:var(--tx3);font-weight:500;}
 
     /* Puan durumu */
+    .tp-season-wrap{margin-bottom:10px;}
+    .tp-season-select{width:100%;max-width:220px;border:1px solid var(--b1);background:var(--bg2);color:var(--tx1);
+      font-size:13px;font-weight:600;padding:9px 12px;border-radius:10px;cursor:pointer;appearance:none;
+      -webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%238b95a4' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+      background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;}
+    .tp-season-select:focus{outline:none;border-color:var(--or);}
     .tp-stand{border:1px solid var(--b1);border-radius:14px;overflow:hidden;background:var(--bg2);}
     .tp-stand table{width:100%;border-collapse:collapse;font-size:13px;}
     .tp-stand th{font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--tx3);
@@ -5015,18 +5030,41 @@ function renderTeamPage(root, macId, tmTeam, fixtures, standings, players, seaso
     sqHtml = `<div class="tp-empty">Kadro bilgisi bulunamadı.</div>`;
   }
 
-  /* ── PUAN DURUMU ── */
+  /* ── PUAN DURUMU (sezona göre) ── */
   let stHtml = '';
   if (standings && standings.length) {
-    const rows = standings.map(s => {
+    const num = v => { const n = parseFloat(v); return isNaN(n) ? -Infinity : n; };
+    const bySeason = {};
+    for (const s of standings) { const k = s.saison_id ?? 0; (bySeason[k] = bySeason[k] || []).push(s); }
+    const seasons = Object.keys(bySeason).map(Number).sort((a,b) => b - a);
+    let season = seasons[0];
+    if (seasons.length > 1) {
+      let best = -1;
+      for (const y of seasons) {
+        const pl = bySeason[y].reduce((t,s) => t + (parseInt(s.played) || 0), 0);
+        if (pl > best) { best = pl; season = y; }
+      }
+    }
+    window.__tpSeasons = bySeason; window.__tpSeasonSel = season;
+    const gdOf = s => {
+      const d = num(s.goal_diff ?? s.goal_difference ?? s.gd);
+      if (d !== -Infinity) return d;
+      const gf = num(s.goals_for), ga = num(s.goals_against);
+      return (gf !== -Infinity && ga !== -Infinity) ? gf - ga : -Infinity;
+    };
+    const buildRows = list => [...list].sort((a,b) =>
+        num(b.points ?? b.pts) - num(a.points ?? a.pts) ||
+        gdOf(b) - gdOf(a) ||
+        num(b.win ?? b.wins ?? b.won ?? b.w) - num(a.win ?? a.wins ?? a.won ?? a.w)
+      ).map((s, i) => {
       const nm = s.team_name || s.team || s.name || '';
       const me = (tmTeam && tmTeam.name && nm === tmTeam.name) ? ' class="me"' : '';
       const g = s.win ?? s.wins ?? s.won ?? s.w ?? '–';
       const b = s.draw ?? s.draws ?? s.drawn ?? s.d ?? '–';
       const m = s.loss ?? s.losses ?? s.lost ?? s.l ?? '–';
-      const av = s.goal_diff ?? s.goal_difference ?? s.gd ?? '–';
+      const gdv = gdOf(s), av = (gdv === -Infinity ? '–' : (gdv > 0 ? '+' : '') + gdv);
       return `<tr${me}>
-        <td class="rank">${esc(s.rank ?? '')}</td>
+        <td class="rank">${i + 1}</td>
         <td class="team">${esc(nm)}</td>
         <td>${esc(s.played ?? s.matches ?? s.mp ?? '–')}</td>
         <td>${esc(g)}</td><td>${esc(b)}</td><td>${esc(m)}</td>
@@ -5034,26 +5072,19 @@ function renderTeamPage(root, macId, tmTeam, fixtures, standings, players, seaso
         <td class="pts">${esc(s.points ?? s.pts ?? '')}</td>
       </tr>`;
     }).join('');
-    stHtml = `<div class="tp-stand"><table>
+    window.__tpBuildRows = buildRows;
+    const rows = buildRows(bySeason[season]);
+    const chips = seasons.length > 1
+      ? `<div class="tp-season-wrap"><select class="tp-season-select" onchange="tpSetSeason(this.value)">` + seasons.map(y =>
+          `<option value="${y}"${y === season ? ' selected' : ''}>${y}/${String(y+1).slice(2)} Sezonu</option>`
+        ).join('') + `</select></div>`
+      : '';
+    stHtml = chips + `<div class="tp-stand" id="tp-stand-tbl"><table>
       <thead><tr><th class="l">#</th><th class="l">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>Av</th><th>P</th></tr></thead>
       <tbody>${rows}</tbody></table></div>`;
   } else {
     stHtml = `<div class="tp-empty">Puan durumu bulunamadı.</div>`;
   }
-
-  root.innerHTML = css + `
-    <div class="tp">
-      ${hero}
-      <div class="tp-tabs">
-        <button class="tp-tab active" onclick="switchTeamTab('fixtures',this)">Fikstür</button>
-        <button class="tp-tab" onclick="switchTeamTab('squad',this)">Kadro</button>
-        <button class="tp-tab" onclick="switchTeamTab('standings',this)">Puan Durumu</button>
-      </div>
-      <div id="tp-fixtures" class="tp-panel active">${fxHtml}</div>
-      <div id="tp-squad" class="tp-panel">${sqHtml}</div>
-      <div id="tp-standings" class="tp-panel">${stHtml}</div>
-    </div>`;
-}
 
 
 /* ══════════════════════════════════════════════════════════════════
