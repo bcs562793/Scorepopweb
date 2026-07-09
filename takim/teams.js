@@ -84,13 +84,12 @@ function posCat(pos){
 
 /* Sezon chip'i: tabloyu seçilen sezonla yeniden çiz */
 window.tpSetSeason = function(y){
+  y = Number(y);
   const by = window.__tpSeasons, build = window.__tpBuildRows;
   if(!by || !by[y] || !build) return;
   window.__tpSeasonSel = y;
   const tbl = document.querySelector('#tp-stand-tbl tbody');
   if(tbl) tbl.innerHTML = build(by[y]);
-  document.querySelectorAll('.tp-schip').forEach(b=>
-    b.classList.toggle('active', b.textContent.startsWith(String(y))));
 };
 
 /* ───────── Giriş ───────── */
@@ -193,10 +192,12 @@ function render(root, macId, tmTeam, fixtures, standings, players, seasonFx){
     .tp-pcat img{width:100%;height:100%;object-fit:cover;object-position:top center;}
     .tp-pname{font-size:14px;font-weight:600;color:var(--tx1);}.tp-ppos{font-size:11.5px;color:var(--tx3);margin-top:2px;}
     .tp-pval{font-size:13.5px;font-weight:600;color:var(--tx1);padding-right:16px;white-space:nowrap;}.tp-pval.muted{color:var(--tx3);}
-    .tp-seasons{display:flex;gap:6px;margin-bottom:10px;}
-    .tp-schip{border:1px solid var(--b1);background:var(--bg2);color:var(--tx2);font-size:12.5px;font-weight:600;
-      padding:6px 14px;border-radius:20px;cursor:pointer;}
-    .tp-schip.active{background:var(--or);border-color:var(--or);color:#fff;}
+    .tp-season-wrap{margin-bottom:10px;}
+    .tp-season-select{width:100%;max-width:220px;border:1px solid var(--b1);background:var(--bg2);color:var(--tx1);
+      font-size:13px;font-weight:600;padding:9px 12px;border-radius:10px;cursor:pointer;appearance:none;
+      -webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%238b95a4' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+      background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;}
+    .tp-season-select:focus{outline:none;border-color:var(--or);}
     .tp-stand{border:1px solid var(--b1);border-radius:14px;overflow:hidden;background:var(--bg2);}
     .tp-stand table{width:100%;border-collapse:collapse;font-size:13px;}
     .tp-stand th{font-size:10.5px;font-weight:700;text-transform:uppercase;color:var(--tx3);padding:11px 8px;text-align:center;border-bottom:1px solid var(--b2);background:var(--bg4);}
@@ -363,9 +364,9 @@ function render(root, macId, tmTeam, fixtures, standings, players, seasonFx){
     window.__tpBuildRows = buildRows;
     const rows = buildRows(standings);
     const chips = seasons.length>1
-      ? `<div class="tp-seasons">`+seasons.map(y=>
-          `<button class="tp-schip${y===season?' active':''}" onclick="tpSetSeason(${y})">${y}/${String(y+1).slice(2)}</button>`
-        ).join('')+`</div>`
+      ? `<div class="tp-season-wrap"><select class="tp-season-select" onchange="tpSetSeason(this.value)">`+seasons.map(y=>
+          `<option value="${y}"${y===season?' selected':''}>${y}/${String(y+1).slice(2)} Sezonu</option>`
+        ).join('')+`</select></div>`
       : '';
     stHtml=chips+`<div class="tp-stand" id="tp-stand-tbl"><table><thead><tr><th class="l">#</th><th class="l">Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>Av</th><th>P</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   } else {
