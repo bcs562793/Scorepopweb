@@ -4727,7 +4727,10 @@ window.goToTeam = function(id, name, e) {
     .replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c')
     .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
   history.pushState(null, '', `/takim/${id}-${slug}`);
-  // Sahte popstate yerine doğrudan çağır — _busy kilidine takılma riski kalmaz
+  /* NOT: Router'ın popstate dinleyicisi _busy kilitliyken (goMatch/goLive vb.
+     150ms kilit süresi içinde) sahte popstate olayını sessizce yok sayıyordu.
+     Bu yüzden art arda hızlı tıklamalarda (maç detayı → takım) sayfa açılmıyordu.
+     Çözüm: router'a bağımlı kalmadan view'ı ve veriyi doğrudan tetikle. */
   if (typeof showTeamView === 'function') showTeamView();
   if (typeof loadTeam === 'function') loadTeam(id, name);
 };
@@ -5087,7 +5090,19 @@ function renderTeamPage(root, macId, tmTeam, fixtures, standings, players, seaso
   } else {
     stHtml = `<div class="tp-empty">Puan durumu bulunamadı.</div>`;
   }
-    }
+
+  root.innerHTML = css + `<div class="tp">
+    ${hero}
+    <div class="tp-tabs">
+      <button class="tp-tab active" onclick="switchTeamTab('fx', this)">Fikstür</button>
+      <button class="tp-tab" onclick="switchTeamTab('sq', this)">Kadro</button>
+      <button class="tp-tab" onclick="switchTeamTab('st', this)">Puan Durumu</button>
+    </div>
+    <div id="tp-fx" class="tp-panel active">${fxHtml}</div>
+    <div id="tp-sq" class="tp-panel">${sqHtml}</div>
+    <div id="tp-st" class="tp-panel">${stHtml}</div>
+  </div>`;
+}
 
 
 /* ══════════════════════════════════════════════════════════════════
