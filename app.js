@@ -4727,7 +4727,9 @@ window.goToTeam = function(id, name, e) {
     .replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c')
     .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
   history.pushState(null, '', `/takim/${id}-${slug}`);
-  window.dispatchEvent(new Event('popstate'));   // router yakalar
+  // Sahte popstate yerine doğrudan çağır — _busy kilidine takılma riski kalmaz
+  if (typeof showTeamView === 'function') showTeamView();
+  if (typeof loadTeam === 'function') loadTeam(id, name);
 };
 
 window.showTeamView = function() {
