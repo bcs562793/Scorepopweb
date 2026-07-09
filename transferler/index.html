@@ -419,7 +419,7 @@ async function load() {
     const [tRes, rRes] = await Promise.all([
       supabase.from('tm_transfers')
         .select('player_id,player_name,player_age,player_position,nationality,from_club_id,to_club_id,market_value_eur,fee_eur,fee_type,league_id,scraped_at')
-        .order('fee_eur', { ascending: false, nullsFirst: false })
+        .order('scraped_at', { ascending: false, nullsFirst: false })
         .limit(2000),
       supabase.from('tm_rumours')
         .select('player_id,player_name,player_age,player_position,nationality,current_club_id,interested_club_id,probability,source_date,league_id,last_seen_at')
