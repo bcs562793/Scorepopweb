@@ -3318,7 +3318,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = 
         <span class="d-league-n">${esc(m.league_name||'')}</span>
       </div>
       <div class="d-teams">
-        <div class="d-team">
+        <div class="d-team" onclick="goToTeam(${m.home_team_id},'${(m.home_team||'').replace(/'/g,"\\'")}',event)" style="cursor:pointer">
           ${m.home_logo ? `<img class="d-logo" src="${esc(m.home_logo)}" onerror="this.style.display='none'" alt="">` : ''}
           <div class="d-tname">${esc(m.home_team||'')}</div>
         </div>
@@ -3331,7 +3331,7 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = 
           <div class="d-status ${st.cls}">${st.live ? `⚡ ${st.label}` : st.label}</div>
           ${penText(m) ? `<div class="d-pen">Penaltılar ${penText(m)}</div>` : ''}
         </div>
-        <div class="d-team">
+        <div class="d-team" onclick="goToTeam(${m.away_team_id},'${(m.away_team||'').replace(/'/g,"\\'")}',event)" style="cursor:pointer">
           ${m.away_logo ? `<img class="d-logo" src="${esc(m.away_logo)}" onerror="this.style.display='none'" alt="">` : ''}
           <div class="d-tname">${esc(m.away_team||'')}</div>
         </div>
