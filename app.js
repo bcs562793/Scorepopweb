@@ -4865,6 +4865,9 @@ function renderTeamPage(root, macId, tmTeam, fixtures, standings, players, seaso
 
     /* Kadro — zebra grid */
     .tp-squad{border:1px solid var(--b1);border-radius:14px;overflow:hidden;background:var(--bg2);}
+    .tp-sqhdr{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);
+      padding:10px 14px 4px;background:var(--bg4);border-bottom:1px solid var(--b1);}
+    .tp-sqhdr:first-child{border-top:none;}
     .tp-prow{display:grid;grid-template-columns:4px 36px 1fr auto;align-items:center;gap:12px;padding:11px 16px 11px 0;
       border-bottom:1px solid var(--b1);transition:background .15s;}
     .tp-prow:last-child{border-bottom:none;}
@@ -4978,19 +4981,32 @@ function renderTeamPage(root, macId, tmTeam, fixtures, standings, players, seaso
     fxHtml = `<div class="tp-empty">Yaklaşan maç bulunamadı.</div>`;
   }
 
-  /* ── KADRO ── */
+  /* ── KADRO (mevkiye göre gruplu) ── */
   let sqHtml = '';
   if (players && players.length) {
-    sqHtml = `<div class="tp-squad">` + players.map(p => {
+    const posOrder = [['KL','Kaleci'],['DF','Defans'],['OS','Orta Saha'],['FW','Forvet'],['•','Diğer']];
+    const groups = {};
+    players.forEach(p => {
       const cat = _posCat(p.position);
-      const mv = p.market_value_eur ? '€' + Number(p.market_value_eur).toLocaleString('tr-TR') : '–';
-      return `<div class="tp-prow" onclick="goToPlayer(${p.id},'${(p.name||p.player_name||'').replace(/'/g,"\\'")}',event)" style="cursor:pointer">
-        <div class="tp-pbar" style="background:${cat.c}"></div>
-        <div class="tp-pcat" style="background:${cat.c}">${cat.k}</div>
-        <div><div class="tp-pname">${esc(p.name || p.player_name || '')}</div>${p.position ? `<div class="tp-ppos">${esc(p.position)}</div>` : ''}</div>
-        <div class="tp-pval${p.market_value_eur ? '' : ' muted'}">${mv}</div>
-      </div>`;
-    }).join('') + `</div>`;
+      (groups[cat.k] = groups[cat.k] || []).push(p);
+    });
+    let rows = '';
+    posOrder.forEach(([k, label]) => {
+      const list = groups[k];
+      if (!list || !list.length) return;
+      rows += `<div class="tp-sqhdr">${label}</div>`;
+      rows += list.map(p => {
+        const cat = _posCat(p.position);
+        const mv = p.market_value_eur ? '€' + Number(p.market_value_eur).toLocaleString('tr-TR') : '–';
+        return `<div class="tp-prow" onclick="goToPlayer(${p.id},'${(p.name||p.player_name||'').replace(/'/g,"\\'")}',event)" style="cursor:pointer">
+          <div class="tp-pbar" style="background:${cat.c}"></div>
+          <div class="tp-pcat" style="background:${cat.c}">${cat.k}</div>
+          <div><div class="tp-pname">${esc(p.name || p.player_name || '')}</div>${p.position ? `<div class="tp-ppos">${esc(p.position)}</div>` : ''}</div>
+          <div class="tp-pval${p.market_value_eur ? '' : ' muted'}">${mv}</div>
+        </div>`;
+      }).join('');
+    });
+    sqHtml = `<div class="tp-squad">${rows}</div>`;
   } else {
     sqHtml = `<div class="tp-empty">Kadro bilgisi bulunamadı.</div>`;
   }
