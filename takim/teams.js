@@ -183,6 +183,9 @@ function render(root, macId, tmTeam, fixtures, standings, players, seasonFx){
     .tp-panel{display:none;}.tp-panel.active{display:block;}
     .tp-empty{text-align:center;color:var(--tx3);padding:40px 0;font-size:14px;}
     .tp-squad{border:1px solid var(--b1);border-radius:14px;overflow:hidden;background:var(--bg2);}
+    .tp-sqhdr{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);
+      padding:10px 14px 4px;background:var(--bg4);border-bottom:1px solid var(--b1);}
+    .tp-sqhdr:first-child{border-top:none;}
     .tp-prow{display:grid;grid-template-columns:4px 36px 1fr auto;align-items:center;gap:12px;padding:11px 16px 11px 0;border-bottom:1px solid var(--b1);}
     .tp-prow:last-child{border-bottom:none;}.tp-prow:nth-child(even){background:var(--bg4);}
     .tp-pbar{width:4px;height:38px;border-radius:0 3px 3px 0;}
@@ -292,17 +295,33 @@ function render(root, macId, tmTeam, fixtures, standings, players, seasonFx){
     fxHtml = `<div class="tp-empty">Fikstür bulunamadı.</div>`;
   }
 
-  let sqHtml = (players&&players.length)
-    ? `<div class="tp-squad">`+players.map(p=>{
-        const cat=posCat(p.position);
-        const mv=p.market_value_eur?'€'+Number(p.market_value_eur).toLocaleString('tr-TR'):'–';
-        const pslug=String(p.name||p.player_name||'').toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  let sqHtml;
+  if (players && players.length) {
+    const posOrder = [['KL','Kaleci'],['DF','Defans'],['OS','Orta Saha'],['FW','Forvet'],['•','Diğer']];
+    const groups = {};
+    players.forEach(p => {
+      const cat = posCat(p.position);
+      (groups[cat.k] = groups[cat.k] || []).push(p);
+    });
+    let rows = '';
+    posOrder.forEach(([k, label]) => {
+      const list = groups[k];
+      if (!list || !list.length) return;
+      rows += `<div class="tp-sqhdr">${label}</div>`;
+      rows += list.map(p => {
+        const cat = posCat(p.position);
+        const mv = p.market_value_eur ? '€'+Number(p.market_value_eur).toLocaleString('tr-TR') : '–';
+        const pslug = String(p.name||p.player_name||'').toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
         return `<div class="tp-prow" style="cursor:pointer" onclick="window.location.href='/oyuncu/${p.id}-${pslug}'"><div class="tp-pbar" style="background:${cat.c}"></div>
           <div class="tp-pcat" style="background:${cat.c}">${cat.k}</div>
           <div><div class="tp-pname">${esc(p.name||p.player_name||'')}</div>${p.position?`<div class="tp-ppos">${esc(p.position)}</div>`:''}</div>
           <div class="tp-pval${p.market_value_eur?'':' muted'}">${mv}</div></div>`;
-      }).join('')+`</div>`
-    : `<div class="tp-empty">Kadro bilgisi bulunamadı.</div>`;
+      }).join('');
+    });
+    sqHtml = `<div class="tp-squad">${rows}</div>`;
+  } else {
+    sqHtml = `<div class="tp-empty">Kadro bilgisi bulunamadı.</div>`;
+  }
 
   let stHtml;
   if(standings&&standings.length){
