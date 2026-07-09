@@ -4876,7 +4876,8 @@ function renderTeamPage(root, macId, tmTeam, fixtures, standings, players, seaso
     .tp-prow:hover{background:var(--or3);}
     .tp-pbar{width:4px;height:38px;border-radius:0 3px 3px 0;}
     .tp-pcat{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;
-      font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;color:#fff;}
+      font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;color:#fff;overflow:hidden;flex-shrink:0;}
+    .tp-pcat img{width:100%;height:100%;object-fit:cover;object-position:top center;}
     .tp-pname{font-size:14px;font-weight:600;color:var(--tx1);line-height:1.2;}
     .tp-ppos{font-size:11.5px;color:var(--tx3);margin-top:2px;}
     .tp-pval{font-family:'JetBrains Mono',monospace;font-size:13.5px;font-weight:600;color:var(--tx1);padding-right:16px;white-space:nowrap;}
@@ -4998,9 +4999,12 @@ function renderTeamPage(root, macId, tmTeam, fixtures, standings, players, seaso
       rows += list.map(p => {
         const cat = _posCat(p.position);
         const mv = p.market_value_eur ? '€' + Number(p.market_value_eur).toLocaleString('tr-TR') : '–';
+        const catInner = p.portrait_url
+          ? `<img src="${esc(p.portrait_url)}" alt="" onerror="this.parentNode.textContent='${cat.k}';this.parentNode.style.background='${cat.c}'">`
+          : cat.k;
         return `<div class="tp-prow" onclick="goToPlayer(${p.id},'${(p.name||p.player_name||'').replace(/'/g,"\\'")}',event)" style="cursor:pointer">
           <div class="tp-pbar" style="background:${cat.c}"></div>
-          <div class="tp-pcat" style="background:${cat.c}">${cat.k}</div>
+          <div class="tp-pcat" style="${p.portrait_url ? '' : `background:${cat.c}`}">${catInner}</div>
           <div><div class="tp-pname">${esc(p.name || p.player_name || '')}</div>${p.position ? `<div class="tp-ppos">${esc(p.position)}</div>` : ''}</div>
           <div class="tp-pval${p.market_value_eur ? '' : ' muted'}">${mv}</div>
         </div>`;
