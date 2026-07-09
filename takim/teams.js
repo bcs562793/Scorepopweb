@@ -189,7 +189,8 @@ function render(root, macId, tmTeam, fixtures, standings, players, seasonFx){
     .tp-prow{display:grid;grid-template-columns:4px 36px 1fr auto;align-items:center;gap:12px;padding:11px 16px 11px 0;border-bottom:1px solid var(--b1);}
     .tp-prow:last-child{border-bottom:none;}.tp-prow:nth-child(even){background:var(--bg4);}
     .tp-pbar{width:4px;height:38px;border-radius:0 3px 3px 0;}
-    .tp-pcat{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;}
+    .tp-pcat{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;overflow:hidden;flex-shrink:0;}
+    .tp-pcat img{width:100%;height:100%;object-fit:cover;object-position:top center;}
     .tp-pname{font-size:14px;font-weight:600;color:var(--tx1);}.tp-ppos{font-size:11.5px;color:var(--tx3);margin-top:2px;}
     .tp-pval{font-size:13.5px;font-weight:600;color:var(--tx1);padding-right:16px;white-space:nowrap;}.tp-pval.muted{color:var(--tx3);}
     .tp-seasons{display:flex;gap:6px;margin-bottom:10px;}
@@ -312,8 +313,11 @@ function render(root, macId, tmTeam, fixtures, standings, players, seasonFx){
         const cat = posCat(p.position);
         const mv = p.market_value_eur ? '€'+Number(p.market_value_eur).toLocaleString('tr-TR') : '–';
         const pslug = String(p.name||p.player_name||'').toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+        const catInner = p.portrait_url
+          ? `<img src="${esc(p.portrait_url)}" alt="" onerror="this.parentNode.textContent='${cat.k}';this.parentNode.style.background='${cat.c}'">`
+          : cat.k;
         return `<div class="tp-prow" style="cursor:pointer" onclick="window.location.href='/oyuncu/${p.id}-${pslug}'"><div class="tp-pbar" style="background:${cat.c}"></div>
-          <div class="tp-pcat" style="background:${cat.c}">${cat.k}</div>
+          <div class="tp-pcat" style="${p.portrait_url ? '' : `background:${cat.c}`}">${catInner}</div>
           <div><div class="tp-pname">${esc(p.name||p.player_name||'')}</div>${p.position?`<div class="tp-ppos">${esc(p.position)}</div>`:''}</div>
           <div class="tp-pval${p.market_value_eur?'':' muted'}">${mv}</div></div>`;
       }).join('');
