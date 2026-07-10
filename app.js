@@ -4749,6 +4749,16 @@ window.tpSetSeason = function(y) {
   if (tbl) tbl.innerHTML = build(by[y]);
 };
 
+/* Fikstür sezon chip'i: liste seçilen sezonla yeniden çizilir */
+window.tpSetFxSeason = function(y) {
+  y = Number(y);
+  const by = window.__tpFxSeasons, build = window.__tpBuildFxRows;
+  if (!by || !by[y] || !build) return;
+  window.__tpFxSeasonSel = y;
+  const wrap = document.querySelector('#tp-fx-rows');
+  if (wrap) wrap.innerHTML = build(by[y]);
+};
+
 /* URL slug'undan ("1-galatasaray") takım adını tahmin et — fallback için */
 function _teamNameFromSlug() {
   const last = (window.location.pathname.split('/').filter(Boolean).pop() || '');
@@ -4961,41 +4971,67 @@ function renderTeamPage(root, macId, tmTeam, fixtures, standings, players, seaso
        aynıysa tıklanabilir — future_matches'ten kanıtla, varsayma. */
     const knownIds = new Set((fixtures || []).map(f => String(f.fixture_id)));
     const now = Date.now();
-    let lastComp = null, nextMarked = false;
-    fxHtml = `<div class="tp-fx">` + seasonFx.map(m => {
-      const ko = m.kickoff ? new Date(m.kickoff) : null;
-      const d  = ko ? ko.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'}) : '';
-      const t  = ko ? ko.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '--:--';
-      const played = m.home_score != null;
-      /* G/B/M rozeti — takımın kendi perspektifinden (side: home/away) */
-      let resBadge = `<span class="tp-fres none"></span>`;
-      if (played) {
-        const hs = Number(m.home_score), as = Number(m.away_score);
-        const mine   = m.side === 'away' ? as : hs;
-        const theirs = m.side === 'away' ? hs : as;
-        const r = mine > theirs ? ['g','G'] : mine < theirs ? ['m','M'] : ['b','B'];
-        resBadge = `<span class="tp-fres ${r[0]}" title="${r[0]==='g'?'Galibiyet':r[0]==='b'?'Beraberlik':'Mağlubiyet'}">${r[1]}</span>`;
+
+    /* Sezon ayrımı: SEASON kolonuna göre grupla (tm_fixtures'ta puan
+       durumundaki tm_standings'ten farklı olarak kolon adı "season",
+       "saison_id" değil). */
+    const bySeasonFx = {};
+    for (const m of seasonFx) { const k = m.season ?? 0; (bySeasonFx[k] = bySeasonFx[k] || []).push(m); }
+    const fxSeasons = Object.keys(bySeasonFx).map(Number).sort((a,b) => b - a);
+    let fxSeason = fxSeasons[0];
+    if (fxSeasons.length > 1) {
+      let best = -1;
+      for (const y of fxSeasons) {
+        const pl = bySeasonFx[y].reduce((t,m) => t + (m.home_score != null ? 1 : 0), 0);
+        if (pl > best) { best = pl; fxSeason = y; }
       }
-      const mid = played
-        ? `<b>${m.home_score} - ${m.away_score}</b>`
-        : `<span class="tp-fvs">${t}</span>`;
-      let compHdr = '';
-      if (m.competition && m.competition !== lastComp) {
-        compHdr = `<div class="tp-fcomp">${esc(m.competition)}</div>`;
-        lastComp = m.competition;
-      }
-      let cls = 'tp-frow';
-      if (!played && !nextMarked && ko && ko.getTime() >= now - 6*36e5) { cls += ' next'; nextMarked = true; }
-      const click = knownIds.has(String(m.match_id))
-        ? ` onclick="window.location.href='/mac/${m.match_id}'" style="cursor:pointer"`
-        : ` style="cursor:default"`;
-      return compHdr + `<div class="${cls}"${click}>
-        <div class="tp-fdate">${d}</div>
-        <div class="tp-fteams" style="text-align:right">${esc(m.home_name)}</div>
-        <div class="tp-fscore">${mid}</div>
-        <div class="tp-fteams">${esc(m.away_name)}</div>
-        ${resBadge}</div>`;
-    }).join('') + `</div>`;
+    }
+    window.__tpFxSeasons = bySeasonFx; window.__tpFxSeasonSel = fxSeason;
+
+    const buildFxRows = list => {
+      let lastComp = null, nextMarked = false;
+      return list.map(m => {
+        const ko = m.kickoff ? new Date(m.kickoff) : null;
+        const d  = ko ? ko.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'}) : '';
+        const t  = ko ? ko.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : '--:--';
+        const played = m.home_score != null;
+        let resBadge = `<span class="tp-fres none"></span>`;
+        if (played) {
+          const hs = Number(m.home_score), as = Number(m.away_score);
+          const mine   = m.side === 'away' ? as : hs;
+          const theirs = m.side === 'away' ? hs : as;
+          const r = mine > theirs ? ['g','G'] : mine < theirs ? ['m','M'] : ['b','B'];
+          resBadge = `<span class="tp-fres ${r[0]}" title="${r[0]==='g'?'Galibiyet':r[0]==='b'?'Beraberlik':'Mağlubiyet'}">${r[1]}</span>`;
+        }
+        const mid = played
+          ? `<b>${m.home_score} - ${m.away_score}</b>`
+          : `<span class="tp-fvs">${t}</span>`;
+        let compHdr = '';
+        if (m.competition && m.competition !== lastComp) {
+          compHdr = `<div class="tp-fcomp">${esc(m.competition)}</div>`;
+          lastComp = m.competition;
+        }
+        let cls = 'tp-frow';
+        if (!played && !nextMarked && ko && ko.getTime() >= now - 6*36e5) { cls += ' next'; nextMarked = true; }
+        const click = knownIds.has(String(m.match_id))
+          ? ` onclick="window.location.href='/mac/${m.match_id}'" style="cursor:pointer"`
+          : ` style="cursor:default"`;
+        return compHdr + `<div class="${cls}"${click}>
+          <div class="tp-fdate">${d}</div>
+          <div class="tp-fteams" style="text-align:right">${esc(m.home_name)}</div>
+          <div class="tp-fscore">${mid}</div>
+          <div class="tp-fteams">${esc(m.away_name)}</div>
+          ${resBadge}</div>`;
+      }).join('');
+    };
+    window.__tpBuildFxRows = buildFxRows;
+
+    const fxChips = fxSeasons.length > 1
+      ? `<div class="tp-season-wrap"><select class="tp-season-select" onchange="tpSetFxSeason(this.value)">` + fxSeasons.map(y =>
+          `<option value="${y}"${y===fxSeason?' selected':''}>${y}/${y+1} Sezonu</option>`
+        ).join('') + `</select></div>`
+      : '';
+    fxHtml = fxChips + `<div class="tp-fx" id="tp-fx-rows">${buildFxRows(bySeasonFx[fxSeason])}</div>`;
   } else if (fixtures && fixtures.length) {
     fxHtml = `<div class="tp-fx-wrap">` + fixtures.map(m => (typeof renderRow === 'function' ? renderRow(m, false) : '')).join('') + `</div>`;
   } else {
