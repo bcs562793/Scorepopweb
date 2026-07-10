@@ -261,11 +261,11 @@ function render(root, macId, tmTeam, fixtures, standings, players, seasonFx){
     const knownIds = new Set((fixtures||[]).map(f=>String(f.fixture_id)));
     const now = Date.now();
 
-    /* Sezon ayrımı: saison_id'ye göre grupla (puan durumu ile aynı mantık),
-       varsayılan = en çok maç oynanmış (dolayısıyla "aktif") sezon.
-       Bu olmadan farklı sezonların maçları tek listede alt alta karışıyordu. */
+    /* Sezon ayrımı: SEASON kolonuna göre grupla (tm_fixtures'ta puan
+       durumundaki tm_standings'ten farklı olarak kolon adı "season",
+       "saison_id" değil — bu yüzden önceki sürüm hep tek gruba düşüyordu). */
     const bySeasonFx = {};
-    for(const m of seasonFx){ const k = m.saison_id ?? 0; (bySeasonFx[k]=bySeasonFx[k]||[]).push(m); }
+    for(const m of seasonFx){ const k = m.season ?? 0; (bySeasonFx[k]=bySeasonFx[k]||[]).push(m); }
     const fxSeasons = Object.keys(bySeasonFx).map(Number).sort((a,b)=>b-a);
     let fxSeason = fxSeasons[0];
     if(fxSeasons.length>1){
@@ -318,7 +318,7 @@ function render(root, macId, tmTeam, fixtures, standings, players, seasonFx){
 
     const fxChips = fxSeasons.length>1
       ? `<div class="tp-season-wrap"><select class="tp-season-select" onchange="tpSetFxSeason(this.value)">`+fxSeasons.map(y=>
-          `<option value="${y}"${y===fxSeason?' selected':''}>${y}/${String(y+1).slice(2)} Sezonu</option>`
+          `<option value="${y}"${y===fxSeason?' selected':''}>${y} Sezonu</option>`
         ).join('')+`</select></div>`
       : '';
     fxHtml = fxChips + `<div class="tp-fx" id="tp-fx-rows">${buildFxRows(bySeasonFx[fxSeason])}</div>`;
