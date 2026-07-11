@@ -129,7 +129,8 @@ function renderDetail(row){
   if(isNS){
     scoreHtml=`<div class="bd-score-time">${esc(st.label)}</div>`;
   }else{
-    const hs=row.home_sets??0,as=row.away_sets??0;
+    const cs=computeSetScore(row);
+    const hs=cs.hs, as=cs.as;
     let hcls='',acls='';
     if(st.done){if(+hs>+as){hcls='bd-win';acls='bd-loss';}else if(+as>+hs){acls='bd-win';hcls='bd-loss';}}
     scoreHtml=`<div class="bd-score-box${st.live?' live':''}"><span class="bd-sn ${hcls}">${hs}</span><span class="bd-sep">–</span><span class="bd-sn ${acls}">${as}</span></div>`;
@@ -200,8 +201,8 @@ function buildSetsTab(row,st,isNS){
       {lbl:'4. Set',h:row.home_s4,a:row.away_s4},
       {lbl:'5. Set',h:row.home_s5,a:row.away_s5},
     ];
-    setRows.push({lbl:'Setler',h:row.home_sets,a:row.away_sets,total:true});
-    const trs=setRows.filter(q=>q.h!=null||q.a!=null).map(q=>{
+      const _cs=computeSetScore(row);
+      setRows.push({lbl:'Setler',h:_cs.hs,a:_cs.as,total:true});    const trs=setRows.filter(q=>q.h!=null||q.a!=null).map(q=>{
       const cls=q.total?'bd-tr-total':'';
       let hcls='',acls='';
       if(!q.total&&q.h!=null&&q.a!=null){if(+q.h>+q.a){hcls='bd-cell-w';acls='bd-cell-l';}else if(+q.a>+q.h){acls='bd-cell-w';hcls='bd-cell-l';}}
