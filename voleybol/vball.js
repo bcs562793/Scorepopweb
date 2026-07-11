@@ -28,6 +28,15 @@ function vbMono(name){
 }
 
 function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function computeSetScore(m){
+  let hs=0, as=0;
+  for(let i=1;i<=5;i++){
+    const h=m[`home_s${i}`], a=m[`away_s${i}`];
+    if(h==null||a==null)continue;
+    if(+h>+a)hs++; else if(+a>+h)as++;
+  }
+  return {hs, as};
+}
 function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtTime(iso){ if(!iso)return '--:--'; try{const d=new Date(iso);return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}catch{return '--:--';} }
 function dateLabel(s){ const M=['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara']; const[,m,d]=(s||'').split('-'); return m?`${+d} ${M[+m-1]}`:s; }
@@ -149,8 +158,9 @@ function renderRow(m){
   const st=vballStatus(m);
   const isNS=!st.live&&!st.done;
   const stCls=st.live?'live':(st.done?'done':'sched');
-  const hs=isNS?'v':(m.home_sets??'-');
-  const as_=isNS?'':(m.away_sets??'-');
+  const cs=isNS?{hs:0,as:0}:computeSetScore(m);
+  const hs=isNS?'v':cs.hs;
+  const as_=isNS?'':cs.as;
 
   let hcls='',acls='';
   if(st.done&&hs!=='v'&&as_!==''){if(+hs>+as_){hcls='bold';acls='dim';}else if(+as_>+hs){acls='bold';hcls='dim';}}
