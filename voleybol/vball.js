@@ -16,6 +16,8 @@ const V = {
   rowCache: {},
 };
 
+function _vbSlug(s){return String(s||'').toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,50);}
+
 function vbMono(name){
   const n=String(name||'').trim();
   const parts=n.split(/\s+/).filter(Boolean);
@@ -156,8 +158,9 @@ function renderRow(m){
   const hl=vbMono(m.home_team);
   const al=vbMono(m.away_team);
   const sbCls = st.live ? 'mr-sb live' : (isNS ? 'mr-sb ns' : 'mr-sb');
+  const _href = `/voleybol/mac/${m.nesine_bid}-${_vbSlug(m.home_team)}-vs-${_vbSlug(m.away_team)}`;
 
-  return `<div class="mr${st.live?' is-live':''}" data-id="${m.nesine_bid}">
+return `<div class="mr${st.live?' is-live':''}" data-id="${m.nesine_bid}" onclick="window.location.href='${_href}'">
     <div class="mr-time"><span class="mr-t1 ${stCls}">${esc(st.label)}</span></div>
     <div class="mr-home">
       <span class="mr-name ${hcls}">${esc(m.home_team)}</span>
