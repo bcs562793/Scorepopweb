@@ -13,6 +13,26 @@
 
 let VD = { row: null, refreshTimer: null };
 
+/* Set bazlı verilerden kazanılan set sayısını hesaplar (örn. 3-1) */
+function computeSetScore(row){
+  const sets=[
+    [row.home_s1,row.away_s1],
+    [row.home_s2,row.away_s2],
+    [row.home_s3,row.away_s3],
+    [row.home_s4,row.away_s4],
+    [row.home_s5,row.away_s5],
+  ];
+  let hs=0, as=0;
+  sets.forEach(([h,a])=>{
+    if(h==null||a==null)return;
+    if(+h>+a)hs++;
+    else if(+a>+h)as++;
+  });
+  // home_sets/away_sets alanı zaten hazır geliyorsa onu tercih et
+  if(row.home_sets!=null&&row.away_sets!=null)return{hs:row.home_sets,as:row.away_sets};
+  return{hs,as};
+}
+
 /* ── HELPERS ─────────────────────────────────────────── */
 function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtTime(iso){ if(!iso)return '--:--'; try{const d=new Date(iso);return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}catch{return '--:--';} }
