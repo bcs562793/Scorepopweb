@@ -663,9 +663,11 @@ img { display: block; }
 }
 /* Penaltı skoru — maç listesi satırı (skorun altında küçük) */
 .mr-pen {
-  display: block; text-align: center;
-  font-size: 10px; font-weight: 600; line-height: 1;
-  color: var(--tx3); margin-top: 3px; letter-spacing: .3px;
+  display: inline-flex; align-items: center; flex-shrink: 0;
+  order: 3;
+  font-size: 10px; font-weight: 600; letter-spacing: .3px;
+  color: var(--tx3);
+  margin-left: 5px; white-space: nowrap;
 }
 
 /* ── VISUAL STREAM ───────────────────────────── */
