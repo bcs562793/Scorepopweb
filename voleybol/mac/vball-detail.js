@@ -13,8 +13,11 @@
 
 let VD = { row: null, refreshTimer: null };
 
-/* Set bazlı verilerden kazanılan set sayısını hesaplar (örn. 3-1) */
-function computeSetScore(row){
+/* Set bazlı verilerden kazanılan (TAMAMLANMIŞ) set sayısını hesaplar (örn. 3-1) */
+function computeSetScore(row, st){
+  // DB zaten hazır set sayısını veriyorsa direkt onu kullan (en güvenilir kaynak)
+  if(row.home_sets!=null && row.away_sets!=null) return {hs:row.home_sets, as:row.away_sets};
+
   const sets=[
     [row.home_s1,row.away_s1],
     [row.home_s2,row.away_s2],
@@ -22,15 +25,21 @@ function computeSetScore(row){
     [row.home_s4,row.away_s4],
     [row.home_s5,row.away_s5],
   ];
+
+  // Maç bittiyse tüm setler tamamlanmış sayılır; canlıysa sadece
+  // current_set'ten ÖNCEKİ setler tamamlanmış sayılır — o an oynanan
+  // set (current_set'in kendisi) asla sayılmaz.
+  const activeSet = st && st.done ? sets.length + 1 : (row.current_set || 1);
+
   let hs=0, as=0;
-  sets.forEach(([h,a])=>{
-    if(h==null||a==null)return;
-    if(+h>+a)hs++;
-    else if(+a>+h)as++;
+  sets.forEach(([h,a],i)=>{
+    const setNumber=i+1;
+    if(setNumber>=activeSet) return;      // henüz oynanmakta olan / gelecek set — atla
+    if(h==null||a==null) return;
+    if(+h>+a) hs++;
+    else if(+a>+h) as++;
   });
-  // home_sets/away_sets alanı zaten hazır geliyorsa onu tercih et
-  if(row.home_sets!=null&&row.away_sets!=null)return{hs:row.home_sets,as:row.away_sets};
-  return{hs,as};
+  return {hs,as};
 }
 
 /* ── HELPERS ─────────────────────────────────────────── */
@@ -149,7 +158,7 @@ function renderDetail(row){
   if(isNS){
     scoreHtml=`<div class="bd-score-time">${esc(st.label)}</div>`;
   }else{
-    const cs=computeSetScore(row);
+    const cs=computeSetScore(row, st);
     const hs=cs.hs, as=cs.as;
     let hcls='',acls='';
     if(st.done){if(+hs>+as){hcls='bd-win';acls='bd-loss';}else if(+as>+hs){acls='bd-win';hcls='bd-loss';}}
@@ -221,7 +230,7 @@ function buildSetsTab(row,st,isNS){
       {lbl:'4. Set',h:row.home_s4,a:row.away_s4},
       {lbl:'5. Set',h:row.home_s5,a:row.away_s5},
     ];
-      const _cs=computeSetScore(row);
+      const _cs=computeSetScore(row, st);
       setRows.push({lbl:'Setler',h:_cs.hs,a:_cs.as,total:true});    const trs=setRows.filter(q=>q.h!=null||q.a!=null).map(q=>{
       const cls=q.total?'bd-tr-total':'';
       let hcls='',acls='';
