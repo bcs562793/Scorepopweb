@@ -15,9 +15,11 @@ let VD = { row: null, refreshTimer: null };
 
 /* Set bazlı verilerden kazanılan (TAMAMLANMIŞ) set sayısını hesaplar (örn. 3-1) */
 function computeSetScore(row, st){
-  // DB zaten hazır set sayısını veriyorsa direkt onu kullan (en güvenilir kaynak)
-  if(row.home_sets!=null && row.away_sets!=null) return {hs:row.home_sets, as:row.away_sets};
-
+  // FIX: DB'nin hazır home_sets/away_sets toplamı ingestion tarafında son
+  // setin işlenmemesi yüzünden gerçek değerin 1 eksiğinde donup kalabiliyor
+  // (bkz. tespit: FT/INT maçlarda tutarlı şekilde -1). Set kolonları (s1..s5)
+  // doğru geldiği için artık HER ZAMAN onlardan hesaplanıyor; DB toplamı
+  // sadece set kolonları hiç yoksa (örn. eski/eksik satır) yedek olarak kullanılıyor.
   const sets=[
     [row.home_s1,row.away_s1],
     [row.home_s2,row.away_s2],
@@ -31,15 +33,18 @@ function computeSetScore(row, st){
   // set (current_set'in kendisi) asla sayılmaz.
   const activeSet = st && st.done ? sets.length + 1 : (row.current_set || 1);
 
-  let hs=0, as=0;
+  let hs=0, as=0, any=false;
   sets.forEach(([h,a],i)=>{
     const setNumber=i+1;
     if(setNumber>=activeSet) return;      // henüz oynanmakta olan / gelecek set — atla
     if(h==null||a==null) return;
+    any=true;
     if(+h>+a) hs++;
     else if(+a>+h) as++;
   });
-  return {hs,as};
+  if(any) return {hs,as};
+  if(row.home_sets!=null && row.away_sets!=null) return {hs:row.home_sets, as:row.away_sets};
+  return {hs:0, as:0};
 }
 
 /* ── HELPERS ─────────────────────────────────────────── */
@@ -122,7 +127,8 @@ async function fetchMatchData(id){
 
 /* ── SEO ─────────────────────────────────────────────── */
 function setSEO(row,st){
-  const hs=row.home_sets,as=row.away_sets;
+  const _cs=computeSetScore(row,st);
+  const hs=_cs.hs,as=_cs.as;
   const hasScore=hs!=null&&as!=null&&st.done;
   const scoreStr=hasScore?`${hs}-${as}`:'vs';
   let title,desc;
