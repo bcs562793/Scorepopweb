@@ -25,6 +25,9 @@ const S = {
   lastGoals:    {},   /* fixture_id (string) → { events: [...] } */
   archiveCache: {},   /* fixture_id (string) → tam maç objesi (arşivden) */
   gzOddsCache: {},    /* YYYY-MM-DD → parsed gz array */
+  chatPreview:      {},    /* fixture_id (string) → { tier, nickname, message } — liste satırı önizlemesi */
+  chatPreviewTimer: null,
+  chatRealtimeChannel: null,
   tickTimer:   null,   // ✅ EKLE
   detailKickoffAt:  null,   // ✅ YENİ
   detailSecondHalfAt: null, // ✅ YENİ 
@@ -34,19 +37,8 @@ const S = {
 /* ── LİG ÖNCELİK SİSTEMİ (JSON league_id tabanlı) ───────────────────── */
 const LEAGUE_CONF = [
    
+  { id: 14600, source: "mackolik", priority: -1, name: "Dünya kupası 2026 Yarı Final" },
   { id: 14599, source: "mackolik", priority: -1, name: "Dünya kupası 2026 Çeyrek Final" },
-  { id: 14364, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
-  { id: 14365, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
-  { id: 14366, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
-  { id: 14367, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
-  { id: 14368, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
-  { id: 14369, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
-  { id: 14370, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
-  { id: 14371, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
-  { id: 14372, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
-  { id: 14373, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
-  { id: 14374, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
-  { id: 14375, source: "mackolik", priority: -1, name: "Dünya kupası 2026" },
   { id: 1, source: "mackolik", priority: -1, name: "Türkiye Süper Lig" },
   { id: 584, source: "bilyoner", priority: -1, name: "Türkiye Süper Lig" },
   { id: 102, source: "mackolik", priority: -4, name: "Şampiyonlar Ligi" },
@@ -256,6 +248,7 @@ async function _boot() {
 
   startClock();
   startRealtime();
+  startChatRealtime();
 
   /* Dakika ticker'ı — sayfadan/realtime durumundan bağımsız her zaman çalışır.
      Liste satırları ve açık maç detayındaki dakikayı saniyede bir ilerletir. */
@@ -329,14 +322,20 @@ function navigate(page) {
   else stopRealtime();
 }
 
-function openDetail(id, isLive) {
+function openDetail(id, isLive, openForum = false) {
   S.detail     = id;
   S.detailLive = isLive;
   showView('detail');
   /* Detay açıkken de canlı dinle — today/upcoming/derin link ile gelinmiş olabilir */
   if (!S.realtimeChannel) startRealtime();
   /* Oran analizi sayfasından geliyorsa sadece oranlar tabında aç */
-  loadDetail(id, isLive, S.page === 'odds');
+  loadDetail(id, isLive, S.page === 'odds').then(() => {
+    /* Sohbet önizlemesinden tıklandıysa doğrudan Forum sekmesine geç */
+    if (openForum) {
+      const tab = [...document.querySelectorAll('.d-tab')].find(t => t.textContent.trim() === 'Forum');
+      if (tab) switchTab('fr', tab);
+    }
+  });
 }
 
 function closeDetail(reload = true) {
@@ -1252,6 +1251,21 @@ function render(rows, isLive) {
   buildSidebarLeagues(S.allLeagues);
   setMatchesHTML(S.allLeagues.map(g => renderGroup(g, isLive)).join(''));
   applyFilter();
+
+  const _ids = rows.map(m => m.fixture_id).filter(Boolean);
+  loadChatPreviews(_ids);
+  _startChatPreviewPolling(_ids);
+}
+
+/* Sohbet önizlemelerini skor pollingine bağımlı olmadan, kendi
+   döngüsünde 20 sn'de bir tazeler — yeni elmas/altın mesaj gelirse
+   liste satırına kısa sürede yansır. */
+function _startChatPreviewPolling(ids) {
+  if (S.chatPreviewTimer) clearInterval(S.chatPreviewTimer);
+  S.chatPreviewTimer = setInterval(() => {
+    if (!document.querySelector('.mr[data-id]')) return;
+    loadChatPreviews(ids);
+  }, 20000);
 }
 
 function renderGroup(g, isLive) {
@@ -1309,6 +1323,143 @@ function _toggleFavFromHeader(el) {
   S.allLeagues = _sortLeagueGroups(S.allLeagues);
   setMatchesHTML(S.allLeagues.map(g => renderGroup(g, S.page === 'live')).join(''));
   applyFilter();
+}
+
+/* ── SOHBET ÖNİZLEME (liste satırı) ──────────────────────────
+   forum.js'teki TIERS ile aynı renk/emoji seti — burada sadece
+   liste satırında öne çıkan mesajı göstermek için hafif bir kopya. */
+const CHAT_TIER_META = {
+  bronze:  { emoji: '🥉', color: '#cd7f32' },
+  silver:  { emoji: '🥈', color: '#9aa4b2' },
+  gold:    { emoji: '🥇', color: '#f5c518' },
+  diamond: { emoji: '💎', color: '#00d4ff' },
+};
+const CHAT_TIER_RANK = { diamond: 0, gold: 1, silver: 2, bronze: 3 };
+
+/* Yeni öne çıkan (elmas/altın vb.) mesaj geldiği/onaylandığı an ana ekrana
+   ANLIK yansısın diye forum_messages tablosunu realtime dinler. 20sn'lik
+   polling (_startChatPreviewPolling) yedek olarak kalmaya devam eder —
+   realtime koparsa liste yine de 20sn içinde güncellenir. */
+function startChatRealtime() {
+  if (S.chatRealtimeChannel) {
+    S.sb.removeChannel(S.chatRealtimeChannel);
+    S.chatRealtimeChannel = null;
+  }
+  if (!S.sb) return;
+
+  S.chatRealtimeChannel = S.sb
+    .channel('forum-featured')
+    .on('postgres_changes', {
+      event: '*',              // INSERT (yeni mesaj) + UPDATE (ödeme verified oldu)
+      schema: 'public',
+      table: 'forum_messages',
+      filter: 'is_featured=eq.true',
+    }, payload => {
+      console.log('[ChatRealtime] payload geldi:', payload.eventType, payload.new); // ✅ GEÇİCİ DEBUG
+      const row = payload.new;
+      if (!row || row.payment_status !== 'verified') {
+        console.log('[ChatRealtime] atlandı — payment_status:', row?.payment_status); // ✅ GEÇİCİ DEBUG
+        return;
+      }
+
+      const fid = String(row.fixture_id);
+      const cur = S.chatPreview[fid];
+      const curRank = cur ? CHAT_TIER_RANK[cur.feature_tier] : Infinity;
+      const rowRank = CHAT_TIER_RANK[row.feature_tier];
+      /* cur'u koru (row'u uygulama) eğer:
+         - cur'un tier'ı KESİN daha yüksekse (rank sayısı küçük) → süre önemsiz
+         - VEYA tier'lar eşitse ve cur zaten daha yeni/eşit tarihliyse */
+      const keepCur = cur && (
+        curRank < rowRank ||
+        (curRank === rowRank && cur.created_at >= row.created_at)
+      );
+      if (keepCur) {
+        console.log('[ChatRealtime] atlandı — mevcut önizleme daha iyi/yeni'); // ✅ GEÇİCİ DEBUG
+        return;
+      }
+      S.chatPreview[fid] = row;
+      const applied = _applyChatPreviews([fid]);
+      console.log('[ChatRealtime] uygulandı, fixture:', fid, 'DOM satırı bulundu mu:', applied); // ✅ GEÇİCİ DEBUG
+    })
+    .subscribe(status => {
+      console.log('[ChatRealtime] kanal durumu:', status); // ✅ GEÇİCİ DEBUG
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        console.warn('[ChatRealtime] bağlanamadı — Supabase Dashboard → Database → Replication\'da forum_messages tablosu açık mı kontrol et.');
+      }
+    });
+}
+
+/* Görünen maçlar için öne çıkan (ücretli) mesajları toplu çeker,
+   her fixture için en yüksek tier'lı / en güncel mesajı seçer. */
+async function loadChatPreviews(fixtureIds) {
+  const ids = [...new Set((fixtureIds || []).filter(Boolean).map(String))];
+  if (!ids.length || !S.sb) return;
+
+  try {
+    const { data, error } = await S.sb
+      .from('forum_messages')
+      .select('fixture_id, nickname, message, feature_tier, created_at')
+      .in('fixture_id', ids)
+      .eq('is_featured', true)
+      .eq('payment_status', 'verified')
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+
+    const best = {};
+    (data || []).forEach(row => {
+      const fid = String(row.fixture_id);
+      const cur = best[fid];
+      const curRank = cur ? CHAT_TIER_RANK[cur.feature_tier] : Infinity;
+      const rowRank = CHAT_TIER_RANK[row.feature_tier];
+      /* row'u seç eğer: cur yoksa, VEYA row'un tier'ı kesin daha yüksekse,
+         VEYA tier'lar eşit ve row daha yeniyse (data created_at artan sıralı
+         geldiği için pratikte "aynı tier'da sonuncusu" anlamına gelir). */
+      if (!cur || rowRank < curRank || (rowRank === curRank && row.created_at >= cur.created_at)) {
+        best[fid] = row;
+      }
+    });
+
+    ids.forEach(fid => { if (!best[fid]) delete S.chatPreview[fid]; });
+    Object.entries(best).forEach(([fid, row]) => { S.chatPreview[fid] = row; });
+
+    _applyChatPreviews(ids);
+  } catch (e) {
+    console.warn('[ChatPreview]', e);
+  }
+}
+
+/* Zaten basılmış satırlara sohbet önizlemesini cerrahi olarak uygular —
+   ayrı bir alt satır AÇMAZ. .mr-x (TV/ok) alanı 68px ile çok dar olduğu
+   için mesaj orada sığmıyor ve kesik görünüyordu. Bunun yerine mesaj
+   .mr-away hücresinin SONUNA (deplasman isminin hemen sağına) ekleniyor
+   ve flex:1 ile o hücrenin kalan boşluğunu doldurup deplasmana doğru
+   yaslanıyor. Mesaj yoksa eklenen eleman kaldırılır, hücre orijinaline döner. */
+function _applyChatPreviews(ids) {
+  ids.forEach(fid => {
+    const row = document.querySelector(`.mr[data-id="${fid}"]`);
+    if (!row) return;
+    const awayEl = row.querySelector('.mr-away');
+    if (!awayEl) return;
+
+    const existing = awayEl.querySelector('.mr-chat-inline');
+    const preview = S.chatPreview[fid];
+
+    if (!preview) { if (existing) existing.remove(); return; }
+
+    const tier = CHAT_TIER_META[preview.feature_tier] || CHAT_TIER_META.bronze;
+    const html = `<span class="mr-chat-ic">💬</span><span class="mr-chat-tier">${tier.emoji}</span><span class="mr-chat-nick" style="color:${tier.color}">${esc(preview.nickname || '')}:</span> <span class="mr-chat-msg">${esc(preview.message || '')}</span>`;
+    const title = `${preview.nickname || ''}: ${preview.message || ''}`;
+
+    const chatEl = existing || document.createElement('span');
+    chatEl.className = 'mr-chat-inline';
+    chatEl.title = title;
+    chatEl.innerHTML = html;
+    chatEl.onclick = (ev) => {
+      ev.stopPropagation();
+      openDetail(Number(fid), row.classList.contains('is-live'), true);
+    };
+    if (!existing) awayEl.appendChild(chatEl);
+  });
 }
 
 function renderRow(m, isLive) {

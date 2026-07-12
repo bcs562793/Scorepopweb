@@ -313,7 +313,7 @@ img { display: block; }
 /* ── COLUMN HEADERS ──────────────────────────── */
 .col-hdr {
   display: grid;
-  grid-template-columns: 56px 1fr 86px 1fr 36px;
+  grid-template-columns: 56px 1fr 86px 1fr 68px;
   padding: 0 14px;
   height: 28px;
   align-items: center;
@@ -408,7 +408,7 @@ img { display: block; }
 */
 .mr {
   display: grid;
-  grid-template-columns: 56px 1fr 86px 1fr 36px;
+  grid-template-columns: 56px 1fr 86px 1fr 68px;
   align-items: center;
   height: 46px;
   padding: 0 14px;
@@ -537,9 +537,11 @@ img { display: block; }
 .mr-sb.live .mr-n { color: var(--live); }
 .mr-sep { width: 1px; background: var(--b2); height: 18px; }
 
-/* Extra */
+/* Extra — normalde TV/ok rozeti; o maçta öne çıkan mesaj varsa
+   yerini sohbet önizlemesine bırakır (ayrı bir satır AÇILMAZ) */
 .mr-x {
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: center; justify-content: flex-end;
+  min-width: 0;
 }
 .mr-tv {
   font-family: 'Barlow Condensed', sans-serif;
@@ -548,6 +550,38 @@ img { display: block; }
   border-radius: 3px; padding: 2px 5px;
 }
 .mr-arr { color: var(--tx3); font-size: 11px; }
+
+/* Satırda öne çıkan (ücretli) mesaj varsa: deplasman takımı ile
+   TV/ok arasındaki boşlukta — ikon, sonra tier rozeti, sonra sığdığı
+   kadar kullanıcı adı + mesaj. Satır genişliği bu maçlarda otomatik büyür. */
+.mr-chat-inline {
+  display: flex; align-items: center; gap: 3px;
+  min-width: 0; max-width: 100%;
+  cursor: pointer;
+  order: 3;              /* mr-away içinde: logo(1) → isim(2) → mesaj(3) */
+  flex: 1 1 auto;         /* hücrenin kalan boşluğunu doldur, deplasmana yasla */
+  margin-left: 6px;
+}
+/* Mesaj varken deplasman ismi gerekirse küçülsün, mesaja yer açsın */
+.mr-away:has(.mr-chat-inline) .mr-name {
+  flex-shrink: 1;
+  min-width: 0;
+}
+.mr-chat-ic {
+  font-size: 10px; line-height: 1; flex-shrink: 0;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.mr-chat-tier { font-size: 10px; flex-shrink: 0; }
+.mr-chat-nick {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px; font-weight: 700;
+  flex-shrink: 0; white-space: nowrap;
+}
+.mr-chat-msg {
+  font-size: 11px; color: var(--tx2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  min-width: 0;
+}
 
 /* ── BACK BUTTON ─────────────────────────────── */
 .back-btn {
@@ -1094,7 +1128,7 @@ img { display: block; }
   /* Compact row on mobile */
   .col-hdr { display: none; }
   .mr {
-    grid-template-columns: 44px 1fr 76px 1fr 28px;
+    grid-template-columns: 44px 1fr 76px 1fr 58px;
     height: 42px;
     padding: 0 10px 0 12px;
   }
@@ -1104,6 +1138,7 @@ img { display: block; }
   .mr-sb { height: 26px; }
   .mr-sep { height: 15px; }
   .lg-hdr { height: 30px; }
+  .mr-chat-nick, .mr-chat-msg { font-size: 10px; }
 
   .d-visual { margin: 0 0 10px; width: 100%; border-radius: 0; border-left: none; border-right: none; }
   .d-visual-iframe-wrap { padding-bottom: 56.25%; }
@@ -1115,7 +1150,7 @@ img { display: block; }
 }
 
 @media (max-width: 420px) {
-  .mr { grid-template-columns: 40px 1fr 68px 1fr 24px; }
+  .mr { grid-template-columns: 40px 1fr 68px 1fr 50px; }
   .mr-name { max-width: 72px; font-size: 11px; }
   .mr-n { font-size: 13px; padding: 0 6px; }
   .mr-home, .mr-away { gap: 4px; }
