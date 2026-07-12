@@ -1,7 +1,7 @@
 'use strict';
 
 /* ═══════════════════════════════════════════════════════
-   SCOREPOP — vball.js (v1, web repo bball.js v2 tabanlı)
+   SCOREPOP — vball.js (v2, web repo bball.js v2 tabanlı)
    Voleybol: set modeli
      ana skor  = home_sets/away_sets (kazanılan setler)
      set chip  = home_s1..s5
@@ -36,18 +36,23 @@ function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.g
    Artık current_set'ten ÖNCEKİ setler sayılır, o an oynanan set asla
    sayılmaz — maç bittiğinde (st.done) tüm setler değerlendirilir. */
 function computeSetScore(m, st){
-  // DB zaten hazır set sayısını veriyorsa direkt onu kullan (en güvenilir kaynak)
-  if(m.home_sets!=null && m.away_sets!=null) return {hs:m.home_sets, as:m.away_sets};
-
+  // FIX: DB'nin hazır home_sets/away_sets toplamı ingestion tarafında son
+  // setin işlenmemesi yüzünden gerçek değerin 1 eksiğinde donup kalabiliyor
+  // (bkz. tespit: FT/INT maçlarda tutarlı şekilde -1). Set kolonları (s1..s5)
+  // doğru geldiği için artık HER ZAMAN onlardan hesaplanıyor; DB toplamı
+  // sadece set kolonları hiç yoksa (örn. eski/eksik satır) yedek olarak kullanılıyor.
   const activeSet = (st && st.done) ? 6 : (m.current_set || 1);
-  let hs=0, as=0;
+  let hs=0, as=0, any=false;
   for(let i=1;i<=5;i++){
     if(i>=activeSet) break; // henüz oynanmakta olan / gelecek set — atla
     const h=m[`home_s${i}`], a=m[`away_s${i}`];
     if(h==null||a==null)continue;
+    any=true;
     if(+h>+a)hs++; else if(+a>+h)as++;
   }
-  return {hs, as};
+  if(any) return {hs, as};
+  if(m.home_sets!=null && m.away_sets!=null) return {hs:m.home_sets, as:m.away_sets};
+  return {hs:0, as:0};
 }
 
 function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
