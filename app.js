@@ -37,7 +37,7 @@ const S = {
 /* ── LİG ÖNCELİK SİSTEMİ (JSON league_id tabanlı) ───────────────────── */
 const LEAGUE_CONF = [
    
-  { id: 14600, source: "mackolik", priority: -5, name: "Dünya kupası 2026 Yarı Final" },
+  { id: 14600, source: "mackolik", priority: -1, name: "Dünya kupası 2026 Yarı Final" },
   { id: 14599, source: "mackolik", priority: -1, name: "Dünya kupası 2026 Çeyrek Final" },
   { id: 1, source: "mackolik", priority: -1, name: "Türkiye Süper Lig" },
   { id: 584, source: "bilyoner", priority: -1, name: "Türkiye Süper Lig" },
@@ -50,7 +50,7 @@ const LEAGUE_CONF = [
   { id: 11031, source: "bilyoner", priority: -3, name: "Avrupa Ligi" },
   { id: 14037, source: "bilyoner", priority: -3, name: "Avrupa Ligi" },
   { id: 13868, source: "bilyoner", priority: -3, name: "Avrupa Ligi" },
-  { id: 12400, source: "mackolik", priority: -2, name: "Konferans Ligi" },
+  { id: 23986, source: "bilyoner", priority: -2, name: "Konferans Ligi" },
   { id: 12748, source: "bilyoner", priority: -2, name: "Konferans Ligi" },
   { id: 12861, source: "bilyoner", priority: -2, name: "Konferans Ligi" },
   { id: 12597, source: "mackolik", priority: -2, name: "Konferans Ligi" },
@@ -1194,6 +1194,7 @@ function normFix(m) {
     second_half_at: m.second_half_at || null, 
     visual_url:   m.visual_url || null,
     stream_url:   m.stream_url || m.m3u8_url || null,  /* TV yayını (m3u8) — varsa görselin önüne geçer */
+    youtube_url:  m.youtube_url || null,  /* YouTube canlı yayın linki — m3u8 yoksa iframe embed ile gösterilir */
     raw_data:     m.raw_data   || null,   /* venue + referee için buildDetail'e gerekli */
   };
 }
@@ -1767,6 +1768,28 @@ async function loadDetail(id, isLive, oddsOnly = false) {
     console.error(e);
     setDetailHTML(`<div class="empty"><div class="empty-t">Hata: ${esc(e.message)}</div></div>`);
   }
+}
+
+/* ── YOUTUBE EMBED YARDIMCISI ─────────────────────────────────
+   YouTube canlı yayınları m3u8 olarak alınamaz (imzalı, kısa ömürlü,
+   ToS'a aykırı). Onun yerine resmi iframe embed kullanılır — aynı
+   d-visual-iframe-wrap mekanizması visual_url için kullanılan yapı. */
+function _youtubeEmbedUrl(url) {
+  if (!url) return null;
+  let id = null;
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('youtu.be')) {
+      id = u.pathname.slice(1);
+    } else if (u.hostname.includes('youtube.com')) {
+      if (u.pathname === '/watch') id = u.searchParams.get('v');
+      else if (u.pathname.startsWith('/live/')) id = u.pathname.split('/live/')[1];
+      else if (u.pathname.startsWith('/embed/')) id = u.pathname.split('/embed/')[1];
+    }
+  } catch (e) { return null; }
+  if (!id) return null;
+  id = id.split('?')[0].split('&')[0];
+  return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&playsinline=1`;
 }
 
 /* ── TV YAYIN OYNATICI (m3u8 / HLS) ──────────────────────────
@@ -3492,11 +3515,16 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = 
   /* oddsOnly=true ise canlı görsel ve diğer tabları gizle */
   /* Yayın önceliği: TV yayını (m3u8) varsa onu göster, yoksa 2D görsel simülasyonu,
      o da yoksa boş durum mesajı. Alan adı: matches tablosunda `stream_url` kolonu. */
-  const streamUrl = m.stream_url || m.m3u8_url || null;
+  const rawStreamUrl = m.stream_url || m.m3u8_url || null;
+  const rawIsYoutube = rawStreamUrl && /youtube\.com|youtu\.be/i.test(rawStreamUrl);
+  const streamUrl  = rawIsYoutube ? null : rawStreamUrl;  /* youtube linki m3u8 değildir — video tag'e verilmez */
+  const ytEmbedUrl = !streamUrl ? _youtubeEmbedUrl(rawIsYoutube ? rawStreamUrl : m.youtube_url) : null;
   if (!oddsOnly) {
     let visualBody;
     if (streamUrl) {
       visualBody = `<div class="d-visual-video-wrap" style="position:relative;width:100%;aspect-ratio:16/9;max-height:70vh;background:#000;overflow:hidden;"><video id="d-stream-player" class="d-visual-video" style="display:block;width:100%;height:100%;border:none;background:#000;object-fit:contain;" controls playsinline autoplay muted></video></div>`;
+    } else if (ytEmbedUrl) {
+      visualBody = `<div class="d-visual-video-wrap" style="position:relative;width:100%;aspect-ratio:16/9;max-height:70vh;background:#000;overflow:hidden;"><iframe class="d-visual-video" style="display:block;width:100%;height:100%;border:none;" src="${esc(ytEmbedUrl)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>`;
     } else if (m.visual_url) {
       visualBody = `<div class="d-visual-iframe-wrap"><iframe class="d-visual-iframe" src="${esc(m.visual_url)}" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe></div>`;
     } else {
@@ -3505,8 +3533,8 @@ function buildDetail(m, evs, stats, lus, h2h, pred, odds, matchInfo, oddsOnly = 
     html += `
       <div class="d-visual">
         <div class="d-visual-hdr">
-          <div class="d-visual-hdr-l">${streamUrl ? '📺 Canlı Yayın' : '📺 Canlı Görsel'}</div>
-          ${(streamUrl || m.visual_url) ? `<span class="d-visual-live">LIVE</span>` : ''}
+          <div class="d-visual-hdr-l">${(streamUrl || ytEmbedUrl) ? '📺 Canlı Yayın' : '📺 Canlı Görsel'}</div>
+          ${(streamUrl || ytEmbedUrl || m.visual_url) ? `<span class="d-visual-live">LIVE</span>` : ''}
         </div>
         ${visualBody}
       </div>`;
