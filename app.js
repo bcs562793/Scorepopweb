@@ -37,7 +37,7 @@ const S = {
 /* ── LİG ÖNCELİK SİSTEMİ (JSON league_id tabanlı) ───────────────────── */
 const LEAGUE_CONF = [
    
-  { id: 14600, source: "mackolik", priority: -1, name: "Dünya kupası 2026 Yarı Final" },
+  { id: 14600, source: "mackolik", priority: -5, name: "Dünya kupası 2026 Yarı Final" },
   { id: 14599, source: "mackolik", priority: -1, name: "Dünya kupası 2026 Çeyrek Final" },
   { id: 1, source: "mackolik", priority: -1, name: "Türkiye Süper Lig" },
   { id: 584, source: "bilyoner", priority: -1, name: "Türkiye Süper Lig" },
@@ -50,7 +50,7 @@ const LEAGUE_CONF = [
   { id: 11031, source: "bilyoner", priority: -3, name: "Avrupa Ligi" },
   { id: 14037, source: "bilyoner", priority: -3, name: "Avrupa Ligi" },
   { id: 13868, source: "bilyoner", priority: -3, name: "Avrupa Ligi" },
-  { id: 23986, source: "bilyoner", priority: -2, name: "Konferans Ligi" },
+  { id: 12400, source: "mackolik", priority: -2, name: "Konferans Ligi" },
   { id: 12748, source: "bilyoner", priority: -2, name: "Konferans Ligi" },
   { id: 12861, source: "bilyoner", priority: -2, name: "Konferans Ligi" },
   { id: 12597, source: "mackolik", priority: -2, name: "Konferans Ligi" },
