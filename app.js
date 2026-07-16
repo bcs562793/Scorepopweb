@@ -1512,21 +1512,7 @@ function renderRow(m, isLive) {
         <span class="mr-name ${hcls}">${esc(m.home_team||'')}</span>
         <div class="mr-logo-wrap">${hLogo}</div>
       </div>
-      <div class="mr-score">
-        <div class="${sbCls}">
-          ${homeScored ? `<span class="mr-ball">⚽</span>` : ''}
-          <span class="mr-n">${hs}</span>
-          ${isNS ? '' : '<div class="mr-sep"></div>'}
-          ${isNS ? '' : `<span class="mr-n">${as}</span>`}
-          ${awayScored ? `<span class="mr-ball">⚽</span>` : ''}
-        </div>
-        ${penText(m) ? `<span class="mr-pen">${penText(m)} pen</span>` : ''}
-      </div>
-      <div class="mr-away${awayScored ? ' goal-band' : ''}" onclick="goToTeam(${m.away_team_id},'${(m.away_team||'').replace(/'/g,"\\'")}',event)" style="cursor:pointer">
-        <div class="mr-logo-wrap">${aLogo}</div>
-        <span class="mr-name ${acls}">${esc(m.away_team||'')}</span>
-      </div>
-      <div class="mr-x">${extra}</div>
+            <div class="mr-score">
     </div>`;
 }
 
