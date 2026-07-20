@@ -518,6 +518,7 @@ img { display: block; }
 .mr-score {
   display: flex; align-items: center; justify-content: center;
   gap: 0;
+  position: relative; /* gol topu rozeti bu kutuya göre konumlanır */
 }
 .mr-sb {
   display: flex; align-items: center;
@@ -1090,14 +1091,21 @@ img { display: block; }
   font-weight: 800;
 }
 
-/* Skor kutusunun yanındaki top ikonu */
+/* Skor kutusunun kenarında duran gol topu rozeti — mutlak konumlu
+   olduğu için skor kutusunun genişliğini/hizasını asla etkilemez.
+   Ev golü → kutunun sol-üst köşesi, deplasman golü → sağ-üst köşesi. */
 .mr-ball {
-  font-size: 14px;
-  padding: 0 5px;
+  position: absolute;
+  top: -6px;
+  font-size: 12px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.45));
   animation: pulse 1s ease-in-out infinite;
-  display: inline-flex;
-  align-items: center;
+  pointer-events: none;
+  z-index: 2;
 }
+.mr-ball.home { left: -2px; }
+.mr-ball.away { right: -2px; }
 
 /* ── RESPONSIVE ──────────────────────────────── */
 @media (max-width: 900px) {
