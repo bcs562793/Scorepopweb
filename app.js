@@ -1514,13 +1514,13 @@ function renderRow(m, isLive) {
         <div class="mr-logo-wrap">${hLogo}</div>
       </div>
             <div class="mr-score">
+        ${homeScored ? `<span class="mr-ball home">⚽</span>` : ''}
         <div class="${sbCls}">
-          ${homeScored ? `<span class="mr-ball">⚽</span>` : ''}
           <span class="mr-n">${hs}</span>
           ${isNS ? '' : '<div class="mr-sep"></div>'}
           ${isNS ? '' : `<span class="mr-n">${as}</span>`}
-          ${awayScored ? `<span class="mr-ball">⚽</span>` : ''}
         </div>
+        ${awayScored ? `<span class="mr-ball away">⚽</span>` : ''}
       </div>
       <div class="mr-away${awayScored ? ' goal-band' : ''}" onclick="goToTeam(${m.away_team_id},'${(m.away_team||'').replace(/'/g,"\\'")}',event)" style="cursor:pointer">
         <div class="mr-logo-wrap">${aLogo}</div>
@@ -4328,25 +4328,29 @@ function _flashGoal(fixtureId, homeGoal, awayGoal) {
 }
 
 function _applyGoalBand(row, homeGoal, awayGoal) {
-  const homeDiv = row.querySelector('.mr-home');
-  const awayDiv = row.querySelector('.mr-away');
+  const homeDiv  = row.querySelector('.mr-home');
+  const awayDiv  = row.querySelector('.mr-away');
   const scoreBox = row.querySelector('.mr-sb');
+  const scoreWrap = row.querySelector('.mr-score');
 
   row.querySelectorAll('.mr-ball').forEach(b => b.remove());
 
   homeDiv?.classList.toggle('goal-band', !!homeGoal);
   awayDiv?.classList.toggle('goal-band', !!awayGoal);
 
-  if (scoreBox) {
+  /* Top artık skor kutusunun İÇİNE değil, .mr-score sarmalayıcısının
+     kenarına (position:absolute ile) eklenir — böylece skor kutusunun
+     genişliğini/hizasını asla bozmaz. */
+  if (scoreWrap && scoreBox) {
     if (homeGoal) {
       const ball = document.createElement('span');
-      ball.className = 'mr-ball'; ball.textContent = '⚽';
-      scoreBox.prepend(ball);
+      ball.className = 'mr-ball home'; ball.textContent = '⚽';
+      scoreWrap.insertBefore(ball, scoreBox);
     }
     if (awayGoal) {
       const ball = document.createElement('span');
-      ball.className = 'mr-ball'; ball.textContent = '⚽';
-      scoreBox.append(ball);
+      ball.className = 'mr-ball away'; ball.textContent = '⚽';
+      scoreWrap.appendChild(ball);
     }
   }
 }
