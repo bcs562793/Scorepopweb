@@ -4793,6 +4793,8 @@ async function _loadDetailFromArchive(fixtureId) {
         fixture_id:   found.fixture?.id,
         home_team:    found.teams?.home?.name   || '',
         away_team:    found.teams?.away?.name   || '',
+        home_team_id: found.teams?.home?.id     ?? null,
+        away_team_id: found.teams?.away?.id     ?? null,
         home_score:   found.goals?.home         ?? null,
         away_score:   found.goals?.away         ?? null,
         league_name:  found.league?.name        || '',
