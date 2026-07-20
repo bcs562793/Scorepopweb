@@ -101,7 +101,7 @@ const LEAGUE_CONF = [
   { id: 628, source: "bilyoner", priority: 17, name: "Finlandiya Veikkausliiga" },
   { id: 429, source: "mackolik", priority: 18, name: "Bosna Hersek" },
   { id: 16324, source: "bilyoner", priority: 18, name: "Bosna Hersek" },
-  { id: 113, source: "bilyoner", priority: 19, name: "İzlanda Urvalsdeild" }
+  { id: 113, source: "bilyoner", priority: 19, name: "İzlanda Urvalsdeild" }, 
   { id: 2, source: "mackolik", priority: 100, name: "Türkiye 1. Lig" },
   { id: 1980, source: "bilyoner", priority: 100, name: "Türkiye 1. Lig" },
   { id: 25, source: "mackolik", priority: 101, name: "Championship" },
