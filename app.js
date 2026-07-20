@@ -1510,21 +1510,21 @@ function renderRow(m, isLive) {
         ${st.live ? `<span class="mr-t2"></span>` : ''}
       </div>
       <div class="mr-home${homeScored ? ' goal-band' : ''}" onclick="goToTeam(${m.home_team_id},'${(m.home_team||'').replace(/'/g,"\\'")}',event)" style="cursor:pointer">
+        ${homeScored ? `<span class="mr-ball">⚽</span>` : ''}
         <span class="mr-name ${hcls}">${esc(m.home_team||'')}</span>
         <div class="mr-logo-wrap">${hLogo}</div>
       </div>
             <div class="mr-score">
-        ${homeScored ? `<span class="mr-ball home">⚽</span>` : ''}
         <div class="${sbCls}">
           <span class="mr-n">${hs}</span>
           ${isNS ? '' : '<div class="mr-sep"></div>'}
           ${isNS ? '' : `<span class="mr-n">${as}</span>`}
         </div>
-        ${awayScored ? `<span class="mr-ball away">⚽</span>` : ''}
       </div>
       <div class="mr-away${awayScored ? ' goal-band' : ''}" onclick="goToTeam(${m.away_team_id},'${(m.away_team||'').replace(/'/g,"\\'")}',event)" style="cursor:pointer">
         <div class="mr-logo-wrap">${aLogo}</div>
         <span class="mr-name ${acls}">${esc(m.away_team||'')}</span>
+        ${awayScored ? `<span class="mr-ball">⚽</span>` : ''}
       </div>
       <div class="mr-x">
         ${penText(m) ? `<span class="mr-pen">${penText(m)} pen</span>` : ''}
@@ -4328,30 +4328,26 @@ function _flashGoal(fixtureId, homeGoal, awayGoal) {
 }
 
 function _applyGoalBand(row, homeGoal, awayGoal) {
-  const homeDiv  = row.querySelector('.mr-home');
-  const awayDiv  = row.querySelector('.mr-away');
-  const scoreBox = row.querySelector('.mr-sb');
-  const scoreWrap = row.querySelector('.mr-score');
+  const homeDiv = row.querySelector('.mr-home');
+  const awayDiv = row.querySelector('.mr-away');
 
   row.querySelectorAll('.mr-ball').forEach(b => b.remove());
 
   homeDiv?.classList.toggle('goal-band', !!homeGoal);
   awayDiv?.classList.toggle('goal-band', !!awayGoal);
 
-  /* Top artık skor kutusunun İÇİNE değil, .mr-score sarmalayıcısının
-     kenarına (position:absolute ile) eklenir — böylece skor kutusunun
-     genişliğini/hizasını asla bozmaz. */
-  if (scoreWrap && scoreBox) {
-    if (homeGoal) {
-      const ball = document.createElement('span');
-      ball.className = 'mr-ball home'; ball.textContent = '⚽';
-      scoreWrap.insertBefore(ball, scoreBox);
-    }
-    if (awayGoal) {
-      const ball = document.createElement('span');
-      ball.className = 'mr-ball away'; ball.textContent = '⚽';
-      scoreWrap.appendChild(ball);
-    }
+  /* Top, skor kutusuna değil, ilgili takımın isim+logo hücresine eklenir:
+     ev sahibi golünde isim/logodan ÖNCE, deplasman golünde isim/logodan
+     SONRA — normal flex akışında, hiçbir şeyle çakışmadan. */
+  if (homeGoal && homeDiv) {
+    const ball = document.createElement('span');
+    ball.className = 'mr-ball'; ball.textContent = '⚽';
+    homeDiv.prepend(ball);
+  }
+  if (awayGoal && awayDiv) {
+    const ball = document.createElement('span');
+    ball.className = 'mr-ball'; ball.textContent = '⚽';
+    awayDiv.append(ball);
   }
 }
 
