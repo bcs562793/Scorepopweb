@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<base href="/">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Pop Sosyal — Yazarlarımızdan Paylaşımlar | ScorePop</title>
+<meta name="description" content="ScorePop yazarlarının paylaşımlarını takip et, beğen. Pop Sosyal ile spor dünyasından güncel yorumlar tek akışta."/>
+<meta name="robots" content="index,follow"/>
+<link rel="canonical" href="https://scorepop.com.tr/pop-sosyal"/>
+<meta property="og:title" content="Pop Sosyal — ScorePop"/>
+<meta property="og:description" content="ScorePop yazarlarının paylaşımlarını takip et, beğen."/>
+<meta property="og:url" content="https://scorepop.com.tr/pop-sosyal"/>
+<meta property="og:type" content="website"/>
+<meta property="og:image" content="https://scorepop.com.tr/logo.png"/>
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JS4J2RCJJ9"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-JS4J2RCJJ9');</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<script src="/config.js?v=0"></script>
+<link rel="stylesheet" href="../style.css?v=10"/>
+
+<style>
+/* Sidebar/topbar temel stilleri style.css'ten geliyor — burada sadece
+   Pop Sosyal akışına özel stiller var. */
+.ps-wrap { max-width: 680px; margin: 0 auto; padding: 14px 16px 60px; }
+
+.ps-head { padding: 6px 2px 16px; }
+.ps-head-title { font-family:'Barlow Condensed',sans-serif; font-size:26px; font-weight:800; color:var(--tx1); display:flex; align-items:center; gap:9px; }
+.ps-head-title span { color: var(--or); }
+.ps-head-sub { font-size:13px; color:var(--tx2); margin-top:4px; line-height:1.6; }
+
+.ps-post {
+  background: var(--bg2);
+  border: 1px solid var(--b1);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  transition: border-color .15s;
+}
+.ps-post:hover { border-color: var(--b2); }
+
+.ps-post-top { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.ps-avatar {
+  width:44px; height:44px; border-radius:50%; flex-shrink:0; overflow:hidden;
+  background: var(--or2); color: var(--or);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:16px;
+  border: 1px solid rgba(242,100,25,.3);
+}
+.ps-avatar img { width:100%; height:100%; object-fit:cover; }
+.ps-author-name { font-weight:700; color:var(--tx1); font-size:15px; line-height:1.3; }
+.ps-post-time { font-size:12.5px; color:var(--tx3); }
+
+.ps-post-body {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--tx1);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 12px;
+}
+
+.ps-post-actions { display:flex; align-items:center; gap:6px; border-top:1px solid var(--b1); padding-top:10px; }
+.ps-like-btn {
+  display:flex; align-items:center; gap:7px;
+  background:none; border:none; cursor:pointer;
+  padding:6px 10px; border-radius:20px;
+  color: var(--tx2); font-size:13.5px; font-weight:600;
+  font-family:'Barlow',sans-serif;
+  transition: background .15s, color .15s;
+}
+.ps-like-btn:hover { background: var(--live2); color: var(--live); }
+.ps-like-btn svg path { transition: fill .15s, stroke .15s; }
+.ps-like-btn.liked { color: var(--live); }
+.ps-like-btn.liked svg path { fill: var(--live); stroke: var(--live); }
+.ps-like-btn:disabled { opacity:.55; cursor:default; }
+.ps-like-btn:disabled:hover { background:none; color:var(--tx2); }
+
+.ps-skeleton { background:var(--bg2); border:1px solid var(--b1); border-radius:14px; padding:16px 18px; margin-bottom:14px; }
+.ps-sk-row { display:flex; gap:10px; align-items:center; margin-bottom:12px; }
+.ps-sk-circle { width:44px; height:44px; border-radius:50%; background:var(--bg4); animation:pspulse 1.4s ease-in-out infinite; }
+.ps-sk-line { height:12px; border-radius:4px; background:var(--bg4); animation:pspulse 1.4s ease-in-out infinite; }
+@keyframes pspulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+.ps-err, .ps-empty { text-align:center; padding:50px 20px; color:var(--tx2); }
+.ps-err-icon, .ps-empty-icon { font-size:36px; margin-bottom:10px; }
+
+.ps-load-more {
+  display:block; margin:20px auto 0; padding:11px 30px;
+  background:var(--bg2); border:1px solid var(--b2); border-radius:8px;
+  color:var(--tx2); font-size:14px; cursor:pointer; transition:all .2s;
+  font-family:'Barlow',sans-serif;
+}
+.ps-load-more:hover { border-color:var(--or); color:var(--or); background:var(--or2); }
+.ps-load-more:disabled { opacity:.4; cursor:not-allowed; }
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR (ana sayfa kalıbı) ── -->
+<aside id="sidebar">
+  <div class="sb-top">
+    <a class="sb-brand" href="/" style="text-decoration:none;cursor:pointer;">
+      <div class="sb-mark"><img src="/logo.png" alt="ScorePop Logo"></div>
+      <div class="sb-name">SCORE<em>POP</em></div>
+    </a>
+    <div class="sb-live-stat">
+      <span class="sb-live-dot"></span>
+      <span id="sb-live-n">0</span>
+      <span class="sb-live-lbl">maç canlı</span>
+    </div>
+  </div>
+
+  <nav class="sb-nav">
+    <a class="sb-btn" href="/canli" style="text-decoration:none;">
+      <span class="sb-btn-pip"></span>
+      <span>Canlı Maçlar</span>
+    </a>
+    <a class="sb-btn" href="/bugun" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y="1.75" width="11.5" height="10.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M.75 5h11.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 .5v2M9 .5v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>Bugün</span>
+    </a>
+    <a class="sb-btn" href="/yakin" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 3.5v3l2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>Yaklaşan</span>
+    </a>
+    <a class="sb-btn" href="/?page=odds" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 9.5l3-3.5 2.5 2.5L11 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Oran Analizi</span>
+    </a>
+    <a class="sb-btn" href="/tahmin/" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.2c-2.4 0-4.3 1.8-4.3 4 0 1.3.6 2.4 1.6 3.2v1.4c0 .4.3.7.7.7h4c.4 0 .7-.3.7-.7V8.4c1-.8 1.6-1.9 1.6-3.2 0-2.2-1.9-4-4.3-4z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M5 11.8h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>ScorePop AI Tahmin</span>
+      <span class="sb-sport-badge">AI</span>
+    </a>
+  </nav>
+
+  <div class="sb-sep"></div>
+  <div class="sb-lbl">SPORLAR</div>
+  <nav class="sb-nav" style="padding-top:2px;padding-bottom:4px;">
+    <a class="sb-btn" href="/" style="text-decoration:none;">
+      <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 4.2 9.4 6l-.9 2.8H5.5L4.6 6 7 4.2z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M7 1.2v3M12.7 5.6 9.4 6M11 11.5 8.5 8.8M3 11.5l2.5-2.7M1.3 5.6 4.6 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+      <span>Futbol</span>
+    </a>
+    <a class="sb-btn" href="/basketbol/" style="text-decoration:none;">
+      <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 1v12M1 7h12M2.8 2.8c2 1.6 2 6.8 0 8.4M11.2 2.8c-2 1.6-2 6.8 0 8.4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+      <span>Basketbol</span>
+    </a>
+    <a class="sb-btn" href="/voleybol/" style="text-decoration:none;">
+      <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 1c2.8 2 3.9 5.4 2.9 8.8M7 1C4.6 3.2 2.1 4 1.2 7.6M12.8 7.8c-3.2 1.6-7.6 1-9.9-1.6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+      <span>Voleybol</span>
+    </a>
+  </nav>
+  <div class="sb-sep"></div>
+  <nav class="sb-nav" style="padding-top:4px;padding-bottom:4px;">
+    <a class="sb-btn active" href="/pop-sosyal/" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h8A1.5 1.5 0 0 1 12 2.5v5A1.5 1.5 0 0 1 10.5 9H5.8L3 11.3V9H2.5A1.5 1.5 0 0 1 1 7.5v-5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+      <span>Pop Sosyal</span>
+      <span class="sb-sport-badge">YENİ</span>
+    </a>
+    <a class="sb-btn" href="/haberler" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y=".75" width="11.5" height="11.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3 4h7M3 6.5h7M3 9h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>Haberler</span>
+    </a>
+    <a class="sb-btn" href="/tv-rehberi/" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y="1.75" width="11.5" height="8.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 10.25v1.5M9 10.25v1.5M2.5 11.75h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="6.5" cy="5.75" r="1.5" stroke="currentColor" stroke-width="1.1"/></svg>
+      <span>TV Rehberi</span>
+    </a>
+    <a class="sb-btn" href="/puan-durumu/" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y="3.75" width="2.5" height="8.5" rx="1" fill="currentColor" opacity=".7"/><rect x="5.25" y="1.75" width="2.5" height="10.5" rx="1" fill="currentColor"/><rect x="9.75" y="5.75" width="2.5" height="6.5" rx="1" fill="currentColor" opacity=".5"/></svg>
+      <span>Puan Durumu</span>
+    </a>
+    <a class="sb-btn" href="/transferler/" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 4.5h8.5M7 2l2.5 2.5L7 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 8.5H3.5M6 11l-2.5-2.5L6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Transferler</span>
+    </a>
+    <a class="sb-btn" href="/hakkimizda" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.2"/><path d="M2 11c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>Hakkımızda</span>
+    </a>
+    <a class="sb-btn" href="/iletisim" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y="2.75" width="11.5" height="7.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 3.5l5.5 4 5.5-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>İletişim</span>
+    </a>
+    <a class="sb-btn" href="/wc-2026" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y="2.75" width="11.5" height="7.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 3.5l5.5 4 5.5-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>2026 Dünya Kupası</span>
+    </a>
+  </nav>
+  <div class="sb-sep"></div>
+  <div class="sb-lbl">LİGLER</div>
+  <div id="sb-league-list" class="sb-league-list"></div>
+
+  <div class="sb-bottom"></div>
+</aside>
+
+<!-- ── MAIN ── -->
+<main id="main">
+
+<header id="topbar">
+  <div class="tb-left">
+    <button class="tb-menu" onclick="toggleSidebar()">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+        <path d="M0 1h16M0 6h16M0 11h16" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <span class="tb-mob-brand">SP</span>
+  </div>
+  <span class="tb-title">Pop Sosyal</span>
+  <div class="tb-right"></div>
+</header>
+
+<div class="ps-wrap">
+
+  <div class="ps-head">
+    <div class="ps-head-title">Pop <span>Sosyal</span></div>
+    <div class="ps-head-sub">ScorePop yazarlarının son paylaşımları — beğenmek için üye girişi yap.</div>
+  </div>
+
+  <div id="ps-feed"></div>
+  <button id="ps-load-more" class="ps-load-more" style="display:none">Daha fazla yükle</button>
+
+</div>
+
+</main>
+<div id="overlay" onclick="toggleSidebar()"></div>
+
+<script>
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+/* canlı maç sayacı (sidebar) */
+(async () => {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/live_matches?select=fixture_id`, {
+      method: 'HEAD',
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: 'count=exact' }
+    });
+    const n = parseInt((r.headers.get('content-range') || '').split('/')[1], 10);
+    if (!isNaN(n)) document.getElementById('sb-live-n').textContent = n;
+  } catch (_) {}
+})();
+</script>
+
+<script src="/auth.js?v=1"></script>
+<script>
+(() => {
+'use strict';
+
+const PAGE_SIZE = 15;
+let offset = 0;
+let loading = false;
+let noMore = false;
+let sb = null;
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = id => document.getElementById(id);
+
+function initials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function relTime(iso) {
+  const d = new Date(iso);
+  const diffSec = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (diffSec < 60) return 'az önce';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return diffMin + ' dk önce';
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return diffH + ' sa. önce';
+  const diffD = Math.floor(diffH / 24);
+  if (diffD < 7) return diffD + ' gün önce';
+  const months = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+  return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+function heartIcon(filled) {
+  return `<svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+    <path d="M9 15.8s-6.4-3.9-8-8.1C-0.1 4.5 1.7 2 4.6 2c1.8 0 3.2 1 4.4 2.6C10.2 3 11.6 2 13.4 2c2.9 0 4.7 2.5 3.6 5.7-1.6 4.2-8 8.1-8 8.1z"
+      fill="${filled ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+function postHTML(p) {
+  const author = p.yazarlar || {};
+  const name = author.ad_soyad || 'ScorePop Yazarı';
+  const avatarUrl = author.avatar_url;
+  const avatarInner = avatarUrl
+    ? `<img src="${esc(avatarUrl)}" alt="${esc(name)}" loading="lazy" onerror="this.parentElement.textContent='${esc(initials(name))}'"/>`
+    : esc(initials(name));
+
+  return `<article class="ps-post" data-id="${p.id}">
+    <div class="ps-post-top">
+      <div class="ps-avatar">${avatarInner}</div>
+      <div>
+        <div class="ps-author-name">${esc(name)}</div>
+        <div class="ps-post-time">${relTime(p.created_at)}</div>
+      </div>
+    </div>
+    <div class="ps-post-body">${esc(p.icerik)}</div>
+    <div class="ps-post-actions">
+      <button class="ps-like-btn" data-liked="false" data-count="${p.begeni_sayisi || 0}" onclick="__psToggleLike(${p.id}, this)">
+        ${heartIcon(false)}
+        <span class="ps-like-count">${p.begeni_sayisi || 0}</span>
+      </button>
+    </div>
+  </article>`;
+}
+
+function skeletonHTML(n) {
+  let out = '';
+  for (let i = 0; i < n; i++) {
+    out += `<div class="ps-skeleton">
+      <div class="ps-sk-row">
+        <div class="ps-sk-circle"></div>
+        <div style="flex:1">
+          <div class="ps-sk-line" style="width:35%;margin-bottom:6px;"></div>
+          <div class="ps-sk-line" style="width:20%"></div>
+        </div>
+      </div>
+      <div class="ps-sk-line" style="width:95%;margin-bottom:8px;height:14px;"></div>
+      <div class="ps-sk-line" style="width:70%;height:14px;"></div>
+    </div>`;
+  }
+  return out;
+}
+
+async function markLikedPosts(ids) {
+  if (!Auth.isLoggedIn() || !ids.length) return new Set();
+  try {
+    const user = Auth.getUser();
+    const { data, error } = await sb
+      .from('pop_sosyal_begeniler')
+      .select('yazi_id')
+      .eq('user_id', user.id)
+      .in('yazi_id', ids);
+    if (error) throw error;
+    return new Set((data || []).map(r => r.yazi_id));
+  } catch (e) {
+    console.warn('[PopSosyal] beğeni durumu alınamadı:', e.message);
+    return new Set();
+  }
+}
+
+function applyLikedState(likedSet) {
+  document.querySelectorAll('.ps-like-btn').forEach(btn => {
+    const postEl = btn.closest('.ps-post');
+    const id = parseInt(postEl.dataset.id, 10);
+    if (likedSet.has(id)) {
+      btn.classList.add('liked');
+      btn.dataset.liked = 'true';
+      btn.innerHTML = heartIcon(true) + `<span class="ps-like-count">${btn.dataset.count}</span>`;
+    }
+  });
+}
+
+async function loadFeed() {
+  if (loading || noMore) return;
+  loading = true;
+  const feed = $('ps-feed');
+  const btn = $('ps-load-more');
+  if (btn) btn.disabled = true;
+  if (offset === 0 && feed) feed.innerHTML = skeletonHTML(5);
+
+  try {
+    const { data, error } = await sb
+      .from('pop_sosyal_yazilar')
+      .select('id, icerik, begeni_sayisi, created_at, yazarlar(ad_soyad, avatar_url)')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1);
+
+    if (error) throw error;
+
+    if (offset === 0) feed.innerHTML = '';
+
+    if (!data || data.length === 0) {
+      if (offset === 0) {
+        feed.innerHTML = `<div class="ps-empty"><div class="ps-empty-icon">✍️</div><p>Henüz paylaşım yok.</p></div>`;
+      }
+      noMore = true;
+      if (btn) btn.style.display = 'none';
+      return;
+    }
+
+    data.forEach(p => feed.insertAdjacentHTML('beforeend', postHTML(p)));
+    offset += data.length;
+
+    const likedSet = await markLikedPosts(data.map(p => p.id));
+    applyLikedState(likedSet);
+
+    if (data.length < PAGE_SIZE) {
+      noMore = true;
+      if (btn) btn.style.display = 'none';
+    } else if (btn) {
+      btn.style.display = 'block';
+      btn.disabled = false;
+    }
+  } catch (e) {
+    console.error('[PopSosyal] akış yüklenemedi:', e);
+    if (offset === 0) {
+      feed.innerHTML = `<div class="ps-err"><div class="ps-err-icon">⚠️</div><p>Paylaşımlar yüklenemedi.<br><small>${esc(e.message || '')}</small></p></div>`;
+    }
+  } finally {
+    loading = false;
+  }
+}
+
+window.__psToggleLike = async function(postId, btn) {
+  if (!Auth.isLoggedIn()) {
+    Auth.showLoginModal('login');
+    return;
+  }
+  if (btn.disabled) return;
+  btn.disabled = true;
+
+  const user = Auth.getUser();
+  const wasLiked = btn.dataset.liked === 'true';
+  let count = parseInt(btn.dataset.count, 10) || 0;
+
+  try {
+    if (wasLiked) {
+      const { error } = await sb.from('pop_sosyal_begeniler')
+        .delete().eq('yazi_id', postId).eq('user_id', user.id);
+      if (error) throw error;
+      count = Math.max(count - 1, 0);
+      btn.dataset.liked = 'false';
+      btn.classList.remove('liked');
+    } else {
+      const { error } = await sb.from('pop_sosyal_begeniler')
+        .insert({ yazi_id: postId, user_id: user.id });
+      if (error) throw error;
+      count += 1;
+      btn.dataset.liked = 'true';
+      btn.classList.add('liked');
+    }
+    btn.dataset.count = count;
+    btn.innerHTML = heartIcon(btn.dataset.liked === 'true') + `<span class="ps-like-count">${count}</span>`;
+  } catch (e) {
+    console.warn('[PopSosyal] beğeni işlemi başarısız:', e.message);
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  Auth.init(sb);
+  loadFeed();
+  const btn = $('ps-load-more');
+  if (btn) btn.addEventListener('click', loadFeed);
+
+  /* Lig listesi sadece ana sayfada (canlı maç verisiyle) dolduruluyor;
+     burada boş kalacağı için başlığıyla birlikte gizle. */
+  const leagueList = $('sb-league-list');
+  if (leagueList && !leagueList.children.length) {
+    leagueList.style.display = 'none';
+    const lbl = leagueList.previousElementSibling;
+    const sep = lbl && lbl.previousElementSibling;
+    if (lbl && lbl.classList.contains('sb-lbl')) lbl.style.display = 'none';
+    if (sep && sep.classList.contains('sb-sep')) sep.style.display = 'none';
+  }
+});
+})();
+</script>
+
+</body>
+</html>

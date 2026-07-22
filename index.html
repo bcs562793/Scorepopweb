@@ -112,6 +112,11 @@
   </nav>
   <div class="sb-sep"></div>
   <nav class="sb-nav" style="padding-top:4px;padding-bottom:4px;">
+    <a class="sb-btn" href="/pop-sosyal/" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h8A1.5 1.5 0 0 1 12 2.5v5A1.5 1.5 0 0 1 10.5 9H5.8L3 11.3V9H2.5A1.5 1.5 0 0 1 1 7.5v-5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+      <span>Pop Sosyal</span>
+      <span class="sb-sport-badge">YENİ</span>
+    </a>
     <a class="sb-btn" href="/haberler" style="text-decoration:none;">
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y=".75" width="11.5" height="11.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3 4h7M3 6.5h7M3 9h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
       <span>Haberler</span>
@@ -792,6 +797,7 @@ window._watchdog = setTimeout(function() {
       outline: none;
       transition: border-color .2s;
       -webkit-appearance: none;
+      appearance: none;
     }
     .form-group input:focus,
     .form-group select:focus,
@@ -1242,6 +1248,17 @@ window.addEventListener("load",function(){
       __openPage(window.__pendingPage,window.__pendingPath);
       window.__pendingPage=null;
     }
+    /* Diğer sayfalardan (ör. /pop-sosyal) gelen ?page=odds linki için */
+    try{
+      var sp=new URLSearchParams(window.location.search);
+      var pg=sp.get("page");
+      if(pg && typeof navigate==="function"){
+        navigate(pg);
+        sp.delete("page");
+        var qs=sp.toString();
+        history.replaceState(null,"",window.location.pathname+(qs?"?"+qs:""));
+      }
+    }catch(e){}
   },400);
 });
 </script>
