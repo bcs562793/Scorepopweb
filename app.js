@@ -37,20 +37,18 @@ const S = {
 /* ── LİG ÖNCELİK SİSTEMİ (JSON league_id tabanlı) ───────────────────── */
 const LEAGUE_CONF = [
    
-  { id: 14601, source: "mackolik", priority: -1, name: "Dünya kupası 2026 Final" },
-  { id: 14602, source: "mackolik", priority: -1, name: "Dünya kupası 2026 3.lük maçı" },
   { id: 1, source: "mackolik", priority: -1, name: "Türkiye Süper Lig" },
   { id: 584, source: "bilyoner", priority: -1, name: "Türkiye Süper Lig" },
   { id: 102, source: "mackolik", priority: -4, name: "Şampiyonlar Ligi" },
   { id: 103, source: "mackolik", priority: -4, name: "Şampiyonlar Ligi" },
   { id: 126, source: "bilyoner", priority: -4, name: "Şampiyonlar Ligi" },
-  { id: 1650, source: "bilyoner", priority: -3, name: "Avrupa Ligi" },
+  { id: 1398, source: "mackolik", priority: -2, name: "Avrupa Ligi" },
   { id: 588, source: "mackolik", priority: -3, name: "Avrupa Ligi" },
   { id: 1644, source: "bilyoner", priority: -3, name: "Avrupa Ligi" },
   { id: 11031, source: "bilyoner", priority: -3, name: "Avrupa Ligi" },
   { id: 14037, source: "bilyoner", priority: -3, name: "Avrupa Ligi" },
   { id: 13868, source: "bilyoner", priority: -3, name: "Avrupa Ligi" },
-  { id: 12401, source: "mackolik", priority: -2, name: "Konferans Ligi" },
+  { id: 12401, source: "mackolik", priority: -3, name: "Konferans Ligi" },
   { id: 12748, source: "bilyoner", priority: -2, name: "Konferans Ligi" },
   { id: 12861, source: "bilyoner", priority: -2, name: "Konferans Ligi" },
   { id: 12597, source: "mackolik", priority: -2, name: "Konferans Ligi" },
