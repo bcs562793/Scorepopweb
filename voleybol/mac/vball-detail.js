@@ -295,9 +295,15 @@ function buildStatsTab(row){
   }
   if(!statsMap || !Object.keys(statsMap).length) return{hasContent:false,html:_noData('İstatistik verisi bu maç için mevcut değil')};
 
-  /* Voleybolda öncelikli sıralama */
-  const ORDER=['136','141','1410','130','1077','134','1098'];
-  const keys=[...ORDER,...Object.keys(statsMap).filter(k=>!ORDER.includes(k))];
+  /* Voleybolda gösterilecek genel istatistikler (öncelik sırası).
+   NOT: Betradar her istatistik için ayrıca "set bazlı kırılım" kodları da
+   gönderiyor (SR_1193/1194/1518/1519/1520/1522/1523 gibi). Bunlar aynı
+   valueLabel'i taşıyor ama değerleri "[1, 3, 4, 0]" / "3/4/5/5" gibi
+   dizi/slash string formatında oluyor. Bu genel özet tabında sadece
+   toplam değerleri gösteriyoruz; set kırılımları kasıtlı olarak dışarıda
+   bırakılıyor (ileride ayrı bir "set detayı" bölümünde kullanılabilir). */
+  const ORDER=['SR_136','SR_141','SR_1410','SR_130','SR_1077','SR_134','SR_1098'];
+  const keys=ORDER;
 
   let rowsHtml='';
   keys.forEach(code=>{
