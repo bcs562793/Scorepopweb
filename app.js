@@ -4189,7 +4189,8 @@ function switchTab(name, el) {
 
 /* ── SILENT UPDATE ───────────────────────────── */
 function silentUpdate(rows) {
-  const DONE = new Set(['FT','AET','PEN']);
+  const DONE  = new Set(['FT','AET','PEN']);
+  const LIVE2 = new Set(['1H','2H','HT','ET','BT','P','LIVE']);
   rows.forEach(m => {
     const row = document.querySelector(`.mr[data-id="${m.fixture_id}"]`);
     if (!row) return;
@@ -4208,12 +4209,32 @@ function silentUpdate(rows) {
     if (m.elapsed_time != null) row.dataset.elapsed   = m.elapsed_time;
     if (m.updated_at)           row.dataset.updatedAt = m.updated_at;
 
-    const st = statusInfo(m);
-    const hs = m.home_score != null ? m.home_score : '-';
-    const as = m.away_score != null ? m.away_score : '-';
-    const nums = row.querySelectorAll('.mr-n');
-    if (nums[0] && String(nums[0].textContent) !== String(hs)) { nums[0].textContent = hs; flashEl(nums[0]); }
-    if (nums[1] && String(nums[1].textContent) !== String(as)) { nums[1].textContent = as; flashEl(nums[1]); }
+    const st   = statusInfo(m);
+    const isNS = !LIVE2.has(m.status_short) && !DONE.has(m.status_short);
+    const sbEl = row.querySelector('.mr-sb');
+
+    if (isNS) {
+      /* Maç henüz başlamadı: realtime event skor alanına (home_score/away_score
+         DB'de null değil, genelde 0) rakam yazmasın — "vs" kutusu bozulmasın. */
+      if (sbEl && !sbEl.classList.contains('ns')) {
+        sbEl.className = 'mr-sb ns';
+        sbEl.innerHTML = `<span class="mr-n">v</span>`;
+      }
+    } else {
+      const hs = m.home_score != null ? m.home_score : '-';
+      const as = m.away_score != null ? m.away_score : '-';
+      if (sbEl && sbEl.classList.contains('ns')) {
+        /* NS'den canlıya geçti → kutu tek span'lıydı, iki span+ayraç olarak yeniden kur */
+        sbEl.className = st.live ? 'mr-sb live' : 'mr-sb';
+        sbEl.innerHTML = `<span class="mr-n">${hs}</span><div class="mr-sep"></div><span class="mr-n">${as}</span>`;
+        flashEl(sbEl);
+      } else {
+        const nums = row.querySelectorAll('.mr-n');
+        if (nums[0] && String(nums[0].textContent) !== String(hs)) { nums[0].textContent = hs; flashEl(nums[0]); }
+        if (nums[1] && String(nums[1].textContent) !== String(as)) { nums[1].textContent = as; flashEl(nums[1]); }
+      }
+    }
+
     const tEl = row.querySelector('.mr-t1');
     if (tEl && tEl.textContent !== st.label) tEl.textContent = st.label;
   });
