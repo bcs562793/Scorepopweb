@@ -102,7 +102,8 @@ function futureToRow(r){
     home_s4:null,away_s4:null,home_s5:null,away_s5:null,
     scheduled_at:r.starts_at,
     home_recent_form:'[]',away_recent_form:'[]',
-    h2h:null,standings:null,
+    h2h:null,standings:null,live_stats:null,
+    home_avatar:null,away_avatar:null,
   };
 }
 
@@ -157,8 +158,8 @@ function renderDetail(row){
   const isNS=!st.live&&!st.done;
   setSEO(row,st);
 
-  const hl=teamMono(row.home_team,64);
-  const al=teamMono(row.away_team,64);
+  const hl=row.home_avatar?`<img src="${esc(row.home_avatar)}" onerror="this.style.display='none'" alt="${esc(row.home_team)}" class="bd-logo">`:teamMono(row.home_team,64);
+  const al=row.away_avatar?`<img src="${esc(row.away_avatar)}" onerror="this.style.display='none'" alt="${esc(row.away_team)}" class="bd-logo">`:teamMono(row.away_team,64);
 
   let scoreHtml;
   if(isNS){
@@ -204,6 +205,9 @@ function renderDetail(row){
   else statusBadge=`<span class="bd-badge sched">${esc(st.label)}</span>`;
 
   const ozHtml=buildSetsTab(row,st,isNS);
+  const stData=buildStatsTab(row);
+  const h2Data=buildH2HTab(row);
+  const pdData=buildStandingsTab(row);
 
   document.getElementById('bd-root').innerHTML=`
     <div class="bd-hero">
@@ -222,7 +226,23 @@ function renderDetail(row){
         </div>
       </div>
     </div>
-    <div id="bdp-oz" class="bd-panel active">${ozHtml}</div>`;
+    <div class="bd-tabs" id="bd-tabbar">
+      <button class="bd-tab active" onclick="switchBDTab('oz',this)">Özet</button>
+      <button class="bd-tab${stData.hasContent?'':' dim'}" onclick="switchBDTab('st',this)">İstatistik</button>
+      <button class="bd-tab${h2Data.hasContent?'':' dim'}" onclick="switchBDTab('h2',this)">H2H</button>
+      <button class="bd-tab${pdData.hasContent?'':' dim'}" onclick="switchBDTab('pd',this)">Puan Durumu</button>
+    </div>
+    <div id="bdp-oz" class="bd-panel active">${ozHtml}</div>
+    <div id="bdp-st" class="bd-panel">${stData.html}</div>
+    <div id="bdp-h2" class="bd-panel">${h2Data.html}</div>
+    <div id="bdp-pd" class="bd-panel">${pdData.html}</div>`;
+}
+
+function switchBDTab(tab,el){
+  document.querySelectorAll('.bd-tab').forEach(t=>t.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.querySelectorAll('.bd-panel').forEach(p=>p.classList.remove('active'));
+  const p=document.getElementById(`bdp-${tab}`);if(p)p.classList.add('active');
 }
 
 /* ── SET SKORLARI TABLOSU ─────────────────────────────── */
@@ -249,12 +269,163 @@ function buildSetsTab(row,st,isNS){
   return html;
 }
 
+function _noData(msg){return`<div class="bd-empty"><div class="empty-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M6 9h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div>${msg}</div></div>`;}
+
+/* ── İSTATİSTİK TAB ────────────────────────────────────────────
+   live_stats formatı (bball-detail.js ile birebir aynı):
+   [{periodCode:"GENEL", statistics:[{statisticsCode:"...",
+     homeTeamValue:"3", awayTeamValue:"4", valueLabel:"Ace"}]}]
+──────────────────────────────────────────────────────────── */
+function buildStatsTab(row){
+  if(!row.live_stats) return{hasContent:false,html:_noData('İstatistik verisi bu maç için mevcut değil')};
+
+  let parsed=null;
+  try{
+    parsed = typeof row.live_stats==='string' ? JSON.parse(row.live_stats) : row.live_stats;
+    if(typeof parsed==='string') parsed = JSON.parse(parsed);
+  }catch{ return{hasContent:false,html:_noData('İstatistik verisi bu maç için mevcut değil')}; }
+
+  let statsMap=null;
+  if(Array.isArray(parsed)){
+    const genel = parsed.find(p=>p.periodCode==='GENEL') || parsed[0];
+    if(genel?.statistics?.length){
+      statsMap={};
+      genel.statistics.forEach(s=>{ statsMap[s.statisticsCode]={home:s.homeTeamValue,away:s.awayTeamValue,label:s.valueLabel}; });
+    }
+  }
+  if(!statsMap || !Object.keys(statsMap).length) return{hasContent:false,html:_noData('İstatistik verisi bu maç için mevcut değil')};
+
+  /* Voleybolda öncelikli sıralama */
+  const ORDER=['136','141','1410','130','1077','134','1098'];
+  const keys=[...ORDER,...Object.keys(statsMap).filter(k=>!ORDER.includes(k))];
+
+  let rowsHtml='';
+  keys.forEach(code=>{
+    const v=statsMap[code]; if(!v) return;
+    const hv=parseFloat(v.home)||0, av=parseFloat(v.away)||0, tot=hv+av;
+    const hp=tot>0?Math.round(hv/tot*100):50;
+    rowsHtml+=`<div class="bd-stat-row">
+      <span class="bd-sv home">${esc(v.home)}</span>
+      <div class="bd-sb-wrap">
+        <div class="bd-sb"><div class="bd-sb-h" style="width:${hp}%"></div><div class="bd-sb-a" style="width:${100-hp}%"></div></div>
+        <div class="bd-sl">${esc(v.label||code)}</div>
+      </div>
+      <span class="bd-sv away">${esc(v.away)}</span>
+    </div>`;
+  });
+  if(!rowsHtml) return{hasContent:false,html:_noData('İstatistik verisi bu maç için mevcut değil')};
+
+  return{hasContent:true, html:`
+    <div class="bd-section">
+      <div class="bd-stat-hdr"><span>${esc(row.home_team)}</span><span></span><span style="text-align:right">${esc(row.away_team)}</span></div>
+      ${rowsHtml}
+    </div>`};
+}
+
+/* ── H2H TAB ────────────────────────────────────────── */
+function buildH2HTab(row){
+  const h2h=safeJSON(row.h2h,null);
+  if(!h2h)return{hasContent:false,html:_noData('H2H verisi mevcut değil')};
+
+  let html='',has=false;
+
+  const between=h2h.matchesBetween;
+  const bm=between?.matches||[];
+  if(bm.length){has=true;html+=`<div class="bd-section"><div class="bd-sh">${esc(between.title||'Aralarındaki Maçlar')}</div><div class="bd-h2h-list">${bm.map(m=>renderVH2HMatch(m)).join('')}</div></div>`;}
+
+  const sc=h2h.seasonComparison;
+  if(sc?.homeTeam&&sc?.awayTeam){
+    has=true;
+    html+=`<div class="bd-section"><div class="bd-sh">Sezon Karşılaştırması</div>${renderSeasonCompare(row,sc)}</div>`;
+  }
+
+  if(!has)return{hasContent:false,html:_noData('H2H verisi mevcut değil')};
+  return{hasContent:true,html};
+}
+
+function renderVH2HMatch(m){
+  const hScr=m.homeTeamScore??'-', aScr=m.awayTeamScore??'-';
+  const lg=m.tournamentName||'';
+  return `<div class="bd-h2h-row">
+    <div>
+      <div class="bd-h2h-meta"><span class="bd-h2h-date">${esc(m.date||'')}</span>${lg?`<span class="bd-h2h-league">${esc(lg)}</span>`:''}</div>
+      <div class="bd-h2h-match">
+        <span class="bd-h2h-t home">${esc(m.homeTeamName||'')}</span>
+        <span class="bd-h2h-sc">${esc(String(hScr))} – ${esc(String(aScr))}</span>
+        <span class="bd-h2h-t away">${esc(m.awayTeamName||'')}</span>
+      </div>
+    </div>
+    <span></span>
+  </div>`;
+}
+
+function renderSeasonCompare(row,sc){
+  const rows=[
+    {lbl:'Galibiyet',h:sc.homeTeam?.won,a:sc.awayTeam?.won},
+    {lbl:'Mağlubiyet',h:sc.homeTeam?.lost,a:sc.awayTeam?.lost},
+    {lbl:'Kazanılan Set',h:sc.homeTeam?.totalSetsWon,a:sc.awayTeam?.totalSetsWon},
+    {lbl:'Kaybedilen Set',h:sc.homeTeam?.totalSetsLost,a:sc.awayTeam?.totalSetsLost},
+    {lbl:'Maç Başı Ort. Sayı',h:sc.homeTeam?.averagePointsScoredPerMatch,a:sc.awayTeam?.averagePointsScoredPerMatch},
+  ];
+  const trs=rows.filter(r=>r.h!=null||r.a!=null).map(r=>`<tr><td>${esc(r.lbl)}</td><td>${r.h??'-'}</td><td>${r.a??'-'}</td></tr>`).join('');
+  if(!trs)return'';
+  return `<table class="bd-qtr-table"><thead><tr><th></th><th>${esc(row.home_team)}</th><th>${esc(row.away_team)}</th></tr></thead><tbody>${trs}</tbody></table>`;
+}
+
+/* ── PUAN DURUMU TAB ─────────────────────────────────── */
+function buildStandingsTab(row){
+  const sdata=safeJSON(row.standings,null);
+  if(!sdata)return{hasContent:false,html:_noData('Puan durumu verisi mevcut değil')};
+
+  let tables=[];
+  try{
+    if(sdata.season?.tables) tables=sdata.season.tables;
+    else if(sdata.tables)    tables=sdata.tables;
+    else if(Array.isArray(sdata)) tables=sdata;
+  }catch{}
+  if(!tables.length)return{hasContent:false,html:_noData('Puan durumu verisi mevcut değil')};
+
+  let html='';
+  tables.forEach(table=>{
+    const trows=table.tablerows||[]; if(!trows.length)return;
+    const tname=table.name||'';
+    html+=`<div class="bd-section">${tname?`<div class="bd-sh">${esc(tname)}</div>`:''}<div class="bd-std-wrap"><table class="bd-std-table">
+      <thead><tr><th class="c">#</th><th class="l">Takım</th><th>O</th><th class="g">G</th><th class="m">M</th><th>KS</th><th>AS</th><th>Avg</th><th class="pct">%</th></tr></thead>
+      <tbody>`;
+    trows.forEach(r=>{
+      const isH=(r.team?.name||'').toLowerCase()===row.home_team.toLowerCase();
+      const isA=(r.team?.name||'').toLowerCase()===row.away_team.toLowerCase();
+      const hl=isH?'row-h':(isA?'row-a':'');
+      const pct=r.pctTotal!=null?(r.pctTotal*100).toFixed(1)+' %':'-';
+      const diff=r.goalDiffTotal;
+      const avg=diff!=null?((diff>0?'+':'')+diff):'-';
+      const avgCls=diff>0?'pos':(diff<0?'neg':'');
+      html+=`<tr class="${hl}">
+        <td class="c pos-cell">${r.pos??'-'}</td>
+        <td class="team-cell"><span class="td-tname">${esc(r.team?.name||'-')}</span></td>
+        <td>${r.total??'-'}</td><td class="g">${r.winTotal??'-'}</td><td class="m">${r.lossTotal??'-'}</td>
+        <td>${r.goalsForTotal??'-'}</td><td>${r.goalsAgainstTotal??'-'}</td>
+        <td class="${avgCls}">${avg}</td><td class="pct">${pct}</td>
+      </tr>`;
+    });
+    html+=`</tbody></table></div></div>`;
+  });
+  if(!html)return{hasContent:false,html:_noData('Puan durumu verisi mevcut değil')};
+  return{hasContent:true,html};
+}
+
 /* ── LIVE REFRESH ─────────────────────────────────────── */
 async function refreshDetail(id){
   const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   const numId=parseInt(id,10);if(isNaN(numId))return;
   const{data,error}=await sb.from('live_vball').select('*').eq('nesine_bid',numId).limit(1);
-  if(!error&&data?.length)renderDetail(data[0]);
+  if(!error&&data?.length){
+    const activeBtn=document.querySelector('.bd-tab.active');
+    const activeTab=activeBtn?activeBtn.getAttribute('onclick').match(/'(\w+)'/)[1]:'oz';
+    renderDetail(data[0]);
+    const el=document.querySelector(`.bd-tab[onclick*="'${activeTab}'"]`);
+    if(el)switchBDTab(activeTab,el);
+  }
 }
 
 /* ── INIT ──────────────────────────────────────────────── */
