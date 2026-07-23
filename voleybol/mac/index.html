@@ -1,458 +1,440 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<base href="/">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Voleybol Maç Detayı — ScorePop</title>
+<meta name="description" content="Canlı voleybol maç detayı — set skorları, maks. 5 set."/>
+<meta name="robots" content="index,follow"/>
+
+<!-- Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JS4J2RCJJ9"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-JS4J2RCJJ9');</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<link rel="stylesheet" href="/style.css?v=6"/>
+
+<style>
 /* ═══════════════════════════════════════════════════════
-   SCOREPOP — vball-detail.js  (v1.0)
-   Voleybol maç detay sayfası  /voleybol/mac/[id]-slug
-
-   Veri kaynakları:
-     1. Supabase live_vball   (canlı/bugünkü/geçmiş maçlar — FT satırları kalır)
-     2. Supabase future_vball (ileri tarihli — temel bilgi)
-   Not: voleybolda arşiv kaynağı yok (bkz. voleybol/vball.js).
-
-   Set modeli: maksimum 5 set (3 kazanan taraf maçı alır).
+   VOLEYBOL DETAY SAYFASI
+   /voleybol/mac/[id]-slug
+   (bd- sınıfları basketbol/mac ile paylaşılıyor)
 ═══════════════════════════════════════════════════════ */
-'use strict';
 
-let VD = { row: null, refreshTimer: null };
+.bd-back {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 14px 0 12px; height: 36px;
+  background: var(--b1); border-radius: 8px;
+  color: var(--tx2); font-size: 13px; font-weight: 600;
+  cursor: pointer; text-decoration: none;
+  transition: background .12s, color .12s;
+  flex-shrink: 0; font-family: 'Barlow', sans-serif;
+}
+.bd-back:hover { background: var(--b2); color: var(--tx1); }
+.bd-back svg { flex-shrink: 0; }
 
-/* Set bazlı verilerden kazanılan (TAMAMLANMIŞ) set sayısını hesaplar (örn. 3-1) */
-function computeSetScore(row, st){
-  // FIX: DB'nin hazır home_sets/away_sets toplamı ingestion tarafında son
-  // setin işlenmemesi yüzünden gerçek değerin 1 eksiğinde donup kalabiliyor
-  // (bkz. tespit: FT/INT maçlarda tutarlı şekilde -1). Set kolonları (s1..s5)
-  // doğru geldiği için artık HER ZAMAN onlardan hesaplanıyor; DB toplamı
-  // sadece set kolonları hiç yoksa (örn. eski/eksik satır) yedek olarak kullanılıyor.
-  const sets=[
-    [row.home_s1,row.away_s1],
-    [row.home_s2,row.away_s2],
-    [row.home_s3,row.away_s3],
-    [row.home_s4,row.away_s4],
-    [row.home_s5,row.away_s5],
-  ];
+.bd-hero { background: var(--bg2); border-bottom: 1px solid var(--b1); }
+.bd-league { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 14px 20px 0; }
+.bd-league-name { font-size: 12px; font-weight: 600; color: var(--tx3); text-transform: uppercase; letter-spacing: .5px; }
 
-  // Maç bittiyse tüm setler tamamlanmış sayılır; canlıysa sadece
-  // current_set'ten ÖNCEKİ setler tamamlanmış sayılır — o an oynanan
-  // set (current_set'in kendisi) asla sayılmaz.
-  const activeSet = st && st.done ? sets.length + 1 : (row.current_set || 1);
+.bd-matchup { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; padding: 20px 20px 22px; }
+.bd-team { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.bd-logo-wrap { width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; }
+.bd-logo { width: 64px; height: 64px; object-fit: contain; border-radius: 10px; }
+.bd-tname { font-size: 14px; font-weight: 700; color: var(--tx1); line-height: 1.25; max-width: 130px; }
 
-  let hs=0, as=0, any=false;
-  sets.forEach(([h,a],i)=>{
-    const setNumber=i+1;
-    if(setNumber>=activeSet) return;      // henüz oynanmakta olan / gelecek set — atla
-    if(h==null||a==null) return;
-    any=true;
-    if(+h>+a) hs++;
-    else if(+a>+h) as++;
-  });
-  if(any) return {hs,as};
-  if(row.home_sets!=null && row.away_sets!=null) return {hs:row.home_sets, as:row.away_sets};
-  return {hs:0, as:0};
+.bd-form { display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; }
+.bd-fb { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 9px; font-weight: 800; flex-shrink: 0; }
+.bd-fb.w { background: rgba(16,185,129,.2); color: var(--green); }
+.bd-fb.l { background: rgba(244,63,94,.15); color: var(--live); }
+
+.bd-center { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 110px; }
+.bd-score-time { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700; color: var(--tx2); }
+
+.bd-score-box { display: flex; align-items: center; gap: 6px; background: var(--bg3); border: 1px solid var(--b2); border-radius: 12px; padding: 10px 14px; }
+.bd-score-box.live { border-color: rgba(244,63,94,.3); box-shadow: 0 0 16px rgba(244,63,94,.08); }
+.bd-sn { font-family: 'JetBrains Mono', monospace; font-size: 32px; font-weight: 800; color: var(--tx1); min-width: 34px; text-align: center; line-height: 1; }
+.bd-sn.bd-win { color: var(--tx1); }
+.bd-sn.bd-loss { color: var(--tx3); }
+.bd-sep { font-family: 'JetBrains Mono', monospace; font-size: 22px; color: var(--b3); line-height: 1; }
+.bd-score-box.live .bd-sn { color: var(--live); }
+
+.bd-live-point { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--live); font-weight: 700; }
+
+.bd-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+.bd-badge.live { background: rgba(244,63,94,.15); color: var(--live); }
+.bd-badge.done { background: var(--b1); color: var(--tx3); }
+.bd-badge.sched { background: var(--b1); color: var(--tx2); }
+.bd-badge-dot { width: 6px; height: 6px; background: var(--live); border-radius: 50%; animation: bd-pulse 1.2s infinite; }
+@keyframes bd-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.bd-qstrip { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.bd-qchip { padding: 3px 7px; background: var(--b1); border-radius: 5px; font-size: 11px; color: var(--tx3); font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+.bd-qchip b { font-family: 'Barlow', sans-serif; font-size: 9px; font-weight: 700; color: var(--tx3); margin-right: 3px; }
+.bd-qchip.active { background: rgba(244,63,94,.1); color: var(--live); border: 1px solid rgba(244,63,94,.2); }
+.bd-qchip.active b { color: var(--live); }
+
+/* ── TABS ── */
+.bd-tabs {
+  display: flex;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--b1);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.bd-tab {
+  flex: 1;
+  padding: 13px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tx3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+  font-family: 'Barlow', sans-serif;
+  white-space: nowrap;
+}
+.bd-tab:hover { color: var(--tx1); }
+.bd-tab.active { color: var(--or); border-bottom-color: var(--or); }
+.bd-tab.dim { opacity: .4; }
+
+/* ── PANELS ── */
+.bd-panel { display: none; }
+.bd-panel.active { display: block; }
+
+.bd-section { padding: 18px 20px 6px; }
+.bd-sh { font-size: 10.5px; font-weight: 700; color: var(--tx3); letter-spacing: .7px; text-transform: uppercase; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--b1); }
+
+.bd-qtr-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.bd-qtr-table th { color: var(--tx3); font-weight: 600; font-size: 11px; padding: 6px 6px; text-align: center; border-bottom: 1px solid var(--b1); }
+.bd-qtr-table th:first-child { text-align: left; }
+.bd-qtr-table td { padding: 9px 6px; text-align: center; border-bottom: 1px solid var(--b1); color: var(--tx2); font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+.bd-qtr-table td:first-child { text-align: left; font-family: 'Barlow', sans-serif; font-size: 12px; font-weight: 600; color: var(--tx3); }
+.bd-tr-total td { font-weight: 800 !important; font-size: 15px !important; color: var(--tx1) !important; background: var(--b1); }
+.bd-tr-sub td {
+  color: var(--tx3) !important;
+  font-size: 12px !important;
+  font-style: italic;
+}
+.bd-cell-w { color: var(--tx1) !important; font-weight: 800 !important; }
+.bd-cell-l { color: var(--tx3) !important; }
+
+/* ── STATS ── */
+.bd-stat-hdr {
+  display: grid;
+  grid-template-columns: 1fr 100px 1fr;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tx2);
+  margin-bottom: 10px;
+  text-align: left;
+}
+.bd-stat-row {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.bd-sv {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 13px;
+}
+.bd-sv.home { color: var(--or); text-align: left; }
+.bd-sv.away { color: #3b82f6; text-align: right; }
+.bd-sb-wrap { display: flex; flex-direction: column; gap: 4px; }
+.bd-sb {
+  height: 8px;
+  background: var(--b2);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+}
+.bd-sb-h { background: var(--or);  border-radius: 4px 0 0 4px; transition: width .5s; }
+.bd-sb-a { background: #3b82f6; border-radius: 0 4px 4px 0; }
+.bd-sl {
+  font-size: 10.5px;
+  color: var(--tx3);
+  text-align: center;
 }
 
-/* ── HELPERS ─────────────────────────────────────────── */
-function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function fmtTime(iso){ if(!iso)return '--:--'; try{const d=new Date(iso);return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}catch{return '--:--';} }
-function safeJSON(v,fb){
-  if(!v)return fb;
-  if(typeof v==='object')return v;
-  try{
-    let p=JSON.parse(v);
-    if(typeof p==='string') p=JSON.parse(p);
-    return p;
-  }catch{return fb;}
+/* ── H2H ── */
+.bd-h2h-list { display: flex; flex-direction: column; }
+.bd-h2h-row {
+  display: grid;
+  grid-template-columns: 1fr 22px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--b1);
 }
-function teamMono(name,size){
-  const n=String(name||'').trim();
-  const parts=n.split(/\s+/).filter(Boolean);
-  const ini=(parts.length>1?parts[0][0]+parts[1][0]:n.slice(0,2)).toLocaleUpperCase('tr-TR');
-  let h=0;for(let i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i))>>>0;
-  const hue=h%360;
-  return `<div class="tm-mono" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.38)}px;background:hsl(${hue} 28% 16%);border-color:hsl(${hue} 30% 26%);color:hsl(${hue} 45% 72%)">${esc(ini)}</div>`;
+.bd-h2h-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 3px;
 }
-
-/* ── STATUS ─────────────────────────────────────────── */
-const MAX_SETS = 5; /* voleybolda maç maksimum 5 set üzerinden oynanır (3 set kazanan alır) */
-
-function vballStatus(m){
-  const LM={'S1':'1. Set','S2':'2. Set','S3':'3. Set','S4':'4. Set','S5':'5. Set'};
-  const s=(m.status_short||'').toUpperCase();
-  if(s==='FT')return{live:false,done:true,label:'Maç Sonu',cls:'done'};
-  if(s==='INT')return{live:false,done:true,label:'Tatil Edildi',cls:'done'};
-  if(LM[s])return{live:true,done:false,label:LM[s],cls:'live'};
-  return{live:false,done:false,label:fmtTime(m.scheduled_at),cls:'sched'};
+.bd-h2h-date {
+  font-size: 10.5px;
+  color: var(--tx3);
+  flex-shrink: 0;
 }
-
-/* ── URL PARSING ─────────────────────────────────────── */
-function parseIdFromURL(){
-  const parts=window.location.pathname.split('/');
-  const idx=parts.indexOf('mac');
-  if(idx===-1)return null;
-  const seg=parts[idx+1]||'';
-  return seg.split('-')[0]||null;
+.bd-h2h-league {
+  font-size: 10px;
+  color: var(--tx3);
+  background: var(--b1);
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
 }
-
-/* future_vball row → display row (aynı alan şeması, boş set verisiyle) */
-function futureToRow(r){
-  return{
-    nesine_bid:String(r.nesine_bid),_isFuture:true,
-    league_name:r.league_name||'',country:r.country||'',
-    home_team:r.home_team||'',away_team:r.away_team||'',
-    status_short:'NS',current_set:null,
-    home_sets:null,away_sets:null,
-    home_set_points:null,away_set_points:null,
-    home_s1:null,away_s1:null,home_s2:null,away_s2:null,home_s3:null,away_s3:null,
-    home_s4:null,away_s4:null,home_s5:null,away_s5:null,
-    scheduled_at:r.starts_at,
-    home_recent_form:'[]',away_recent_form:'[]',
-    h2h:null,standings:null,live_stats:null,
-    home_avatar:null,away_avatar:null,
-  };
+.bd-h2h-match {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 6px;
+  align-items: center;
+  font-size: 12.5px;
 }
-
-/* ═══════════════════════════════════════════════════════
-   DATA FETCH
-═══════════════════════════════════════════════════════ */
-async function fetchMatchData(id){
-  const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-  const numId=parseInt(id,10);
-  if(isNaN(numId))return null;
-
-  /* 1. live_vball by nesine_bid */
-  const{data,error}=await sb.from('live_vball').select('*').eq('nesine_bid',numId).limit(1);
-  if(!error&&data?.length)return data[0];
-
-  /* 2. future_vball by nesine_bid */
-  const{data:fData}=await sb.from('future_vball').select('*').eq('nesine_bid',numId).limit(1);
-  if(fData?.length)return futureToRow(fData[0]);
-
-  return null;
+.bd-h2h-t {
+  color: var(--tx2);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-/* ── SEO ─────────────────────────────────────────────── */
-function setSEO(row,st){
-  const _cs=computeSetScore(row,st);
-  const hs=_cs.hs,as=_cs.as;
-  const hasScore=hs!=null&&as!=null&&st.done;
-  const scoreStr=hasScore?`${hs}-${as}`:'vs';
-  let title,desc;
-  if(st.done){title=`${row.home_team} ${scoreStr} ${row.away_team} Maç Sonucu${row.league_name?' — '+row.league_name:''}`;desc=`${row.home_team} ${scoreStr} ${row.away_team}. Set skorları. ${row.league_name||'Voleybol'}.`;}
-  else if(st.live){title=`🔴 ${row.home_team} ${hs??0}-${as??0} ${row.away_team} CANLI`;desc=`${row.home_team} vs ${row.away_team} canlı. ${st.label}. ${row.league_name||'Voleybol'}.`;}
-  else{title=`${row.home_team} - ${row.away_team}${row.league_name?' | '+row.league_name:''} | Voleybol`;desc=`${row.home_team} - ${row.away_team}. ${row.league_name||'Voleybol'}. Set skorları ScorePop'ta.`;}
-  document.title=`${title} | ScorePop`;
-  const setM=(n,v)=>{let el=document.querySelector(`meta[name="${n}"]`);if(!el){el=document.createElement('meta');el.name=n;document.head.appendChild(el);}el.content=v;};
-  const setOG=(p,v)=>{let el=document.querySelector(`meta[property="${p}"]`);if(!el){el=document.createElement('meta');el.setAttribute('property',p);document.head.appendChild(el);}el.content=v;};
-  setM('description',desc);setOG('og:title',title);setOG('og:description',desc);setOG('og:url',window.location.href);setOG('og:type','article');setOG('og:image','https://scorepop.com.tr/logo.png');
-  let canon=document.querySelector('link[rel="canonical"]');if(!canon){canon=document.createElement('link');canon.rel='canonical';document.head.appendChild(canon);}canon.href=window.location.origin+window.location.pathname;
-  const startISO=row.scheduled_at?new Date(row.scheduled_at).toISOString():new Date().toISOString();
-  const endISO=new Date(new Date(startISO).getTime()+2*60*60*1000).toISOString();
-  const schema={'@context':'https://schema.org','@type':'SportsEvent',name:`${row.home_team} - ${row.away_team}`,sport:'Volleyball',description:desc,url:window.location.href,startDate:startISO,endDate:endISO,eventStatus:st.live?'https://schema.org/EventLive':(st.done?'https://schema.org/EventCompleted':'https://schema.org/EventScheduled'),image:'https://scorepop.com.tr/logo.png',organizer:{'@type':'SportsOrganization',name:row.league_name||'Voleybol',url:'https://scorepop.com.tr'},performer:[{'@type':'SportsTeam',name:row.home_team},{'@type':'SportsTeam',name:row.away_team}],offers:{'@type':'Offer',url:window.location.origin+window.location.pathname,price:'0',priceCurrency:'TRY',availability:'https://schema.org/OnlineOnly'},location:{'@type':'Place',name:row.league_name||'Voleybol',address:{'@type':'PostalAddress',addressCountry:row.country||'TR'}},homeTeam:{'@type':'SportsTeam',name:row.home_team},awayTeam:{'@type':'SportsTeam',name:row.away_team},...(hasScore?{homeScore:{'@type':'Integer',value:hs},awayScore:{'@type':'Integer',value:as}}:{})};
-  let jl=document.getElementById('bd-jsonld');if(!jl){jl=document.createElement('script');jl.id='bd-jsonld';jl.type='application/ld+json';document.head.appendChild(jl);}jl.textContent=JSON.stringify(schema);
-  const bc={'@context':'https://schema.org','@type':'BreadcrumbList',itemListElement:[{'@type':'ListItem',position:1,name:'Ana Sayfa',item:'https://scorepop.com.tr/'},{'@type':'ListItem',position:2,name:'Voleybol',item:'https://scorepop.com.tr/voleybol/'},{'@type':'ListItem',position:3,name:`${row.home_team} - ${row.away_team}`,item:window.location.href}]};
-  let bcl=document.getElementById('bd-breadcrumb');if(!bcl){bcl=document.createElement('script');bcl.id='bd-breadcrumb';bcl.type='application/ld+json';document.head.appendChild(bcl);}bcl.textContent=JSON.stringify(bc);
+.bd-h2h-t.home { text-align: right; }
+.bd-h2h-t.away { text-align: left; }
+.bd-h2h-sc {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tx1);
+  text-align: center;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
+.bd-h2h-ht { font-size: 10px; color: var(--tx3); font-weight: 400; margin-left: 4px; }
+.bd-h2h-res {
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 5px;
+  font-size: 10px; font-weight: 800;
+  flex-shrink: 0; align-self: center;
+}
+.bd-h2h-res.w { background: rgba(16,185,129,.2); color: var(--green); }
+.bd-h2h-res.l { background: rgba(244,63,94,.15); color: var(--live); }
+.bd-h2h-res.d { background: var(--b1); color: var(--tx3); }
+.bd-h2h-empty { font-size: 12px; color: var(--tx3); font-style: italic; padding: 6px 0; }
 
-/* ═══════════════════════════════════════════════════════
-   RENDER
-═══════════════════════════════════════════════════════ */
-function renderDetail(row){
-  VD.row=row;
-  const st=vballStatus(row);
-  const isNS=!st.live&&!st.done;
-  setSEO(row,st);
+/* ── STANDINGS ── */
+.bd-std-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 4px; }
+.bd-std-table {
+  width: auto;
+  max-width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 360px;
+}
+.bd-std-table th {
+  color: var(--tx3);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  padding: 7px 5px;
+  text-align: center;
+  border-bottom: 1px solid var(--b1);
+  white-space: nowrap;
+}
+.bd-std-table th.l { text-align: left; }
+.bd-std-table td {
+  padding: 8px 5px;
+  text-align: center;
+  border-bottom: 1px solid var(--b1);
+  color: var(--tx2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+.bd-std-table td.pos-cell {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--tx3);
+  text-align: center;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--b1);
+  padding: 8px 5px;
+}
+.bd-std-table td.pos-cell .td-dot { vertical-align: middle; margin-right: 4px; }
+.bd-std-table td.team-cell {
+  text-align: left;
+  font-family: 'Barlow', sans-serif;
+  color: var(--tx1);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--b1);
+  padding: 8px 8px 8px 4px;
+}
+.bd-std-table td.team-cell .td-logo { display: inline-block; vertical-align: middle; margin-right: 6px; }
+.bd-std-table td.team-cell .td-tname { display: inline-block; vertical-align: middle; }
+.td-tname { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+.td-logo { width: 18px; height: 18px; object-fit: contain; border-radius: 2px; flex-shrink: 0; }
+.td-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.dot-playoff { background: var(--green); }
+.dot-qual    { background: #f59e0b; }
+.bd-std-table td.g   { color: var(--green) !important; font-weight: 700; }
+.bd-std-table td.m   { color: var(--live) !important; opacity: .8; }
+.bd-std-table td.pct { color: var(--tx1) !important; font-weight: 700; }
+.bd-std-table td.pos { color: var(--or) !important; font-weight: 700; }
+.bd-std-table td.neg { color: var(--live) !important; opacity: .8; }
+/* Highlighted rows */
+.bd-std-table tr.row-h td, .bd-std-table tr.row-h td.pos-cell, .bd-std-table tr.row-h td.team-cell { background: rgba(242,100,25,.08); }
+.bd-std-table tr.row-a td, .bd-std-table tr.row-a td.pos-cell, .bd-std-table tr.row-a td.team-cell { background: rgba(59,130,246,.08); }
+.bd-legend {
+  display: flex; gap: 14px; font-size: 10.5px; color: var(--tx3);
+  margin-top: 8px; flex-wrap: wrap;
+}
+.bd-legend span { display: flex; align-items: center; gap: 4px; }
 
-  const hl=row.home_avatar?`<img src="${esc(row.home_avatar)}" onerror="this.style.display='none'" alt="${esc(row.home_team)}" class="bd-logo">`:teamMono(row.home_team,64);
-  const al=row.away_avatar?`<img src="${esc(row.away_avatar)}" onerror="this.style.display='none'" alt="${esc(row.away_team)}" class="bd-logo">`:teamMono(row.away_team,64);
+.bd-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 50px 20px; color: var(--tx3); font-size: 14px; text-align: center; }
+.bd-ei { font-size: 36px; }
+.bd-init-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 80px 20px; color: var(--tx3); font-size: 14px; }
+.bd-spin { width: 36px; height: 36px; border: 3px solid var(--b2); border-top-color: var(--or); border-radius: 50%; animation: bd-spin .7s linear infinite; }
+@keyframes bd-spin { to { transform: rotate(360deg); } }
+.bd-init-error { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 60px 20px; color: var(--tx2); font-size: 14px; text-align: center; }
+.bd-back-btn { margin-top: 8px; padding: 10px 20px; background: var(--b1); border-radius: 8px; color: var(--tx1); font-size: 13px; font-weight: 600; text-decoration: none; transition: background .15s; font-family: 'Barlow', sans-serif; }
+.bd-back-btn:hover { background: var(--b2); }
 
-  let scoreHtml;
-  if(isNS){
-    scoreHtml=`<div class="bd-score-time">${esc(st.label)}</div>`;
-  }else{
-    const cs=computeSetScore(row, st);
-    const hs=cs.hs, as=cs.as;
-    let hcls='',acls='';
-    if(st.done){if(+hs>+as){hcls='bd-win';acls='bd-loss';}else if(+as>+hs){acls='bd-win';hcls='bd-loss';}}
-    scoreHtml=`<div class="bd-score-box${st.live?' live':''}"><span class="bd-sn ${hcls}">${hs}</span><span class="bd-sep">–</span><span class="bd-sn ${acls}">${as}</span></div>`;
-    /* Canlıyken oynanan setin anlık sayısı */
-    if(st.live&&row.home_set_points!=null&&row.away_set_points!=null){
-      scoreHtml+=`<div class="bd-live-point">${row.home_set_points} – ${row.away_set_points}</div>`;
-    }
-  }
+.sb-sport-badge { font-size: 9.5px; font-weight: 700; background: var(--or2); color: var(--or); padding: 1px 5px; border-radius: 4px; margin-left: auto; }
 
-  /* Set şeridi — sadece oynanmış/oynanmakta olan setler (maks. 5) */
-  let qStrip='';
-  if(!isNS){
-    const sets=[
-      [row.home_s1,row.away_s1,'S1'],
-      [row.home_s2,row.away_s2,'S2'],
-      [row.home_s3,row.away_s3,'S3'],
-      [row.home_s4,row.away_s4,'S4'],
-      [row.home_s5,row.away_s5,'S5'],
-    ];
-    const items=[];
-    sets.forEach(([h,a,lbl],i)=>{
-      if(h==null&&a==null)return;
-      const isCurrent=st.live&&row.current_set===i+1;
-      items.push(`<div class="bd-qchip${isCurrent?' active':''}"><b>${lbl}</b>${h}-${a}</div>`);
-    });
-    if(items.length)qStrip=`<div class="bd-qstrip">${items.join('')}</div>`;
-  }
+@media (max-width: 480px) {
+  .bd-logo-wrap { width: 48px; height: 48px; }
+  .bd-logo { width: 48px; height: 48px; }
+  .bd-tname { font-size: 12.5px; max-width: 100px; }
+  .bd-sn { font-size: 26px; min-width: 28px; }
+  .bd-matchup { gap: 6px; padding: 16px 14px 18px; }
+  .bd-section { padding: 14px 14px 6px; }
+  .bd-tab { font-size: 12px; padding: 12px 4px; }
+}
+</style>
+</head>
 
-  const hForm=safeJSON(row.home_recent_form,[]);
-  const aForm=safeJSON(row.away_recent_form,[]);
-  const formBadges=arr=>(arr||[]).slice(0,5).map(r=>`<span class="bd-fb ${r==='WON'?'w':'l'}">${r==='WON'?'G':'M'}</span>`).join('');
+<body>
 
-  let statusBadge;
-  if(st.live)statusBadge=`<span class="bd-badge live"><span class="bd-badge-dot"></span>${esc(st.label)}</span>`;
-  else if(st.done)statusBadge=`<span class="bd-badge done">MS</span>`;
-  else statusBadge=`<span class="bd-badge sched">${esc(st.label)}</span>`;
+<!-- ── SIDEBAR ───────────────────────────────────────── -->
+<aside id="sidebar">
+  <div class="sb-top">
+    <a class="sb-brand" href="/" style="text-decoration:none;cursor:pointer;">
+      <div class="sb-mark"><img src="/logo.png" alt="ScorePop Logo"></div>
+      <div class="sb-name">SCORE<em>POP</em></div>
+    </a>
+  </div>
 
-  const ozHtml=buildSetsTab(row,st,isNS);
-  const stData=buildStatsTab(row);
-  const h2Data=buildH2HTab(row);
-  const pdData=buildStandingsTab(row);
+  <nav class="sb-nav">
+    <a class="sb-btn" href="/" style="text-decoration:none;">
+      <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 4.2 9.4 6l-.9 2.8H5.5L4.6 6 7 4.2z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M7 1.2v3M12.7 5.6 9.4 6M11 11.5 8.5 8.8M3 11.5l2.5-2.7M1.3 5.6 4.6 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg><span>Futbol</span>
+    </a>
+    <a class="sb-btn" href="/basketbol/" style="text-decoration:none;">
+      <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 1v12M1 7h12M2.8 2.8c2 1.6 2 6.8 0 8.4M11.2 2.8c-2 1.6-2 6.8 0 8.4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg><span>Basketbol</span>
+      <span class="sb-sport-badge">YENİ</span>
+    </a>
+    <a class="sb-btn" href="/voleybol/" style="text-decoration:none;">
+      <svg class="sb-sport-ic" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 1c2.8 2 3.9 5.4 2.9 8.8M7 1C4.6 3.2 2.1 4 1.2 7.6M12.8 7.8c-3.2 1.6-7.6 1-9.9-1.6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg><span>Voleybol</span>
+      <span class="sb-sport-badge">YENİ</span>
+    </a>
+  </nav>
 
-  document.getElementById('bd-root').innerHTML=`
-    <div class="bd-hero">
-      <div class="bd-league"><span class="bd-league-name">${esc(row.league_name||'')}</span></div>
-      <div class="bd-matchup">
-        <div class="bd-team">
-          <div class="bd-logo-wrap">${hl}</div>
-          <div class="bd-tname">${esc(row.home_team)}</div>
-          <div class="bd-form">${formBadges(hForm)}</div>
-        </div>
-        <div class="bd-center">${scoreHtml}${statusBadge}${qStrip}</div>
-        <div class="bd-team">
-          <div class="bd-logo-wrap">${al}</div>
-          <div class="bd-tname">${esc(row.away_team)}</div>
-          <div class="bd-form">${formBadges(aForm)}</div>
-        </div>
-      </div>
+  <div class="sb-sep"></div>
+
+  <nav class="sb-nav" style="padding-top:4px;padding-bottom:4px;">
+    <a class="sb-btn" href="/pop-sosyal/" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h8A1.5 1.5 0 0 1 12 2.5v5A1.5 1.5 0 0 1 10.5 9H5.8L3 11.3V9H2.5A1.5 1.5 0 0 1 1 7.5v-5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+      <span>Pop Sosyal</span>
+      <span class="sb-sport-badge">YENİ</span>
+    </a>
+    <a class="sb-btn" href="/haberler" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y=".75" width="11.5" height="11.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3 4h7M3 6.5h7M3 9h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>Haberler</span>
+    </a>
+    <a class="sb-btn" href="/tv-rehberi/" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y="1.75" width="11.5" height="8.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 10.25v1.5M9 10.25v1.5M2.5 11.75h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="6.5" cy="5.75" r="1.5" stroke="currentColor" stroke-width="1.1"/></svg>
+      <span>TV Rehberi</span>
+    </a>
+    <a class="sb-btn" href="/puan-durumu/" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y="3.75" width="2.5" height="8.5" rx="1" fill="currentColor" opacity=".7"/><rect x="5.25" y="1.75" width="2.5" height="10.5" rx="1" fill="currentColor"/><rect x="9.75" y="5.75" width="2.5" height="6.5" rx="1" fill="currentColor" opacity=".5"/></svg>
+      <span>Puan Durumu</span>
+    </a>
+    <a class="sb-btn" href="/wc-2026" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5a5 5 0 1 0 0 10 5 5 0 0 0 0-10z" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 6.5h10M6.5 1.5c-1.5 1.5-2 3-2 5s.5 3.5 2 5M6.5 1.5c1.5 1.5 2 3 2 5s-.5 3.5-2 5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+      <span>2026 Dünya Kupası</span>
+    </a>
+    <a class="sb-btn" href="/hakkimizda" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.2"/><path d="M2 11c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>Hakkımızda</span>
+    </a>
+    <a class="sb-btn" href="/iletisim" style="text-decoration:none;">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".75" y="2.75" width="11.5" height="7.5" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 3.5l5.5 4 5.5-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span>İletişim</span>
+    </a>
+  </nav>
+
+  <div class="sb-sep"></div>
+  <div class="sb-lbl">LİGLER</div>
+  <div style="padding:6px 8px;font-size:12px;color:var(--tx3);">FIVB · CEV · Sultanlar Ligi · Efeler Ligi</div>
+</aside>
+
+<!-- ── MAIN ──────────────────────────────────────────── -->
+<main id="main">
+
+  <!-- Topbar -->
+  <header id="topbar">
+    <div class="tb-left">
+      <button class="tb-menu" onclick="toggleSidebar()">
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+          <path d="M0 1h16M0 6h16M0 11h16" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </button>
     </div>
-    <div class="bd-tabs" id="bd-tabbar">
-      <button class="bd-tab active" onclick="switchBDTab('oz',this)">Özet</button>
-      <button class="bd-tab${stData.hasContent?'':' dim'}" onclick="switchBDTab('st',this)">İstatistik</button>
-      <button class="bd-tab${h2Data.hasContent?'':' dim'}" onclick="switchBDTab('h2',this)">H2H</button>
-      <button class="bd-tab${pdData.hasContent?'':' dim'}" onclick="switchBDTab('pd',this)">Puan Durumu</button>
+    <a class="bd-back" href="/voleybol/">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Voleybol
+    </a>
+    <div style="flex:1"></div>
+  </header>
+
+  <!-- Detail Content -->
+  <div id="bd-root">
+    <!-- injected by vball-detail.js -->
+    <div class="bd-init-loading">
+      <div class="bd-spin"></div>
+      <div>Maç verisi yükleniyor…</div>
     </div>
-    <div id="bdp-oz" class="bd-panel active">${ozHtml}</div>
-    <div id="bdp-st" class="bd-panel">${stData.html}</div>
-    <div id="bdp-h2" class="bd-panel">${h2Data.html}</div>
-    <div id="bdp-pd" class="bd-panel">${pdData.html}</div>`;
+  </div>
+
+</main>
+
+<!-- ── SIDEBAR TOGGLE ── -->
+<div id="overlay" onclick="toggleSidebar()"></div>
+
+<script>
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
 }
+</script>
 
-function switchBDTab(tab,el){
-  document.querySelectorAll('.bd-tab').forEach(t=>t.classList.remove('active'));
-  if(el)el.classList.add('active');
-  document.querySelectorAll('.bd-panel').forEach(p=>p.classList.remove('active'));
-  const p=document.getElementById(`bdp-${tab}`);if(p)p.classList.add('active');
-}
+<script src="/config.js"></script>
+<script src="/voleybol/mac/vball-detail.js"></script>
 
-/* ── SET SKORLARI TABLOSU ─────────────────────────────── */
-function buildSetsTab(row,st,isNS){
-  let html='';
-  if(!isNS){
-    const setRows=[
-      {lbl:'1. Set',h:row.home_s1,a:row.away_s1},
-      {lbl:'2. Set',h:row.home_s2,a:row.away_s2},
-      {lbl:'3. Set',h:row.home_s3,a:row.away_s3},
-      {lbl:'4. Set',h:row.home_s4,a:row.away_s4},
-      {lbl:'5. Set',h:row.home_s5,a:row.away_s5},
-    ];
-      const _cs=computeSetScore(row, st);
-      setRows.push({lbl:'Setler',h:_cs.hs,a:_cs.as,total:true});    const trs=setRows.filter(q=>q.h!=null||q.a!=null).map(q=>{
-      const cls=q.total?'bd-tr-total':'';
-      let hcls='',acls='';
-      if(!q.total&&q.h!=null&&q.a!=null){if(+q.h>+q.a){hcls='bd-cell-w';acls='bd-cell-l';}else if(+q.a>+q.h){acls='bd-cell-w';hcls='bd-cell-l';}}
-      return `<tr class="${cls}"><td>${q.lbl}</td><td class="${hcls}">${q.h??'-'}</td><td class="${acls}">${q.a??'-'}</td></tr>`;
-    }).join('');
-    if(trs)html+=`<div class="bd-section"><div class="bd-sh">Set Skorları</div><table class="bd-qtr-table"><thead><tr><th></th><th>${esc(row.home_team)}</th><th>${esc(row.away_team)}</th></tr></thead><tbody>${trs}</tbody></table></div>`;
-  }
-  if(!html)html=`<div class="bd-empty"><div class="empty-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M6 9h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div>${isNS?'Maç henüz başlamadı':'Veri mevcut değil'}</div></div>`;
-  return html;
-}
-
-function _noData(msg){return`<div class="bd-empty"><div class="empty-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M6 9h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div>${msg}</div></div>`;}
-
-/* ── İSTATİSTİK TAB ────────────────────────────────────────────
-   live_stats formatı (bball-detail.js ile birebir aynı):
-   [{periodCode:"GENEL", statistics:[{statisticsCode:"...",
-     homeTeamValue:"3", awayTeamValue:"4", valueLabel:"Ace"}]}]
-──────────────────────────────────────────────────────────── */
-function buildStatsTab(row){
-  if(!row.live_stats) return{hasContent:false,html:_noData('İstatistik verisi bu maç için mevcut değil')};
-
-  let parsed=null;
-  try{
-    parsed = typeof row.live_stats==='string' ? JSON.parse(row.live_stats) : row.live_stats;
-    if(typeof parsed==='string') parsed = JSON.parse(parsed);
-  }catch{ return{hasContent:false,html:_noData('İstatistik verisi bu maç için mevcut değil')}; }
-
-  let statsMap=null;
-  if(Array.isArray(parsed)){
-    const genel = parsed.find(p=>p.periodCode==='GENEL') || parsed[0];
-    if(genel?.statistics?.length){
-      statsMap={};
-      genel.statistics.forEach(s=>{ statsMap[s.statisticsCode]={home:s.homeTeamValue,away:s.awayTeamValue,label:s.valueLabel}; });
-    }
-  }
-  if(!statsMap || !Object.keys(statsMap).length) return{hasContent:false,html:_noData('İstatistik verisi bu maç için mevcut değil')};
-
-  /* Voleybolda öncelikli sıralama */
-  const ORDER=['136','141','1410','130','1077','134','1098'];
-  const keys=[...ORDER,...Object.keys(statsMap).filter(k=>!ORDER.includes(k))];
-
-  // Bilyoner bazı statisticsCode'larda toplam yerine set bazlı kırılımı
-  // tek bir string olarak yolluyor (örn. "33/56/89" veya "[1,3,4,0]").
-  // Bunlar basit home/away çubuğunda anlamsız/karmaşık göründüğü için
-  // sadece TEK bir sayı olan (parseFloat ile tam eşleşen) değerleri kabul ediyoruz.
-  const isPlainNumber = v => /^-?\d+(\.\d+)?$/.test(String(v ?? '').trim());
-
-  let rowsHtml='';
-  const seenLabels=new Set();
-  keys.forEach(code=>{
-    const v=statsMap[code]; if(!v) return;
-    if(!isPlainNumber(v.home) || !isPlainNumber(v.away)) return;   // kırılım/dizi değerini atla
-    const label=v.label||code;
-    if(seenLabels.has(label)) return;   // aynı etiket için ikinci (bozuk) kaydı atla
-    seenLabels.add(label);
-    const hv=parseFloat(v.home)||0, av=parseFloat(v.away)||0, tot=hv+av;
-    const hp=tot>0?Math.round(hv/tot*100):50;
-    rowsHtml+=`<div class="bd-stat-row">
-      <span class="bd-sv home">${esc(v.home)}</span>
-      <div class="bd-sb-wrap">
-        <div class="bd-sb"><div class="bd-sb-h" style="width:${hp}%"></div><div class="bd-sb-a" style="width:${100-hp}%"></div></div>
-        <div class="bd-sl">${esc(v.label||code)}</div>
-      </div>
-      <span class="bd-sv away">${esc(v.away)}</span>
-    </div>`;
-  });
-  if(!rowsHtml) return{hasContent:false,html:_noData('İstatistik verisi bu maç için mevcut değil')};
-
-  return{hasContent:true, html:`
-    <div class="bd-section">
-      <div class="bd-stat-hdr"><span>${esc(row.home_team)}</span><span></span><span style="text-align:right">${esc(row.away_team)}</span></div>
-      ${rowsHtml}
-    </div>`};
-}
-
-/* ── H2H TAB ────────────────────────────────────────── */
-function buildH2HTab(row){
-  const h2h=safeJSON(row.h2h,null);
-  if(!h2h)return{hasContent:false,html:_noData('H2H verisi mevcut değil')};
-
-  let html='',has=false;
-
-  const between=h2h.matchesBetween;
-  const bm=between?.matches||[];
-  if(bm.length){has=true;html+=`<div class="bd-section"><div class="bd-sh">${esc(between.title||'Aralarındaki Maçlar')}</div><div class="bd-h2h-list">${bm.map(m=>renderVH2HMatch(m)).join('')}</div></div>`;}
-
-  const sc=h2h.seasonComparison;
-  if(sc?.homeTeam&&sc?.awayTeam){
-    has=true;
-    html+=`<div class="bd-section"><div class="bd-sh">Sezon Karşılaştırması</div>${renderSeasonCompare(row,sc)}</div>`;
-  }
-
-  if(!has)return{hasContent:false,html:_noData('H2H verisi mevcut değil')};
-  return{hasContent:true,html};
-}
-
-function renderVH2HMatch(m){
-  const hScr=m.homeTeamScore??'-', aScr=m.awayTeamScore??'-';
-  const lg=m.tournamentName||'';
-  return `<div class="bd-h2h-row">
-    <div>
-      <div class="bd-h2h-meta"><span class="bd-h2h-date">${esc(m.date||'')}</span>${lg?`<span class="bd-h2h-league">${esc(lg)}</span>`:''}</div>
-      <div class="bd-h2h-match">
-        <span class="bd-h2h-t home">${esc(m.homeTeamName||'')}</span>
-        <span class="bd-h2h-sc">${esc(String(hScr))} – ${esc(String(aScr))}</span>
-        <span class="bd-h2h-t away">${esc(m.awayTeamName||'')}</span>
-      </div>
-    </div>
-    <span></span>
-  </div>`;
-}
-
-function renderSeasonCompare(row,sc){
-  const rows=[
-    {lbl:'Galibiyet',h:sc.homeTeam?.won,a:sc.awayTeam?.won},
-    {lbl:'Mağlubiyet',h:sc.homeTeam?.lost,a:sc.awayTeam?.lost},
-    {lbl:'Kazanılan Set',h:sc.homeTeam?.totalSetsWon,a:sc.awayTeam?.totalSetsWon},
-    {lbl:'Kaybedilen Set',h:sc.homeTeam?.totalSetsLost,a:sc.awayTeam?.totalSetsLost},
-    {lbl:'Maç Başı Ort. Sayı',h:sc.homeTeam?.averagePointsScoredPerMatch,a:sc.awayTeam?.averagePointsScoredPerMatch},
-  ];
-  const trs=rows.filter(r=>r.h!=null||r.a!=null).map(r=>`<tr><td>${esc(r.lbl)}</td><td>${r.h??'-'}</td><td>${r.a??'-'}</td></tr>`).join('');
-  if(!trs)return'';
-  return `<table class="bd-qtr-table"><thead><tr><th></th><th>${esc(row.home_team)}</th><th>${esc(row.away_team)}</th></tr></thead><tbody>${trs}</tbody></table>`;
-}
-
-/* ── PUAN DURUMU TAB ─────────────────────────────────── */
-function buildStandingsTab(row){
-  const sdata=safeJSON(row.standings,null);
-  if(!sdata)return{hasContent:false,html:_noData('Puan durumu verisi mevcut değil')};
-
-  let tables=[];
-  try{
-    if(sdata.season?.tables) tables=sdata.season.tables;
-    else if(sdata.tables)    tables=sdata.tables;
-    else if(Array.isArray(sdata)) tables=sdata;
-  }catch{}
-  if(!tables.length)return{hasContent:false,html:_noData('Puan durumu verisi mevcut değil')};
-
-  let html='';
-  tables.forEach(table=>{
-    const trows=table.tablerows||[]; if(!trows.length)return;
-    const tname=table.name||'';
-    html+=`<div class="bd-section">${tname?`<div class="bd-sh">${esc(tname)}</div>`:''}<div class="bd-std-wrap"><table class="bd-std-table">
-      <thead><tr><th class="c">#</th><th class="l">Takım</th><th>O</th><th class="g">G</th><th class="m">M</th><th>KS</th><th>AS</th><th>Avg</th><th class="pct">%</th></tr></thead>
-      <tbody>`;
-    trows.forEach(r=>{
-      const isH=(r.team?.name||'').toLowerCase()===row.home_team.toLowerCase();
-      const isA=(r.team?.name||'').toLowerCase()===row.away_team.toLowerCase();
-      const hl=isH?'row-h':(isA?'row-a':'');
-      const pct=r.pctTotal!=null?(r.pctTotal*100).toFixed(1)+' %':'-';
-      const diff=r.goalDiffTotal;
-      const avg=diff!=null?((diff>0?'+':'')+diff):'-';
-      const avgCls=diff>0?'pos':(diff<0?'neg':'');
-      html+=`<tr class="${hl}">
-        <td class="c pos-cell">${r.pos??'-'}</td>
-        <td class="team-cell"><span class="td-tname">${esc(r.team?.name||'-')}</span></td>
-        <td>${r.total??'-'}</td><td class="g">${r.winTotal??'-'}</td><td class="m">${r.lossTotal??'-'}</td>
-        <td>${r.goalsForTotal??'-'}</td><td>${r.goalsAgainstTotal??'-'}</td>
-        <td class="${avgCls}">${avg}</td><td class="pct">${pct}</td>
-      </tr>`;
-    });
-    html+=`</tbody></table></div></div>`;
-  });
-  if(!html)return{hasContent:false,html:_noData('Puan durumu verisi mevcut değil')};
-  return{hasContent:true,html};
-}
-
-/* ── LIVE REFRESH ─────────────────────────────────────── */
-async function refreshDetail(id){
-  const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-  const numId=parseInt(id,10);if(isNaN(numId))return;
-  const{data,error}=await sb.from('live_vball').select('*').eq('nesine_bid',numId).limit(1);
-  if(!error&&data?.length){
-    const activeBtn=document.querySelector('.bd-tab.active');
-    const activeTab=activeBtn?activeBtn.getAttribute('onclick').match(/'(\w+)'/)[1]:'oz';
-    renderDetail(data[0]);
-    const el=document.querySelector(`.bd-tab[onclick*="'${activeTab}'"]`);
-    if(el)switchBDTab(activeTab,el);
-  }
-}
-
-/* ── INIT ──────────────────────────────────────────────── */
-async function initDetail(){
-  const id=parseIdFromURL();
-  if(!id){showDetailError('Geçersiz maç adresi.');return;}
-  showDetailLoading();
-  if(typeof window.supabase==='undefined'){showDetailError('Supabase SDK yüklenemedi.');return;}
-  const row=await fetchMatchData(id);
-  if(!row){showDetailError(`Maç verisi bulunamadı (ID: ${id})`);return;}
-  renderDetail(row);
-  const st=vballStatus(row);
-  if(st.live)VD.refreshTimer=setInterval(()=>refreshDetail(id),20000);
-}
-
-function showDetailLoading(){document.getElementById('bd-root').innerHTML=`<div class="bd-init-loading"><div class="bd-spin"></div><div>Maç verisi yükleniyor…</div></div>`;}
-function showDetailError(msg){document.getElementById('bd-root').innerHTML=`<div class="bd-init-error"><div class="empty-mark"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2 16.5 15h-15L9 2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M9 7v3.5M9 12.6v.1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div>${esc(msg)}</div><a class="bd-back-btn" href="/voleybol/">← Voleybol Sayfasına Dön</a></div>`;}
-
-document.addEventListener('DOMContentLoaded',initDetail);
+</body>
+</html>
