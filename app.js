@@ -4783,75 +4783,82 @@ async function _loadDetailFromArchive(fixtureId) {
   const id    = String(fixtureId);
   const today = new Date();
 
+  const dates = [];
   for (let i = 0; i < 90; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().slice(0, 10);
+    dates.push(d.toISOString().slice(0, 10));
+  }
 
+  const BATCH_SIZE = 6; /* aynı anda en fazla bu kadar günlük dosya indirilir */
+
+  const fetchDay = async (dateStr) => {
     try {
-      let res  = await fetch(`${ARCHIVE_BASE}/${dateStr}.json.gz`);
+      let res = await fetch(`${ARCHIVE_BASE}/${dateStr}.json.gz`);
       let data;
-
       if (res.ok) {
         const ds   = new DecompressionStream('gzip');
         const body = new Response(res.body.pipeThrough(ds));
         data = await body.json();
       } else {
         res = await fetch(`${ARCHIVE_BASE}/${dateStr}.json`);
-        if (!res.ok) continue;
+        if (!res.ok) return null;
         data = await res.json();
       }
+      const list = Array.isArray(data) ? data
+                 : Array.isArray(data?.response) ? data.response : [];
+      return list.find(m => String(m?.fixture?.id) === id) || null;
+    } catch { return null; }
+  };
 
-      const list  = Array.isArray(data) ? data
-                  : Array.isArray(data?.response) ? data.response : [];
-      const found = list.find(m => String(m?.fixture?.id) === id);
-      if (!found) continue;
-
-      /* archiveAdapt fonksiyonlarını kullan (app.js'de zaten var) */
-      const m    = normFix({
-        fixture_id:   found.fixture?.id,
-        home_team:    found.teams?.home?.name   || '',
-        away_team:    found.teams?.away?.name   || '',
-        home_team_id: found.teams?.home?.id     ?? null,
-        away_team_id: found.teams?.away?.id     ?? null,
-        home_score:   found.goals?.home         ?? null,
-        away_score:   found.goals?.away         ?? null,
-        league_name:  found.league?.name        || '',
-        status_short: found.fixture?.status?.short || 'FT',
-        elapsed_time: found.fixture?.status?.elapsed ?? null,
-        kickoff_time: found.fixture?.date       || null,
-        home_logo:    found.teams?.home?.logo   || '',
-        away_logo:    found.teams?.away?.logo   || '',
-        raw_data:     null,
-      });
-
-      const evs   = archiveAdaptEvents(found.events  || []);
-      const stats = archiveAdaptStats(found.stats    || []);
-      const lus   = archiveAdaptLineups(found.lineups || {}, found);
-      const h2h   = archiveAdaptH2H(found.h2h        || []);
-
-      /* Router meta güncelle */
-      if (typeof Router !== 'undefined' && Router.setMatchMeta) {
-        Router.setMatchMeta(
-          m.home_team, m.away_team,
-          m.home_score, m.away_score,
-          m.league_name,
-          m.status_short || 'FT',
-          m.fixture_id,
-          m.kickoff_time,
-          m.home_logo, m.away_logo,
-          null
-        );
-      }
-
-      return { m, evs, stats, lus, h2h };
-
-    } catch { /* bu günü atla */ }
+  let found = null;
+  for (let i = 0; i < dates.length && !found; i += BATCH_SIZE) {
+    const batch = dates.slice(i, i + BATCH_SIZE);
+    const results = await Promise.all(batch.map(fetchDay));
+    found = results.find(r => r) || null;
   }
 
-  return null;
-}
+  if (!found) return null;
 
+  /* archiveAdapt fonksiyonlarını kullan (app.js'de zaten var) */
+  const m = normFix({
+    fixture_id:   found.fixture?.id,
+    home_team:    found.teams?.home?.name   || '',
+    away_team:    found.teams?.away?.name   || '',
+    home_team_id: found.teams?.home?.id     ?? null,
+    away_team_id: found.teams?.away?.id     ?? null,
+    home_score:   found.goals?.home         ?? null,
+    away_score:   found.goals?.away         ?? null,
+    league_name:  found.league?.name        || '',
+    status_short: found.fixture?.status?.short || 'FT',
+    elapsed_time: found.fixture?.status?.elapsed ?? null,
+    kickoff_time: found.fixture?.date       || null,
+    home_logo:    found.teams?.home?.logo   || '',
+    away_logo:    found.teams?.away?.logo   || '',
+    raw_data:     null,
+  });
+
+  const evs   = archiveAdaptEvents(found.events  || []);
+  const stats = archiveAdaptStats(found.stats    || []);
+  const lus   = archiveAdaptLineups(found.lineups || {}, found);
+  const h2h   = archiveAdaptH2H(found.h2h        || []);
+
+  /* Router meta güncelle */
+  if (typeof Router !== 'undefined' && Router.setMatchMeta) {
+    Router.setMatchMeta(
+      m.home_team, m.away_team,
+      m.home_score, m.away_score,
+      m.league_name,
+      m.status_short || 'FT',
+      m.fixture_id,
+      m.kickoff_time,
+      m.home_logo, m.away_logo,
+      null
+    );
+  }
+
+  return { m, evs, stats, lus, h2h };
+}
 
 /* ══════════════════════════════════════════════════════════════════
    TAKIM PROFİL SAYFASI  (mac_t_id ile tm_teams'e bağlı)
